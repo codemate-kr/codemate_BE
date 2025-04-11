@@ -1,0 +1,25 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: helper
+      MYSQL_USER: user
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql  # MySQL 데이터 영속성
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      PMA_HOST: mysql  # MySQL 컨테이너의 이름
+    ports:
+      - "18080:80"  # 호스트의 18080 포트를 phpMyAdmin의 80 포트에 매핑
+    depends_on:
+      - mysql
