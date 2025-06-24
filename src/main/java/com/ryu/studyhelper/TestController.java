@@ -1,10 +1,8 @@
 package com.ryu.studyhelper;
 
+import com.ryu.studyhelper.dto.ProblemInfo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -15,7 +13,11 @@ public class TestController {
 
     @GetMapping("/test/{handle}")
     public void test(@PathVariable String handle) {
-        testService.getUnsolvedProblems(handle);
+        testService.printUserInfo(handle);
     }
 
+    @PostMapping("/recommend")
+    public List<ProblemInfo> recommend(@RequestBody List<String> handles) {
+        return testService.recommend(handles, 1); // 기본 추천 개수 3
+    }
 }
