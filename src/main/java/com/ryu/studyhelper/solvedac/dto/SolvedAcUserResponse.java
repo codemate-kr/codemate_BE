@@ -1,4 +1,4 @@
-package com.ryu.studyhelper;
+package com.ryu.studyhelper.solvedac.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
