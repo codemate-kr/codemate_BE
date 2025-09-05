@@ -1,7 +1,7 @@
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.4'
+    id 'org.springframework.boot' version '3.2.0'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -21,6 +21,36 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Swagger / OpenAPI UI
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0"
+
+
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf' // HTML 템플릿 렌더링
+
+    //OAuth - security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+    //OAuth jwt
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+
+    // dotenv
+    implementation("io.github.cdimascio:java-dotenv:5.2.2")
+
+
+
+
     runtimeOnly 'com.mysql:mysql-connector-j'
 
     //mac m1 호환 이슈
