@@ -53,25 +53,22 @@ dependencies {
 
     runtimeOnly 'com.mysql:mysql-connector-j'
 
-    //mac m1 호환 이슈
+    // mac m1 호환 이슈
     runtimeOnly "io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64"
 
-    //WebCLient
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
-    //액추에이터
+    // 액추에이터
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    // External HTTP client for synchronous calls
+    implementation 'org.apache.httpcomponents.client5:httpclient5'
 
-
-    //Lombok
+    // Lombok
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'
 
-
-
-    //test
+    // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
