@@ -1,12 +1,13 @@
 package com.ryu.studyhelper.config.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ryu.studyhelper.common.dto.ApiResponse;
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
@@ -15,67 +16,49 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
-    
+
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
-    /***
-     * JWT 인증이 실패했을 때 호출되는 메서드
-     * 토큰이 없거나, 유효하지 않은 경우 401 응답 반환
+
+    /**
+     * 인증 실패(컨트롤러 도달 전) 시 호출되어 통일된 에러 포맷(ApiResponse)으로 응답한다.
+     * 필터에서 request.setAttribute("exception", "...")로 설정한 태그 값을 참조한다.
      */
     @Override
-    public void commence(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            AuthenticationException authException)
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException authException)
             throws IOException, ServletException {
-        
-        String exception = (String) request.getAttribute("exception");
-        
-        log.error("JWT Authentication failed: {} | Exception: {}", authException.getMessage(), exception);
-        
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+        // JwtAuthenticationFilter 에서 setAttribute("exception", TAG) 로 심어둔 값
+        final String tag = (String) request.getAttribute("exception");
+        log.debug("Auth failure tag from filter: {}", tag);
+
+        // 태그 → CustomResponseStatus 매핑 (UNKNOWN_ERROR도 401로, 태그 없는 경우만 403)
+        final String tagSafe = (tag == null) ? "" : tag;
+        final CustomResponseStatus status = switch (tagSafe) {
+            case "EXPIRED_TOKEN"     -> CustomResponseStatus.EXPIRED_JWT; // 401
+            case "MALFORMED_TOKEN"   -> CustomResponseStatus.BAD_JWT;     // 401
+            case "UNSUPPORTED_TOKEN" -> CustomResponseStatus.BAD_JWT;     // 401
+            case "INVALID_SIGNATURE" -> CustomResponseStatus.BAD_JWT;     // 401
+            case "EMPTY_TOKEN"       -> CustomResponseStatus.BAD_JWT;     // 401
+            case "BAD_TOKEN"         -> CustomResponseStatus.BAD_TOKEN;   // 400
+            case "UNKNOWN_ERROR"     -> CustomResponseStatus.BAD_JWT;     // 401 (필터에서 일반 예외로 태깅된 경우)
+            case ""                  -> CustomResponseStatus.ACCESS_DENIED; // 403 (태그 없음 = 토큰 미제공 등)
+            default                  -> CustomResponseStatus.BAD_JWT;     // 401 (알 수 없는 태그는 401로 처리)
+        };
+
+        log.error("JWT Authentication failed: {} | tag: {}", authException.getMessage(), tag);
+
+        response.setStatus(status.getHttpStatusCode());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", 401);
-        errorResponse.put("timestamp", System.currentTimeMillis());
-        errorResponse.put("path", request.getRequestURI());
-        
-        // 예외 유형에 따른 세부 메시지 설정
-        if (exception != null) {
-            switch (exception) {
-                case "EXPIRED_TOKEN":
-                    errorResponse.put("error", "EXPIRED_TOKEN");
-                    errorResponse.put("message", "토큰이 만료되었습니다. 새로운 토큰으로 다시 시도해주세요.");
-                    break;
-                case "MALFORMED_TOKEN":
-                    errorResponse.put("error", "MALFORMED_TOKEN");
-                    errorResponse.put("message", "토큰 형식이 올바르지 않습니다.");
-                    break;
-                case "UNSUPPORTED_TOKEN":
-                    errorResponse.put("error", "UNSUPPORTED_TOKEN");
-                    errorResponse.put("message", "지원되지 않는 토큰입니다.");
-                    break;
-                case "INVALID_SIGNATURE":
-                    errorResponse.put("error", "INVALID_SIGNATURE");
-                    errorResponse.put("message", "토큰 서명이 유효하지 않습니다.");
-                    break;
-                case "EMPTY_TOKEN":
-                    errorResponse.put("error", "EMPTY_TOKEN");
-                    errorResponse.put("message", "토큰이 비어있습니다.");
-                    break;
-                default:
-                    errorResponse.put("error", "AUTHENTICATION_FAILED");
-                    errorResponse.put("message", "인증에 실패했습니다.");
-            }
-        } else {
-            errorResponse.put("error", "UNAUTHORIZED");
-            errorResponse.put("message", "인증이 필요합니다. 유효한 토큰을 제공해주세요.");
-        }
-        
-        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
-        response.getWriter().write(jsonResponse);
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Pragma", "no-cache");
+
+        // 통일 포맷으로 응답 ({"httpStatusCode", "code", "message", "data": null})
+        String body = objectMapper.writeValueAsString(ApiResponse.createError(status));
+        response.getWriter().write(body);
     }
 }

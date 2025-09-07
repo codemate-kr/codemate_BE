@@ -2,6 +2,8 @@ package com.ryu.studyhelper.config.jwt.filter;
 
 import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetailsService;
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -11,11 +13,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -42,44 +43,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 토큰 유효성 검증
             if (token != null) {
-                if (jwtUtil.validateToken(token)) {
-                    // 3. 토큰에서 사용자 정보 추출
-                    Long id = jwtUtil.getIdFromToken(token);
+                //jwt 검증
+                jwtUtil.validateTokenOrThrow(token);
 
-                    // 4. 사용자 상세 정보 로드
-                    UserDetails userDetails = principalDetailsService.loadUserByUsername(String.valueOf(id));
+                // 3. 토큰에서 사용자 정보 추출
+                Long id = jwtUtil.getIdFromToken(token);
 
-                    // 5. 인증 객체 생성 및 SecurityContext에 저장
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
+                // 4. 사용자 상세 정보 로드
+                UserDetails userDetails = principalDetailsService.loadUserByUsername(String.valueOf(id));
 
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                // 5. 인증 객체 생성 및 SecurityContext에 저장
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
 
-                    log.debug("JWT 인증 성공: {}", id);
-                } else {
-                    log.warn("유효하지 않은 JWT 토큰: {}", request.getRequestURI());
-                }
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                log.debug("JWT 인증 성공: {}", id);
+
             }
-        } catch (ExpiredJwtException e) {
-            log.error("JWT 토큰이 만료되었습니다: {}", e.getMessage());
-            request.setAttribute("exception", "EXPIRED_TOKEN");
-        } catch (MalformedJwtException e) {
-            log.error("잘못된 JWT 토큰 형식입니다: {}", e.getMessage());
-            request.setAttribute("exception", "MALFORMED_TOKEN");
-        } catch (UnsupportedJwtException e) {
-            log.error("지원되지 않는 JWT 토큰입니다: {}", e.getMessage());
-            request.setAttribute("exception", "UNSUPPORTED_TOKEN");
-        } catch (SignatureException e) {
-            log.error("JWT 서명이 유효하지 않습니다: {}", e.getMessage());
-            request.setAttribute("exception", "INVALID_SIGNATURE");
-        } catch (IllegalArgumentException e) {
-            log.error("JWT 토큰이 비어있습니다: {}", e.getMessage());
-            request.setAttribute("exception", "EMPTY_TOKEN");
+        } catch (CustomException e) {
+            CustomResponseStatus s = e.getStatus();
+            if (s == CustomResponseStatus.EXPIRED_JWT) {
+                request.setAttribute("exception", "EXPIRED_TOKEN");
+            } else if (s == CustomResponseStatus.BAD_JWT) {
+                request.setAttribute("exception", "MALFORMED_TOKEN");
+            } else if (s == CustomResponseStatus.BAD_TOKEN) {
+                request.setAttribute("exception", "BAD_TOKEN");
+            } else {
+                request.setAttribute("exception", "UNKNOWN_ERROR");
+            }
+            log.error("JWT 도메인 예외 발생: {} ({})", s.getMessage(), s.getCode());
         } catch (Exception e) {
             log.error("JWT 토큰 처리 중 예상치 못한 오류가 발생했습니다: {}", e.getMessage());
             request.setAttribute("exception", "UNKNOWN_ERROR");
@@ -107,8 +105,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/oauth2") ||
-                path.startsWith("/login") ||
-                path.startsWith("/api/public");
+        return path.startsWith("/oauth2")
+                || path.startsWith("/login")
+                || path.startsWith("/auth/refresh")
+                || path.startsWith("/api/public")
+                || path.startsWith("/swagger")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/error")
+                || path.startsWith("/html")
+                || path.startsWith("/css")
+                || path.startsWith("/js");
     }
 }

@@ -46,6 +46,9 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}  # JWT 서명에 사용할 비밀 키
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
 
 springdoc:
   api-docs:

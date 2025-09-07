@@ -1,5 +1,7 @@
 package com.ryu.studyhelper.config.jwt.util;
 
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -16,7 +18,9 @@ public class JwtUtil {
 
     /** 액세스/리프레시 만료시간 */
     public static final long ACCESS_TOKEN_VALID_MS  = 1000L * 60 * 60;          // 1시간
+//    public static final long ACCESS_TOKEN_VALID_MS  = 1000L * 30;          // 30초 테스트
     public static final long REFRESH_TOKEN_VALID_MS = 1000L * 60 * 60 * 24 * 14; // 14일
+//    public static final long REFRESH_TOKEN_VALID_MS = 1000L * 60; // 1분 테스트
 
     private final Key secretKey;
 
@@ -79,23 +83,25 @@ public class JwtUtil {
     /**
      * 토큰 유효성 검증
      */
-    public boolean validateToken(String token) {
+    public void validateTokenOrThrow(String token) {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
                     .parseClaimsJws(token);
-            return true;
         } catch (SecurityException | MalformedJwtException e) {
             log.error("잘못된 JWT 서명입니다.");
+            throw new CustomException(CustomResponseStatus.BAD_JWT);
         } catch (ExpiredJwtException e) {
             log.error("만료된 JWT 토큰입니다.");
+            throw new CustomException(CustomResponseStatus.EXPIRED_JWT);
         } catch (UnsupportedJwtException e) {
             log.error("지원되지 않는 JWT 토큰입니다.");
+            throw new CustomException(CustomResponseStatus.BAD_JWT);
         } catch (IllegalArgumentException e) {
             log.error("JWT 토큰이 잘못되었습니다.");
+            throw new CustomException(CustomResponseStatus.BAD_JWT);
         }
-        return false;
     }
 
     /**

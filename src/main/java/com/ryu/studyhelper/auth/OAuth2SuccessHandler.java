@@ -1,6 +1,7 @@
 package com.ryu.studyhelper.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ryu.studyhelper.auth.token.RefreshCookieManager;
 import com.ryu.studyhelper.auth.token.RefreshTokenService;
 import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
@@ -22,6 +23,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshCookieManager refreshCookieManager;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -45,23 +47,30 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 2. Refresh Token을 Redis에 저장
         refreshTokenService.saveRefreshToken(member.getId(), refreshToken);
 
-        // 3. 사용자 상태에 따라 리다이렉트 결정
-        String redirectUrl = determineRedirectUrl(member, accessToken, refreshToken);
+        // 3. Refresh Token을 HttpOnly 쿠키에 저장
+        refreshCookieManager.write(response, refreshToken);
+
+        // 4. 사용자 상태에 따라 리다이렉트 결정 (Access Token만 URL로 전달)
+        String redirectUrl = determineRedirectUrl(member, accessToken);
 
         log.info("OAuth2 login success for user: {}", member.getEmail());
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
-    private String determineRedirectUrl(Member member, String accessToken, String refreshToken) {
-        String baseUrl = "http://localhost:3000";
-        String tokenParams = String.format("?access_token=%s&refresh_token=%s", accessToken, refreshToken);
-        log.info("Generated tokens - Access: {}, Refresh: {}", accessToken, refreshToken);
-        if (!member.isVerified()) {
-            // 백준 인증 미완료 → 인증 페이지로
-            return baseUrl + "/auth/verify-boj" + tokenParams;
-        } else {
-            // 인증 완료 → 대시보드로
-            return baseUrl + "/dashboard" + tokenParams;
-        }
+    private String determineRedirectUrl(Member member, String accessToken) {
+//        String baseUrl = "http://localhost:3000";
+        String baseUrl = "http://localhost:8080/html/index.html";
+        String tokenParams = String.format("?access_token=%s", accessToken);
+        log.info("Generated access token: {}", accessToken);
+
+        return baseUrl + tokenParams;
+
+//        if (!member.isVerified()) {
+//            // 백준 인증 미완료 → 인증 페이지로
+//            return baseUrl + "/auth/verify-boj" + tokenParams;
+//        } else {
+//            // 인증 완료 → 대시보드로
+//            return baseUrl + "/dashboard" + tokenParams;
+//        }
     }
 }
