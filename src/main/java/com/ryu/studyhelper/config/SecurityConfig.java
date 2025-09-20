@@ -51,10 +51,13 @@ public class SecurityConfig {
                 
                 // OAuth2 & 인증
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                .requestMatchers("/auth/refresh").permitAll()
+                .requestMatchers("/api/auth/refresh").permitAll()
                 
                 // 사용자 관련 (사용하지 않으면 제거 고려)
-                .requestMatchers("/user/signup", "/user/signin").permitAll()
+//                .requestMatchers("/user/signup", "/user/signin").permitAll()
+                
+                // Swagger 테스트용 - 모든 API 개방
+//                .requestMatchers("/api/**").permitAll()
                 
                 .anyRequest().authenticated()
         );

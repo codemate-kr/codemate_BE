@@ -39,7 +39,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 1. JWT 토큰 생성
         String accessToken = jwtUtil.createAccessToken(
                 member.getId(),
-                member.getRole().getValue()
+                member.getRole().name()
         );
 
         String refreshToken = jwtUtil.createRefreshToken(member.getId());
@@ -58,8 +58,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     }
 
     private String determineRedirectUrl(Member member, String accessToken) {
-//        String baseUrl = "http://localhost:3000";
-        String baseUrl = "http://localhost:8080/html/index.html";
+        String baseUrl = "http://localhost:5174";
+//        String baseUrl = "http://localhost:8080/html/index.html";
         String tokenParams = String.format("?access_token=%s", accessToken);
         log.info("Generated access token: {}", accessToken);
 
