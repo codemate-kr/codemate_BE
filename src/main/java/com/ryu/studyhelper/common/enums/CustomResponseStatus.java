@@ -25,6 +25,8 @@ public enum CustomResponseStatus {
     LOGOUT_MEMBER(HttpStatus.FORBIDDEN.value(), "3001", "로그아웃된 사용자입니다."),
     ALREADY_MAP_EXIST(HttpStatus.CONFLICT.value(), "3002", "이미 존재하는 채팅 입니다. 새롭게 시작할 수 없습니다."),
     ALREADY_EVALUATION_MAP_EXIST(HttpStatus.CONFLICT.value(), "3003", "평가리스트가 존재합니다. 새롭게 만들 수 없습니다."),
+    HANDLE_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3004", "이미 사용 중인 핸들입니다."),
+    TEAM_ACCESS_DENIED(HttpStatus.FORBIDDEN.value(), "3005", "해당 팀에 대한 접근 권한이 없습니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -41,6 +43,8 @@ public enum CustomResponseStatus {
     GITHUB_USER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4008", "해당 GitHub 사용자를 찾을 수 없습니다."),
     GITHUB_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "4009", "GitHub API 호출에 실패했습니다."),
     COMMIT_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4010", "해당 커밋 기록을 찾을 수 없습니다."),
+    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4011", "해당 추천을 찾을 수 없습니다."),
+    TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4012", "팀 멤버를 찾을 수 없습니다."),
     //    MAP_VALUE_NOT_EXIST(HttpStatus.NOT_FOUND.value(), "4005", "채팅이 존재하지 않습니다. 채팅을 새롭게 시작해주세요."),
     //    EVALUATION_SERVER_NOT_ANSWER(HttpStatus.NOT_FOUND.value(), "4006", "평가서버가 응답하지 않습니다."),
     //    CS_CHAT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4007", "해당 CS 채팅이 존재하지 않습니다."),
