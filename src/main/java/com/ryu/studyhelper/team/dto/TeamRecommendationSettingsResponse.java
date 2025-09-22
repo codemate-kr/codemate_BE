@@ -1,0 +1,32 @@
+package com.ryu.studyhelper.team.dto;
+
+import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
+import com.ryu.studyhelper.team.domain.Team;
+
+import java.util.Set;
+
+/**
+ * 팀별 추천 설정 응답 DTO
+ */
+public record TeamRecommendationSettingsResponse(
+        Long teamId,
+        String teamName,
+        boolean isActive,
+        Set<RecommendationDayOfWeek> recommendationDays,
+        String[] recommendationDayNames // 한글 요일명
+) {
+    public static TeamRecommendationSettingsResponse from(Team team) {
+        Set<RecommendationDayOfWeek> days = team.getRecommendationDaysSet();
+        String[] dayNames = days.stream()
+                .map(RecommendationDayOfWeek::getKoreanName)
+                .toArray(String[]::new);
+        
+        return new TeamRecommendationSettingsResponse(
+                team.getId(),
+                team.getName(),
+                team.isRecommendationActive(),
+                days,
+                dayNames
+        );
+    }
+}
