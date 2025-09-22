@@ -1,6 +1,6 @@
 package com.ryu.studyhelper.solvedac;
 
-import com.ryu.studyhelper.dto.ProblemInfo;
+import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
