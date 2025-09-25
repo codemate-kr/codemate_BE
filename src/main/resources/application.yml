@@ -1,17 +1,19 @@
+# 공통 설정 - 모든 환경에서 공유
 spring:
   config:
     import: optional:file:.env[.properties]
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+
+  # 프로파일 활성화 (기본값: local)
+  profiles:
+    default: local
+
+  # JPA 공통 설정
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  # OAuth2 공통 설정
   security:
     oauth2:
       client:
@@ -24,42 +26,34 @@ spring:
         provider:
           google:
             issuer-uri: https://accounts.google.com
-#            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-#            token-uri: https://oauth2.googleapis.com/token
-#            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-#            user-name-attribute: sub
 
-
+  # 메일 공통 설정
   mail:
-    host: smtp.gmail.com          # 구글 SMTP 서버 주소
-    port: 587                     # 구글 SMTP 포트 번호
-    username: ${MAIL_USERNAME}  # 사용자 이메일
-    password: ${MAIL_PASSWORD}  # 사용자 앱 비밀번호
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth: true              # 사용자 인증 여부
-#          timeout: 5000           # 이메일 전송 타임아웃 시간
+          auth: true
           starttls:
-            enable: true          # TLS를 통해 안전한 통신 사용 여부
-        debug: false                  # 문제 원인 추적 로그
+            enable: true
 
+# JWT 공통 설정
 jwt:
-  secret: ${JWT_SECRET}  # JWT 서명에 사용할 비밀 키
+  secret: ${JWT_SECRET}
   redis:
     host: ${REDIS_HOST}
     port: ${REDIS_PORT}
 
+# Swagger 공통 설정
 springdoc:
   api-docs:
-    enabled: true
     path: /v3/api-docs
   swagger-ui:
-    enabled: true
     path: /swagger-ui
-#    doc-expansion:     # list, full, none
     display-request-duration: true
-  paths-to-match: /api/**  # 문서화할 URL 패턴 (필요 시 조정)
-  # packages-to-scan: com.ryu.studyhelper  # 패키지 제한이 필요하면 주석 해제 후 실제 루트 패키지로 변경
+  paths-to-match: /api/**
 
 

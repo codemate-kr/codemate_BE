@@ -53,6 +53,9 @@ dependencies {
 
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // 테스트용 H2 데이터베이스
+    testRuntimeOnly 'com.h2database:h2'
+
     // mac m1 호환 이슈
     runtimeOnly "io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64"
 

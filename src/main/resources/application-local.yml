@@ -1,0 +1,54 @@
+# 로컬 개발환경 설정
+server:
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: logs
+      prefix: access
+      suffix: .log
+      buffered: true
+      # 원 IP와 프록시 헤더까지 찍기
+      pattern: '%h %l %u %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %{X-Forwarded-For}i %a'
+
+spring:
+  # 로컬 DB 설정
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/helper}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+
+  # 로컬 JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update  # 로컬에서는 자동 스키마 업데이트
+    show-sql: true      # SQL 로그 출력
+    properties:
+      hibernate:
+        format_sql: true  # SQL 포맷팅
+
+  # 메일 디버그 설정
+  mail:
+    properties:
+      mail:
+        debug: true  # 로컬에서는 메일 디버그 활성화
+
+# 로컬 쿠키 설정
+cookie:
+  secure: false       # HTTP 허용 (로컬 개발)
+  same-site: Lax     # 크로스 오리진 허용
+  domain: localhost  # 로컬 도메인
+
+# Swagger 개발환경 설정
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    # doc-expansion: list  # API 목록 확장 표시
+
+# 로깅 설정
+logging:
+  level:
+    com.ryu.studyhelper: DEBUG  # 프로젝트 로그 레벨
+    org.springframework.security: DEBUG  # 보안 관련 로그
+    org.hibernate.SQL: DEBUG    # SQL 로그

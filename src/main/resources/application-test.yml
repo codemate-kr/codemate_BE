@@ -1,0 +1,70 @@
+# 테스트 환경 설정
+spring:
+  # 테스트용 인메모리 DB 설정
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # H2 콘솔 활성화 (테스트 디버깅용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # 테스트용 JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 테스트마다 스키마 재생성
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # 메일 설정 (테스트용 - 실제 전송 안함)
+  mail:
+    host: localhost
+    port: 25
+    properties:
+      mail:
+        smtp:
+          auth: false
+        debug: false
+
+  # 테스트용 Redis 설정 (임베디드)
+  data:
+    redis:
+      host: localhost
+      port: 0  # 0으로 설정하면 사용 가능한 포트 자동 할당
+      timeout: 2000ms
+
+# 테스트용 JWT 설정
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHktdGhpcy1pcy1ub3QtZm9yLXByb2R1Y3Rpb24=
+  redis:
+    host: localhost
+    port: 0  # 임베디드 Redis 포트와 일치
+
+# 테스트용 쿠키 설정
+cookie:
+  secure: false
+  same-site: Lax
+  domain: localhost
+
+# Swagger 테스트 설정 (비활성화)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# 테스트 로깅 설정
+logging:
+  level:
+    com.ryu.studyhelper: DEBUG
+    org.springframework.test: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
