@@ -33,19 +33,12 @@ spring:
           auth: false
         debug: false
 
-  # 테스트용 Redis 설정 (임베디드)
-  data:
-    redis:
-      host: localhost
-      port: 0  # 0으로 설정하면 사용 가능한 포트 자동 할당
-      timeout: 2000ms
-
 # 테스트용 JWT 설정
 jwt:
   secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHktdGhpcy1pcy1ub3QtZm9yLXByb2R1Y3Rpb24=
   redis:
     host: localhost
-    port: 0  # 임베디드 Redis 포트와 일치
+    port: 6370  # 테스트용 포트 (Redis가 없어도 Bean 생성은 가능)
 
 # 테스트용 쿠키 설정
 cookie:
