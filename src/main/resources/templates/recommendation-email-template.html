@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title th:text="${subject}">추천 문제</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8f9fa;">
+    <!-- 메인 컨테이너 테이블 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; padding: 20px;">
+        <tr>
+            <td align="center">
+                <!-- 이메일 콘텐츠 테이블 -->
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+                    
+                    <!-- 헤더 -->
+                    <tr>
+                        <td style="background-color: #667eea; color: white; padding: 30px 20px; text-align: center;">
+                            <img th:if="${logoImage}" th:src="'data:image/png;base64,' + ${logoImage}" 
+                                 alt="StudyHalp Logo" 
+                                 style="width: 60px; height: 60px; margin-bottom: 15px; border-radius: 8px;"/>
+                            <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">StudyHalp</h1>
+                            <p style="margin: 0; font-size: 16px; opacity: 0.9;">알고리즘 문제 추천 서비스</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- 콘텐츠 -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            
+                            <!-- 인사말 -->
+                            <p style="font-size: 18px; margin: 0 0 25px 0; color: #2c3e50;">안녕하세요! 👋</p>
+                            
+                            <!-- 팀 정보 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f093fb; color: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <h2 style="margin: 0 0 5px 0; font-size: 20px;" th:text="${teamName} + '팀'">팀명</h2>
+                                        <div style="font-size: 14px; opacity: 0.9;" th:text="${recommendationDate} + ' 추천 문제'">날짜</div>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- 추천 문제 섹션 -->
+                            <h3 style="font-size: 18px; color: #2c3e50; margin: 0 0 20px 0;">🎯 오늘의 추천 문제</h3>
+                            
+                            <!-- 문제 목록 -->
+                            <div th:each="problem : ${problems}">
+                                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                                    <tr>
+                                        <td>
+                                            <!-- 문제 제목 -->
+                                            <div style="margin-bottom: 8px;">
+                                                <span style="display: inline-block; background-color: #667eea; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; font-size: 14px; margin-right: 12px;" 
+                                                      th:text="${problem.order}">1</span>
+                                                <span style="font-size: 16px; font-weight: 600; color: #2c3e50;" th:text="${problem.title}">문제 제목</span>
+                                            </div>
+                                            
+                                            <!-- 문제 메타 정보 -->
+                                            <div>
+                                                <span th:if="${problem.level} <= 5" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; margin-right: 15px; background-color: #28a745;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                <span th:if="${problem.level} > 5 and ${problem.level} <= 10" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; margin-right: 15px; background-color: #17a2b8;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                <span th:if="${problem.level} > 10 and ${problem.level} <= 15" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #212529; margin-right: 15px; background-color: #ffc107;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                <span th:if="${problem.level} > 15 and ${problem.level} <= 20" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; margin-right: 15px; background-color: #fd7e14;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                <span th:if="${problem.level} > 20 and ${problem.level} <= 25" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; margin-right: 15px; background-color: #e83e8c;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                <span th:if="${problem.level} > 25" 
+                                                      style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; margin-right: 15px; background-color: #6f42c1;"
+                                                      th:text="'Level ' + ${problem.level}">Level</span>
+                                                
+                                                <a th:href="${problem.url}" 
+                                                   style="display: inline-block; background-color: #667eea; color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;"
+                                                   target="_blank">문제 풀어보기 →</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <!-- 격려 메시지 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #667eea; color: white; padding: 25px; border-radius: 8px; margin: 30px 0; text-align: center;">
+                                <tr>
+                                    <td>
+                                        <h3 style="margin: 0 0 8px 0; font-size: 18px;">🔥 화이팅!</h3>
+                                        <p style="margin: 0; font-size: 16px; opacity: 0.9;">오늘도 한 문제씩 정복해 나가요!</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- 푸터 -->
+                    <tr>
+                        <td style="background-color: #2c3e50; color: white; padding: 25px 30px; text-align: center; font-size: 14px;">
+                            <p style="margin: 0 0 8px 0;"><strong>StudyHalp</strong> - 함께하는 알고리즘 스터디</p>
+                            <p style="margin: 0;">이 이메일은 자동으로 발송되었습니다.</p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

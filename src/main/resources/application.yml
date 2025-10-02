@@ -1,12 +1,59 @@
+# 공통 설정 - 모든 환경에서 공유
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/helper?serverTimezone=UTC&characterEncoding=UTF-8
-    username: root
-    password: root
+  config:
+    import: optional:file:.env[.properties]
+
+  # 프로파일 활성화 (기본값: local)
+  profiles:
+    default: local
+
+  # JPA 공통 설정
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
     properties:
       hibernate:
-        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  # OAuth2 공통 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: [email, profile] # openid도 넣으면 OIDC로 작동하게 됨 (코드 변경)
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+
+  # 메일 공통 설정
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# JWT 공통 설정
+jwt:
+  secret: ${JWT_SECRET}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+
+# Swagger 공통 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui
+    display-request-duration: true
+  paths-to-match: /api/**
+
+

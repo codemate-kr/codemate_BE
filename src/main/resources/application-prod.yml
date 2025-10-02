@@ -1,0 +1,92 @@
+# 프로덕션 환경 설정
+server:
+  port: 8080
+  tomcat:
+    # 프로덕션 액세스 로그 설정
+    accesslog:
+      enabled: true
+      directory: /var/log/app
+      prefix: access
+      suffix: .log
+      buffered: false  # 프로덕션에서는 즉시 쓰기
+      pattern: '%h %l %u %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %{X-Forwarded-For}i %a %D'
+    # 성능 최적화
+    threads:
+      max: 200
+      min-spare: 10
+    max-connections: 8192
+
+spring:
+  # 프로덕션 DB 설정
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    # 커넥션 풀 최적화
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # 프로덕션 JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 프로덕션에서는 스키마 검증만
+    show-sql: false       # SQL 로그 비활성화
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 20
+
+  # 메일 설정 (디버그 비활성화)
+  mail:
+    properties:
+      mail:
+        debug: false
+
+# 프로덕션 쿠키 설정
+cookie:
+  secure: true          # HTTPS 전용
+  same-site: Strict     # 엄격한 SameSite 정책
+  domain: ${COOKIE_DOMAIN:yourdomain.com}  # 실제 도메인으로 변경
+
+# Swagger 프로덕션 설정 (비활성화 권장)
+springdoc:
+  api-docs:
+    enabled: false  # 프로덕션에서는 API 문서 비활성화
+  swagger-ui:
+    enabled: false  # 프로덕션에서는 Swagger UI 비활성화
+
+# 프로덕션 로깅 설정
+logging:
+  level:
+    root: WARN
+    com.ryu.studyhelper: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /var/log/app/application.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+
+# 액추에이터 프로덕션 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never  # 상세 정보 숨김
+  server:
+    port: 9090  # 관리 포트 분리

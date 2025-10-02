@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Refresh Flow Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    input, button { padding: 8px 12px; font-size: 14px; }
+    #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 12px; border-radius: 8px; min-height: 160px; }
+    code { background: #f3f3f3; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<h1>Access/Refresh 토큰 플로우 테스트</h1>
+
+<div class="row">
+  <label>API Base URL:</label>
+  <input id="baseUrl" size="40" value="http://localhost:8080" />
+</div>
+
+<div class="row">
+  <button id="btnLogin">1) 브라우저로 구글 로그인 시작</button>
+  <span>→ 성공 시 서버의 SuccessHandler가 <code>Set-Cookie: refreshToken</code> 내려줌</span>
+</div>
+
+<div class="row">
+  <button id="btnCall">2) 보호 API 호출</button>
+  <!-- 🔥 여기 기본값을 recommend API로 변경 -->
+  <input id="protectedPath" size="60" value="/api/problem/recommend?handle=test_handle&count=3" />
+  <span>헤더에 <code>Authorization: Bearer &lt;accessToken&gt;</code></span>
+</div>
+
+<div class="row">
+  <button id="btnExpire">강제로 AT 비우기(만료 시뮬레이션)</button>
+  <button id="btnRefresh">/auth/refresh 직접 호출</button>
+</div>
+
+<div class="row">
+  <button id="btnShowCookies">현재 쿠키 보기(도메인 기준)</button>
+  <small>※ HttpOnly 쿠키 값은 JS로 읽을 수 없음(정상 동작)</small>
+</div>
+
+<h3>메모리 저장된 AccessToken</h3>
+<div class="row">
+  <code id="atPreview">(없음)</code>
+</div>
+
+<h3>로그</h3>
+<div id="log"></div>
+
+<script>
+  (() => {
+    let accessToken = null;  // 메모리 저장 AT
+    let refreshInFlight = null;
+
+    const $ = (id) => document.getElementById(id);
+    const baseUrlEl = $('baseUrl');
+    const protectedPathEl = $('protectedPath');
+    const logEl = $('log');
+    const atPreviewEl = $('atPreview');
+
+    function log(...args) {
+      const line = args.map(x => typeof x === 'string' ? x : JSON.stringify(x, null, 2)).join(' ');
+      logEl.textContent += line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(...args);
+    }
+    function setAT(token) {
+      accessToken = token;
+      atPreviewEl.textContent = accessToken ? (accessToken.slice(0, 16) + '...') : '(없음)';
+    }
+
+    async function apiFetch(path, options = {}) {
+      const base = baseUrlEl.value.replace(/\/+$/, '');
+      const url = base + (path.startsWith('/') ? path : '/' + path);
+      const headers = new Headers(options.headers || {});
+      if (accessToken) headers.set('Authorization', 'Bearer ' + accessToken);
+
+      const opts = {
+        method: options.method || 'GET',
+        headers,
+        credentials: 'include',
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      };
+      if (options.body && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
+
+      let res = await fetch(url, opts);
+
+      if (res.status === 401) {
+        log('[apiFetch] 401 감지 → /auth/refresh 시도');
+        await refreshOnce();
+        headers.set('Authorization', 'Bearer ' + accessToken);
+        res = await fetch(url, { ...opts, headers });
+      }
+
+      return res;
+    }
+
+    async function refreshOnce() {
+      if (refreshInFlight) {
+        log('[refresh] 이미 진행 중 → 기존 Promise 기다림');
+        return refreshInFlight;
+      }
+      const base = baseUrlEl.value.replace(/\/+$/, '');
+      const url = base + '/auth/refresh';
+      const headers = new Headers({ 'Accept': 'application/json' });
+
+      refreshInFlight = fetch(url, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      })
+              .then(async (res) => {
+                if (!res.ok) {
+                  const txt = await res.text().catch(() => '');
+                  log('[refresh] 실패', res.status, txt);
+                  throw new Error('refresh failed ' + res.status);
+                }
+                const text = await res.text();
+                let json;
+                try { json = JSON.parse(text); } catch { json = null; }
+                const at = json?.data?.accessToken || json?.accessToken || null;
+                if (!at) {
+                  log('[refresh] 응답에 accessToken 없음:', text);
+                  throw new Error('no accessToken in response');
+                }
+                setAT(at);
+                log('[refresh] 성공: 새 accessToken 수령');
+              })
+              .catch(err => {
+                setAT(null);
+                log('[refresh] 에러 → 로그인 페이지로 유도 필요:', err.message);
+                throw err;
+              })
+              .finally(() => { refreshInFlight = null; });
+
+      return refreshInFlight;
+    }
+
+    $('btnLogin').onclick = () => {
+      const base = baseUrlEl.value.replace(/\/+$/, '');
+      window.location.href = base + '/oauth2/authorization/google';
+    };
+
+    $('btnCall').onclick = async () => {
+      try {
+        const path = protectedPathEl.value.trim();
+        const res = await apiFetch(path);
+        const text = await res.text();
+        log('호출 완료', res.status, text);
+      } catch (e) {
+        log('호출 에러', e.message);
+      }
+    };
+
+    $('btnExpire').onclick = () => {
+      setAT(null);
+      log('메모리의 accessToken 제거 → 다음 요청에서 401 발생 예상');
+    };
+
+    $('btnRefresh').onclick = async () => {
+      try { await refreshOnce(); } catch (e) {}
+    };
+
+    $('btnShowCookies').onclick = () => {
+      log('document.cookie =', document.cookie || '(비어있음)');
+      log('※ HttpOnly 쿠키(refreshToken)는 보이지 않는 것이 정상입니다.');
+    };
+
+    setAT(null);
+  })();
+</script>
+</body>
+</html>
