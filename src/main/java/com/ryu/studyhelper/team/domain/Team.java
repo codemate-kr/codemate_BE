@@ -36,6 +36,20 @@ public class Team extends BaseEntity {
     @Builder.Default
     private Integer recommendationDays = RecommendationDayOfWeek.INACTIVE; // 기본값: 추천 비활성화
 
+    // 추천 문제 난이도 프리셋 (기본값: NORMAL)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "problem_difficulty_preset")
+    @Builder.Default
+    private ProblemDifficultyPreset problemDifficultyPreset = ProblemDifficultyPreset.NORMAL;
+
+    // 추천 문제 최소 난이도 (커스텀 모드일 때만 사용, 1~30)
+    @Column(name = "min_problem_level")
+    private Integer minProblemLevel;
+
+    // 추천 문제 최대 난이도 (커스텀 모드일 때만 사용, 1~30)
+    @Column(name = "max_problem_level")
+    private Integer maxProblemLevel;
+
     // 팀원 목록 (일대다 관계)
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -71,6 +85,57 @@ public class Team extends BaseEntity {
         } else {
             this.recommendationStatus = RecommendationStatus.INACTIVE;
         }
+    }
+
+    /**
+     * 추천 난이도 설정 업데이트 (프리셋 방식)
+     */
+    public void updateProblemDifficultySettings(ProblemDifficultyPreset preset, Integer customMin, Integer customMax) {
+        this.problemDifficultyPreset = preset;
+
+        if (preset.isCustom()) {
+            // 커스텀 모드: 사용자 정의 값 사용
+            updateCustomLevelRange(customMin, customMax);
+        } else {
+            // 프리셋 모드: 커스텀 값 초기화
+            this.minProblemLevel = null;
+            this.maxProblemLevel = null;
+        }
+    }
+
+    /**
+     * 커스텀 난이도 범위 업데이트
+     */
+    private void updateCustomLevelRange(Integer minLevel, Integer maxLevel) {
+        if (minLevel != null && minLevel >= 1 && minLevel <= 30) {
+            this.minProblemLevel = minLevel;
+        }
+        if (maxLevel != null && maxLevel >= 1 && maxLevel <= 30) {
+            // maxLevel은 minLevel보다 크거나 같아야 함
+            if (this.minProblemLevel == null || maxLevel >= this.minProblemLevel) {
+                this.maxProblemLevel = maxLevel;
+            }
+        }
+    }
+
+    /**
+     * 현재 팀의 실제 최소 난이도 조회 (프리셋 또는 커스텀)
+     */
+    public Integer getEffectiveMinProblemLevel() {
+        if (problemDifficultyPreset.isCustom()) {
+            return minProblemLevel;
+        }
+        return problemDifficultyPreset.getMinLevel();
+    }
+
+    /**
+     * 현재 팀의 실제 최대 난이도 조회 (프리셋 또는 커스텀)
+     */
+    public Integer getEffectiveMaxProblemLevel() {
+        if (problemDifficultyPreset.isCustom()) {
+            return maxProblemLevel;
+        }
+        return problemDifficultyPreset.getMaxLevel();
     }
 
     /**

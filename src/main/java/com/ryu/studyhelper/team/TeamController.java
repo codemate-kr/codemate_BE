@@ -59,15 +59,16 @@ public class TeamController {
     @GetMapping("/{teamId}/members")
     public ResponseEntity<ApiResponse<List<TeamMemberResponse>>> getTeamMembers(
             @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId) {
-        
-        List<TeamMemberResponse> response = teamService.getTeamMembers(teamId);
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        List<TeamMemberResponse> response = teamService.getTeamMembers(teamId, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
     @Operation(
             summary = "팀 추천 설정 조회",
-            description = "특정 팀의 문제 추천 설정을 조회합니다. 팀 멤버만 조회 가능합니다."
+            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다. 팀 멤버만 조회 가능합니다."
     )
     @GetMapping("/{teamId}/recommendation-settings")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> getRecommendationSettings(
@@ -80,7 +81,7 @@ public class TeamController {
 
     @Operation(
             summary = "팀 추천 설정 업데이트",
-            description = "팀의 문제 추천 요일을 설정합니다. 팀장만 설정 가능합니다."
+            description = "팀의 문제 추천 요일과 난이도를 설정합니다. 팀장만 설정 가능합니다."
     )
     @PutMapping("/{teamId}/recommendation-settings")
     @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")

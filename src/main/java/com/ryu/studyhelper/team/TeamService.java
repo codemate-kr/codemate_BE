@@ -66,20 +66,35 @@ public class TeamService {
      */
     @Transactional
     public TeamRecommendationSettingsResponse updateRecommendationSettings(
-            Long teamId, 
+            Long teamId,
             TeamRecommendationSettingsRequest request,
             Long memberId) {
-        
+
         // 팀 조회
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-        
+
         // 팀장 권한 확인
         validateTeamLeaderAccess(teamId, memberId);
-        
+
+        // 커스텀 모드일 때 난이도 범위 유효성 검증
+        if (request.problemDifficultyPreset().isCustom()) {
+            if (request.customMinLevel() != null && request.customMaxLevel() != null
+                && request.customMinLevel() > request.customMaxLevel()) {
+                throw new CustomException(CustomResponseStatus.INVALID_PROBLEM_LEVEL_RANGE);
+            }
+        }
+
         // 추천 요일 설정 업데이트
         team.updateRecommendationDays(request.recommendationDays());
-        
+
+        // 추천 난이도 설정 업데이트 (프리셋 방식)
+        team.updateProblemDifficultySettings(
+                request.problemDifficultyPreset(),
+                request.customMinLevel(),
+                request.customMaxLevel()
+        );
+
         return TeamRecommendationSettingsResponse.from(team);
     }
 
@@ -115,12 +130,12 @@ public class TeamService {
      * 팀 멤버 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<TeamMemberResponse> getTeamMembers(Long teamId) {
+    public List<TeamMemberResponse> getTeamMembers(Long teamId, Long currentMemberId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
 
         return team.getTeamMembers().stream()
-                .map(TeamMemberResponse::from)
+                .map(teamMember -> TeamMemberResponse.from(teamMember, currentMemberId))
                 .toList();
     }
 
