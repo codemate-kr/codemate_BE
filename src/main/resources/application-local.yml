@@ -13,7 +13,7 @@ server:
 spring:
   # 로컬 DB 설정
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/helper}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/codemate}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
 

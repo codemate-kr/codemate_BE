@@ -56,11 +56,11 @@ jobs:
             # 최신 이미지 pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/codemate:latest
 
-            # 새 컨테이너 실행 (환경변수는 EC2의 .env 파일 사용)
+            # 새 컨테이너 실행 (docker-compose가 생성한 네트워크명: 디렉토리명_네트워크명)
             docker run -d \
               --name codemate \
               --restart unless-stopped \
-              --network codemate-network \
+              --network ec2-user_codemate-network \
               -p 8080:8080 \
               -e SPRING_PROFILES_ACTIVE=prod \
               --env-file ~/.env \
