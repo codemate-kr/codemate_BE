@@ -98,7 +98,7 @@ public class RecommendationService {
             return;
         }
 
-        List<ProblemInfo> problemInfos = problemService.recommend(handles, 3);
+        List<ProblemInfo> problemInfos = problemService.recommend(handles, 3, team.getEffectiveMinProblemLevel(), team.getEffectiveMaxProblemLevel());
 
         // 3. 추천 문제들을 DB에 저장
         for (int i = 0; i < problemInfos.size(); i++) {
@@ -142,7 +142,7 @@ public class RecommendationService {
             throw new CustomException(CustomResponseStatus.TEAM_NOT_FOUND);
         }
 
-        List<ProblemInfo> problemInfos = problemService.recommend(handles, count);
+        List<ProblemInfo> problemInfos = problemService.recommend(handles, count, team.getEffectiveMinProblemLevel(), team.getEffectiveMaxProblemLevel());
         for (int i = 0; i < problemInfos.size(); i++) {
             Problem problem = findOrCreateProblem(problemInfos.get(i));
             TeamRecommendationProblem recommendationProblem = 

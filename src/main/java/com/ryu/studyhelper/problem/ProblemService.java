@@ -34,6 +34,13 @@ public class ProblemService {
         return solvedAcService.recommendUnsolvedProblems(handles, count);
     }
 
+    /**
+     * 핸들 목록과 난이도 범위를 기반으로 문제 추천
+     */
+    public List<ProblemInfo> recommend(List<String> handles, int count, Integer minLevel, Integer maxLevel) {
+        return solvedAcService.recommendUnsolvedProblems(handles, count, minLevel, maxLevel);
+    }
+
 
 
     public List<ProblemInfo> recommend(ProblemRecommendRequest request, int count) {
