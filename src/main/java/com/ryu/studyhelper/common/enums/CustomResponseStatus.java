@@ -57,6 +57,7 @@ public enum CustomResponseStatus {
     REFRESH_TOKEN_NOT_MATCH(HttpStatus.CONFLICT.value(), "5000", "잘못된 리프레시 토큰입니다."),
     BAD_TOKEN(HttpStatus.BAD_REQUEST.value(), "5002", "잘못된 토큰입니다."),
     MEMBER_NOT_MATCH(HttpStatus.BAD_REQUEST.value(), "5003", "사용자가 일치하지 않습니다."),
+    INVALID_PROBLEM_LEVEL_RANGE(HttpStatus.BAD_REQUEST.value(), "5004", "최소 난이도가 최대 난이도보다 클 수 없습니다."),
 
 
     /***

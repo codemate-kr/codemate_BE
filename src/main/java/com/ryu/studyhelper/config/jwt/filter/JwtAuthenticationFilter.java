@@ -105,16 +105,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
+        // 핵심 인증 관련 경로만 제외 (나머지는 SecurityConfig에서 관리)
         return path.startsWith("/oauth2")
-                || path.startsWith("/login")
-                || path.startsWith("/api/auth/refresh")
-                || path.startsWith("/api/public")
-                || path.startsWith("/swagger")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/swagger-ui")
-                || path.startsWith("/error")
-                || path.startsWith("/html")
-                || path.startsWith("/css")
-                || path.startsWith("/js");
+                || path.startsWith("/api/auth/refresh");
     }
 }

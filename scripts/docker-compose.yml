@@ -1,11 +1,11 @@
 services:
   mysql:
-    image: mysql:latest
-    container_name: mysql-container
+    image: mysql:8.0
+    container_name: codemate-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_PASSWORD: root
-      MYSQL_DATABASE: helper
+      MYSQL_DATABASE: codemate
       MYSQL_USER: user
       MYSQL_ROOT_HOST: '%'
     ports:
@@ -23,3 +23,22 @@ services:
       - "18080:80"  # 호스트의 18080 포트를 phpMyAdmin의 80 포트에 매핑
     depends_on:
       - mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: codemate-redis
+    command: ["redis-server", "--appendonly", "yes"]  # AOF로 영속성 확보
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    restart: unless-stopped
+
+  # 선택: Redis GUI 관리도구
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: redisinsight-container
+    ports:
+      - "18081:8001"
+    depends_on:
+      - redis
