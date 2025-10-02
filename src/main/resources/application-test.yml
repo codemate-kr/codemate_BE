@@ -25,6 +25,8 @@ spring:
 
   # 메일 설정 (테스트용 - 실제 전송 안함)
   mail:
+    username: test-user
+    password: test-password
     host: localhost
     port: 25
     properties:
@@ -32,6 +34,15 @@ spring:
         smtp:
           auth: false
         debug: false
+
+  # OAuth2 설정 오버라이드
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
 
 # 테스트용 JWT 설정
 jwt:
