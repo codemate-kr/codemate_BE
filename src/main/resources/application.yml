@@ -2,6 +2,10 @@
 spring:
   config:
     import: optional:file:.env[.properties]
+  data:
+    redis:
+      repositories:
+        enabled: false
 
   # 프로파일 활성화 (기본값: local)
   profiles:
