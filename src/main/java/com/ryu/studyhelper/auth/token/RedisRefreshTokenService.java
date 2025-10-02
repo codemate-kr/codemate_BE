@@ -76,7 +76,7 @@ public class RedisRefreshTokenService implements RefreshTokenService {
                 .orElseThrow(() -> new RefreshTokenException("User not found: " + id));
 
         // 5. 새로운 Access Token 생성
-        return jwtUtil.createAccessToken(member.getId(), member.getRole().getValue());
+        return jwtUtil.createAccessToken(member.getId(), member.getRole().name());
     }
 
     @Override
