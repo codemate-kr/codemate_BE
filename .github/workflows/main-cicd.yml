@@ -30,7 +30,7 @@ jobs:
         run: ./gradlew build -x test
 
       - name: 테스트 실행
-        run: ./gradlew test --args='--spring.profiles.active=test'
+        run: ./gradlew test
         env:
           SPRING_PROFILES_ACTIVE: test
 
