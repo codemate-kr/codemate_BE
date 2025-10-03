@@ -54,6 +54,10 @@ cookie:
   same-site: Strict     # 엄격한 SameSite 정책
   domain: ${COOKIE_DOMAIN:yourdomain.com}  # 실제 도메인으로 변경
 
+# CORS 설정
+cors:
+  allowed-origins: ${FRONTEND_URL}
+
 # Swagger 프로덕션 설정 (비활성화 권장)
 springdoc:
   api-docs:

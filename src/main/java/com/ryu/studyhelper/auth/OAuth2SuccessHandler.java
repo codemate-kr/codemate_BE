@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final RefreshTokenService refreshTokenService;
     private final RefreshCookieManager refreshCookieManager;
     private final ObjectMapper objectMapper;
+
+    @Value("${FRONTEND_URL:http://localhost:5173}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(
@@ -58,12 +62,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     }
 
     private String determineRedirectUrl(Member member, String accessToken) {
-        String baseUrl = "http://localhost:5174";
-//        String baseUrl = "http://localhost:8080/html/index.html";
         String tokenParams = String.format("?access_token=%s", accessToken);
         log.info("Generated access token: {}", accessToken);
 
-        return baseUrl + tokenParams;
+        return frontendUrl + tokenParams;
 
 //        if (!member.isVerified()) {
 //            // 백준 인증 미완료 → 인증 페이지로
