@@ -33,21 +33,51 @@ public class TeamService {
 
     @Transactional
     public CreateTeamResponse create(@Valid CreateTeamRequest req, Long memberId) {
-        Team team = Team.create(req.name(), req.description());
         Member owner = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
 
+        Team team = Team.create(req.name(), req.description());
         Team saved = teamRepository.save(team);
 
         // 현재 로그인한 사용자를 TeamMember로 자동 합류(LEADER)
         TeamMember leader = TeamMember.createLeader(saved, owner);
-
         teamMemberRepository.save(leader);
 
         return CreateTeamResponse.from(
                 saved.getName(),
                 saved.getDescription()
         );
+    }
+
+    /**
+     * 팀 가입
+     * @param teamId 팀 ID
+     * @param memberId 회원 ID
+     */
+    @Transactional
+    public void joinTeam(Long teamId, Long memberId) {
+        // 팀 조회
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        // 회원 조회
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
+
+        // 이미 팀에 속해있는지 확인
+        boolean alreadyMember = teamMemberRepository.existsByTeamIdAndMemberId(teamId, memberId);
+        if (alreadyMember) {
+            throw new CustomException(CustomResponseStatus.ALREADY_MAP_EXIST);
+        }
+
+        // 팀 가입
+        TeamMember teamMember = TeamMember.builder()
+                .team(team)
+                .member(member)
+                .role(TeamRole.MEMBER)
+                .build();
+
+        teamMemberRepository.save(teamMember);
     }
 
     /**

@@ -30,8 +30,8 @@ public class Member extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // 백준 핸들 (처음에는 null, 이후 인증 과정에서 입력)
-    @Column(unique = true)
+    // 백준 핸들 (처음에는 null, 이후 인증 과정에서 입력), 중복 허용
+    @Column
     private String handle;
 
     // 백준 핸들 본인 인증 여부
