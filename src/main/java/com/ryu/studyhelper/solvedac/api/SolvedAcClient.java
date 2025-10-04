@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.solvedac.api;
 
+import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.solvedac.dto.SolvedAcUserResponse;
@@ -84,5 +85,13 @@ public class SolvedAcClient {
         ), ProblemSearchResponse.class);
     }
 
+    /**
+     * 백준 핸들 인증용 사용자 정보 조회 (bio 포함)
+     * @param handle 백준 핸들
+     * @return 핸들과 bio 정보
+     */
+    public BojVerificationDto getUserBio(String handle) {
+        return get("/user/show", Map.of("handle", handle), BojVerificationDto.class);
+    }
 
 }

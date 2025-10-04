@@ -57,9 +57,12 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public Member getByHandle(String handle) {
-        return memberRepository.findByHandle(handle)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
+    public List<Member> getAllByHandle(String handle) {
+        List<Member> members = memberRepository.findAllByHandle(handle);
+        if (members.isEmpty()) {
+            throw new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND);
+        }
+        return members;
     }
 
     @Transactional(readOnly = true)
@@ -67,19 +70,21 @@ public class MemberService {
         return memberRepository.findAllVerifiedHandles();
     }
 
+    /**
+     * 백준 핸들 등록 (solved.ac 존재 여부만 확인)
+     * @param memberId 회원 ID
+     * @param handle 백준 핸들
+     * @return 업데이트된 회원 정보
+     */
     public Member verifySolvedAcHandle(Long memberId, String handle) {
-        // 1) solved.ac 에 존재하는지 확인 (예외 발생 시 검증 실패로 간주)
+        // 1. solved.ac에 존재하는지 확인 (예외 발생 시 검증 실패)
         solvedacService.getUserInfo(handle);
 
-        // 2) 중복 핸들 체크
-        Optional<Member> existing = memberRepository.findByHandle(handle);
-        if (existing.isPresent() && !existing.get().getId().equals(memberId)) {
-            throw new CustomException(CustomResponseStatus.HANDLE_ALREADY_EXISTS);
-        }
-
-        // 3) 사용자 엔티티에 핸들 저장 및 검증 완료 처리
+        // 2. 회원 엔티티에 핸들 저장 (중복 허용, isVerified는 false 유지)
         Member member = getById(memberId);
-        member.verifyWithHandle(handle);
+        member.changeHandle(handle);
+
         return member;
     }
+
 }

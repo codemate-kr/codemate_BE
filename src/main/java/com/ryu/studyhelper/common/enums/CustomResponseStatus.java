@@ -27,6 +27,7 @@ public enum CustomResponseStatus {
     ALREADY_EVALUATION_MAP_EXIST(HttpStatus.CONFLICT.value(), "3003", "평가리스트가 존재합니다. 새롭게 만들 수 없습니다."),
     HANDLE_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3004", "이미 사용 중인 핸들입니다."),
     TEAM_ACCESS_DENIED(HttpStatus.FORBIDDEN.value(), "3005", "해당 팀에 대한 접근 권한이 없습니다."),
+    ALREADY_VERIFIED(HttpStatus.CONFLICT.value(), "3006", "이미 인증된 회원입니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -45,6 +46,8 @@ public enum CustomResponseStatus {
     COMMIT_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4010", "해당 커밋 기록을 찾을 수 없습니다."),
     RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4011", "해당 추천을 찾을 수 없습니다."),
     TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4012", "팀 멤버를 찾을 수 없습니다."),
+    VERIFICATION_HASH_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4013", "인증 해시를 찾을 수 없습니다. 먼저 해시를 생성해주세요."),
+    SOLVED_AC_USER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4014", "solved.ac에서 해당 핸들을 찾을 수 없습니다."),
     //    MAP_VALUE_NOT_EXIST(HttpStatus.NOT_FOUND.value(), "4005", "채팅이 존재하지 않습니다. 채팅을 새롭게 시작해주세요."),
     //    EVALUATION_SERVER_NOT_ANSWER(HttpStatus.NOT_FOUND.value(), "4006", "평가서버가 응답하지 않습니다."),
     //    CS_CHAT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4007", "해당 CS 채팅이 존재하지 않습니다."),
@@ -64,7 +67,8 @@ public enum CustomResponseStatus {
      * 6000: Server_Error
      */
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "6000", "내부 서버 오류입니다."),
-    ASYNC_COMPLETION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "6001", "비동기 작업에서 오류가 발생하였습니다.");
+    ASYNC_COMPLETION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "6001", "비동기 작업에서 오류가 발생하였습니다."),
+    SOLVED_AC_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "6002", "solved.ac API 호출에 실패했습니다.");
 
 
     private final int httpStatusCode;
