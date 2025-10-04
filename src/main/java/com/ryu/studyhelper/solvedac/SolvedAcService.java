@@ -1,11 +1,14 @@
 package com.ryu.studyhelper.solvedac;
 
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.solvedac.api.SolvedAcClient;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.solvedac.dto.SolvedAcUserResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@Slf4j
 public class SolvedAcService {
     private final SolvedAcClient solvedAcClient;
 
@@ -21,7 +25,15 @@ public class SolvedAcService {
     }
 
     public SolvedAcUserResponse getUserInfo(String handle) {
-        return solvedAcClient.getUserInfo(handle);
+        try {
+            return solvedAcClient.getUserInfo(handle);
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("solved.ac user not found: {}", handle);
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        } catch (Exception e) {
+            log.error("Failed to fetch user info from solved.ac: {}", handle, e);
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
+        }
     }
 
     /**
