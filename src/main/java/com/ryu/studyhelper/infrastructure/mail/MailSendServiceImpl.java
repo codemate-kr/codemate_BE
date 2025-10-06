@@ -1,8 +1,8 @@
-package com.ryu.studyhelper.notification.email.impl;
+package com.ryu.studyhelper.infrastructure.mail;
 
-import com.ryu.studyhelper.notification.email.MailSendService;
-import com.ryu.studyhelper.notification.email.dto.MailHtmlSendDto;
-import com.ryu.studyhelper.notification.email.dto.MailTxtSendDto;
+import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
+import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.TeamRecommendationProblem;

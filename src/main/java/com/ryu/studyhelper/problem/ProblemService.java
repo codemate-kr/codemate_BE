@@ -2,7 +2,7 @@ package com.ryu.studyhelper.problem;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.notification.email.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
 import com.ryu.studyhelper.problem.dto.TeamProblemRecommendResponse;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
@@ -10,7 +10,7 @@ import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.TeamMemberRepository;
 import com.ryu.studyhelper.team.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;
-import com.ryu.studyhelper.notification.email.dto.MailTxtSendDto;
+import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

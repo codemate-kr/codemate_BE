@@ -1,8 +1,17 @@
-package com.ryu.studyhelper.notification.email.dto;
+package com.ryu.studyhelper.infrastructure.mail.dto;
 
+import lombok.Builder;
 import lombok.Getter;
+
+/**
+ * SimpleMailMessage 기반 텍스트 메일 전송 DTO
+ *
+ * @author : jonghoon
+ * @fileName : MailTxtSendDto
+ * @since : 11/11/24
+ */
 @Getter
-public class MailHtmlSendDto {
+public class MailTxtSendDto {
 
     private String emailAddr;                   // 수신자 이메일
 
@@ -10,12 +19,10 @@ public class MailHtmlSendDto {
 
     private String content;                     // 이메일 내용
 
-    private String target;                      // 이메일 대상 타겟을 지정합니다.
-
-    public MailHtmlSendDto(String emailAddr, String subject, String content, String target) {
+    @Builder
+    public MailTxtSendDto(String emailAddr, String subject, String content) {
         this.emailAddr = emailAddr;
         this.subject = subject;
         this.content = content;
-        this.target = target;
     }
 }
