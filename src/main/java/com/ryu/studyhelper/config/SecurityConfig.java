@@ -45,20 +45,23 @@ public class SecurityConfig {
                 // 정적 리소스
                 .requestMatchers("/favicon.ico", "/error").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/assets/**", "/html/**").permitAll()
-                
+
                 // API 문서
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
-                
+
                 // OAuth2 & 인증
-                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
-                
-                // 사용자 관련 (사용하지 않으면 제거 고려)
-//                .requestMatchers("/user/signup", "/user/signin").permitAll()
-                
+
+                // 헬스체크 (인증 불필요)
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
+//                // 공개 API (필요시 사용)
+//                .requestMatchers("/api/public/**").permitAll()
+
                 // Swagger 테스트용 - 모든 API 개방
 //                .requestMatchers("/api/**").permitAll()
-                
+
                 .anyRequest().authenticated()
         );
 
