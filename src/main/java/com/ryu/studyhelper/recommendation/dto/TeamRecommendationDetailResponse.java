@@ -30,7 +30,9 @@ public record TeamRecommendationDetailResponse(
             String titleKo,
             Integer level,
             String url,
-            Integer recommendationOrder
+            Integer recommendationOrder,
+            Integer acceptedUserCount,
+            Double averageTries
     ) {}
 
     public static TeamRecommendationDetailResponse from(TeamRecommendation recommendation) {
@@ -48,7 +50,9 @@ public record TeamRecommendationDetailResponse(
                                 trp.getProblem().getTitleKo(),
                                 trp.getProblem().getLevel(),
                                 trp.getProblem().getUrl(),
-                                trp.getRecommendationOrder()
+                                trp.getRecommendationOrder(),
+                                trp.getProblem().getAcceptedUserCount(),
+                                trp.getProblem().getAverageTries()
                         ))
                         .sorted((a, b) -> Integer.compare(a.recommendationOrder(), b.recommendationOrder()))
                         .toList()
