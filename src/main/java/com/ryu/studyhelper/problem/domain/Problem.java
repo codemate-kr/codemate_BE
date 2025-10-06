@@ -24,6 +24,8 @@ public class Problem {
 
     private Integer acceptedUserCount;
 
+    private Double averageTries;
+
     /**
      * 기존 팩토리 메서드 (하위 호환성 유지)
      */
@@ -47,6 +49,7 @@ public class Problem {
                 .titleKo(problemInfo.titleKo())
                 .level(problemInfo.level())
                 .acceptedUserCount(problemInfo.acceptedUserCount())
+                .averageTries(problemInfo.averageTries())
                 .build();
     }
 

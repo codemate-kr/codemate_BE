@@ -62,9 +62,26 @@ jobs:
               --restart unless-stopped \
               --network ec2-user_codemate-network \
               -p 8080:8080 \
+              -p 9090:9090 \
               -e SPRING_PROFILES_ACTIVE=prod \
               --env-file ~/.env \
               ${{ secrets.DOCKER_USERNAME }}/codemate:latest
+
+            # 스프링 서버 헬스체크 (3초 단위, 최대 2분)
+            echo "스프링 서버 시작 대기 중..."
+            for i in {1..40}; do
+              if curl -f http://localhost:9090/actuator/health > /dev/null 2>&1; then
+                echo "✅ 스프링 서버가 정상적으로 시작되었습니다!"
+                break
+              fi
+              if [ $i -eq 40 ]; then
+                echo "❌ 스프링 서버 시작 실패 (타임아웃 2분)"
+                docker logs codemate --tail 100
+                exit 1
+              fi
+              echo "대기 중... ($i/40)"
+              sleep 3
+            done
 
             # 사용하지 않는 이미지 정리
             docker image prune -af

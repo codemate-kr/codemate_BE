@@ -209,6 +209,27 @@ public class RecommendationService {
         }
     }
 
+    /**
+     * 특정 팀의 오늘 추천 조회
+     */
+    @Transactional(readOnly = true)
+    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId, Long memberId) {
+        // 팀 접근 권한 검증
+        validateTeamAccess(teamId, memberId);
+
+        LocalDate today = LocalDate.now();
+        List<TeamRecommendation> todayRecommendations =
+                teamRecommendationRepository.findByTeamIdAndRecommendationDateWithProblems(teamId, today);
+
+        if (todayRecommendations.isEmpty()) {
+            throw new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND);
+        }
+
+        // 가장 최근 추천 반환 (수동 추천이 있으면 우선, 없으면 자동 추천)
+        TeamRecommendation latestRecommendation = todayRecommendations.get(0);
+        return TeamRecommendationDetailResponse.from(latestRecommendation);
+    }
+
 
     /**
      * ProblemInfo로부터 Problem 엔티티 찾기 또는 생성

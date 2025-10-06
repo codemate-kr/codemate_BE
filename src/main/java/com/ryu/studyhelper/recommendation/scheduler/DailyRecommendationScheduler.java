@@ -61,7 +61,7 @@ public class DailyRecommendationScheduler {
      * 애플리케이션 시작 후 10초 뒤에 한 번 실행 (테스트용)
      * 실제 운영에서는 주석 처리 권장
      */
-     @Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
+//     @Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
     public void executeOnStartup() {
         log.info("애플리케이션 시작 후 테스트 추천 실행");
         try {
