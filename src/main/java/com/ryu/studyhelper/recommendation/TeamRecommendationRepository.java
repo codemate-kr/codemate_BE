@@ -59,4 +59,16 @@ public interface TeamRecommendationRepository extends JpaRepository<TeamRecommen
            "AND tr.type = :type")
     List<TeamRecommendation> findByRecommendationDateAndType(
             @Param("date") LocalDate date, @Param("type") RecommendationType type);
+
+    /**
+     * 특정 팀의 오늘 추천 조회 (문제 정보 포함)
+     */
+    @Query("SELECT tr FROM TeamRecommendation tr " +
+           "LEFT JOIN FETCH tr.problems trp " +
+           "LEFT JOIN FETCH trp.problem " +
+           "WHERE tr.team.id = :teamId " +
+           "AND tr.recommendationDate = :date " +
+           "ORDER BY tr.createdAt DESC")
+    List<TeamRecommendation> findByTeamIdAndRecommendationDateWithProblems(
+            @Param("teamId") Long teamId, @Param("date") LocalDate date);
 }

@@ -126,6 +126,28 @@ public class RecommendationController {
     }
 
     @Operation(
+            summary = "오늘의 문제 조회",
+            description = """
+                    특정 팀의 오늘 추천된 문제를 조회합니다.
+                    가장 최근 추천(수동 추천 우선)을 반환합니다.
+                    팀 멤버만 조회 가능합니다.
+                    """
+    )
+    @GetMapping("/team/{teamId}/today-problem")
+    public ResponseEntity<ApiResponse<TeamRecommendationDetailResponse>> getTodayRecommendation(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        log.info("사용자 {}가 팀 {}의 오늘의 문제 조회", principalDetails.getMemberId(), teamId);
+
+        TeamRecommendationDetailResponse response =
+                recommendationService.getTodayRecommendation(teamId, principalDetails.getMemberId());
+
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
             summary = "추천 시스템 상태 확인",
             description = "추천 시스템의 현재 상태를 확인합니다."
     )
