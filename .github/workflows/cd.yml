@@ -63,6 +63,8 @@ jobs:
               --network ec2-user_codemate-network \
               -p 8080:8080 \
               -p 9090:9090 \
+              -v /etc/localtime:/etc/localtime:ro \
+              -v /etc/timezone:/etc/timezone:ro \
               -e SPRING_PROFILES_ACTIVE=prod \
               --env-file ~/.env \
               ${{ secrets.DOCKER_USERNAME }}/codemate:latest
