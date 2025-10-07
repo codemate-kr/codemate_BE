@@ -52,6 +52,7 @@ public class SecurityConfig {
                 // OAuth2 & 인증
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
+                .requestMatchers("/api/member/verify-email").permitAll()
 
                 // 헬스체크 (인증 불필요)
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()

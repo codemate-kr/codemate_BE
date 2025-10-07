@@ -28,6 +28,7 @@ public enum CustomResponseStatus {
     HANDLE_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3004", "이미 사용 중인 핸들입니다."),
     TEAM_ACCESS_DENIED(HttpStatus.FORBIDDEN.value(), "3005", "해당 팀에 대한 접근 권한이 없습니다."),
     ALREADY_VERIFIED(HttpStatus.CONFLICT.value(), "3006", "이미 인증된 회원입니다."),
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3007", "이미 사용 중인 이메일입니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -61,6 +62,7 @@ public enum CustomResponseStatus {
     BAD_TOKEN(HttpStatus.BAD_REQUEST.value(), "5002", "잘못된 토큰입니다."),
     MEMBER_NOT_MATCH(HttpStatus.BAD_REQUEST.value(), "5003", "사용자가 일치하지 않습니다."),
     INVALID_PROBLEM_LEVEL_RANGE(HttpStatus.BAD_REQUEST.value(), "5004", "최소 난이도가 최대 난이도보다 클 수 없습니다."),
+    INVALID_EMAIL_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST.value(), "5005", "유효하지 않은 이메일 인증 토큰입니다."),
 
 
     /***

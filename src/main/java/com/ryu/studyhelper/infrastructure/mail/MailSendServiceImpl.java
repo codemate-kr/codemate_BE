@@ -47,7 +47,7 @@ public class MailSendServiceImpl implements MailSendService {
         SimpleMailMessage smm = new SimpleMailMessage();
         smm.setTo(mailTxtSendDto.getEmailAddr());      // 받는 사람
 //        smm.setFrom(EMAIL_SENDER);
-        smm.setFrom("StudyHalp <" + EMAIL_SENDER + ">");// 보내는 사람
+        smm.setFrom("CodeMate <" + EMAIL_SENDER + ">");// 보내는 사람
         smm.setSubject(mailTxtSendDto.getSubject());   // 제목
         smm.setText(mailTxtSendDto.getContent());      // 내용(plain text)
         try {
@@ -71,28 +71,22 @@ public class MailSendServiceImpl implements MailSendService {
             // Thymeleaf 템플릿 컨텍스트 구성
             Context context = new Context();
             context.setVariable("subject", mailHtmlSendDto.getSubject());
+            // 간단한 안내 문구 표시용
             context.setVariable("message", mailHtmlSendDto.getContent());
-            if ("user".equalsIgnoreCase(mailHtmlSendDto.getTarget())) {
-                context.setVariable("userType", "일반 사용자");
-            } else if ("admin".equalsIgnoreCase(mailHtmlSendDto.getTarget())) {
-                context.setVariable("userType", "관리자");
-            } else {
-                context.setVariable("userType", "사용자");
-            }
+            // CTA 버튼 변수 (옵션)
+            context.setVariable("buttonUrl", mailHtmlSendDto.getButtonUrl());
+            context.setVariable("buttonText", mailHtmlSendDto.getButtonText());
+            // 단순 버튼 템플릿 사용 시(message/userType/logo 불필요) 최소 변수만 설정
 
-            // 로고를 Base64로 인라인 주입 (템플릿에서 data URI로 사용)
-            try {
-                String base64Image = getBase64EncodedImage("static/images/logo.png");
-                context.setVariable("logoImage", base64Image);
-            } catch (IOException e) {
-                // 로고 이미지가 없어도 이메일 전송은 계속 진행
-                context.setVariable("logoImage", null);
-            }
+            // 템플릿 이름 지정 (기본 email-template)
+            String templateName = mailHtmlSendDto.getTemplateName() == null || mailHtmlSendDto.getTemplateName().isBlank()
+                    ? "email-template"
+                    : mailHtmlSendDto.getTemplateName();
+            String htmlContent = templateEngine.process(templateName, context);
 
-            // templates/email-template.html 이어야 함 (확장자 없이 논리명)
-            String htmlContent = templateEngine.process("email-template", context);
+//            helper.setFrom(EMAIL_SENDER);
+            helper.setFrom("CodeMate <" + EMAIL_SENDER + ">");// 보내는 사람
 
-            helper.setFrom(EMAIL_SENDER);
             helper.setTo(mailHtmlSendDto.getEmailAddr());
             helper.setSubject(mailHtmlSendDto.getSubject());
             helper.setText(htmlContent, true); // HTML로 전송
