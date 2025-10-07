@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title th:text="${subject}">이메일 변경 인증</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="margin:0; padding:32px; font-family: Arial, sans-serif; background-color:#f8f9fa;">
+    <div style="text-align:center;">
+        <p style="font-size:14px; color:#2c3e50; margin:0 0 16px 0;" th:text="${message}">아래 버튼을 눌러 이메일 변경을 완료해주세요.</p>
+        <a th:href="${buttonUrl}"
+           style="background-color:#667eea; color:#ffffff; padding:14px 32px; text-decoration:none; border-radius:6px; display:inline-block; font-weight:700;">
+            <span th:text="${buttonText} ?: '이메일 인증하기'">이메일 인증하기</span>
+        </a>
+    </div>
+</body>
+</html>

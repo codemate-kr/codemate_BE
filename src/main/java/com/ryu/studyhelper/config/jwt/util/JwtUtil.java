@@ -21,6 +21,10 @@ public class JwtUtil {
 //    public static final long ACCESS_TOKEN_VALID_MS  = 1000L * 30;          // 30초 테스트
     public static final long REFRESH_TOKEN_VALID_MS = 1000L * 60 * 60 * 24 * 14; // 14일
 //    public static final long REFRESH_TOKEN_VALID_MS = 1000L * 60; // 1분 테스트
+    public static final long EMAIL_VERIFICATION_TOKEN_VALID_MS = 1000L * 60 * 5; // 5분
+
+    /** 이메일 인증 토큰 타입 */
+    public static final String TOKEN_TYPE_EMAIL_VERIFICATION = "EMAIL_VERIFICATION";
 
     private final Key secretKey;
 
@@ -64,6 +68,35 @@ public class JwtUtil {
                 .setExpiration(validity)
                 .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
+    }
+
+    /**
+     * 이메일 인증 토큰 생성 (5분 만료)
+     * @param memberId 회원 ID
+     * @param email 변경할 이메일
+     * @return 이메일 인증 토큰
+     */
+    public String createEmailVerificationToken(Long memberId, String email) {
+        Claims claims = Jwts.claims().setSubject(String.valueOf(memberId));
+        claims.put("tokenType", TOKEN_TYPE_EMAIL_VERIFICATION);
+        claims.put("email", email);
+
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + EMAIL_VERIFICATION_TOKEN_VALID_MS);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    /**
+     * 이메일 인증 토큰에서 이메일 추출
+     */
+    public String getEmailFromToken(String token) {
+        return parseClaims(token).get("email", String.class);
     }
 
     /**

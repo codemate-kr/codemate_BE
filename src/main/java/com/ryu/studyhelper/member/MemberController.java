@@ -4,10 +4,7 @@ import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.member.dto.MemberPublicResponse;
-import com.ryu.studyhelper.member.dto.MemberSearchResponse;
-import com.ryu.studyhelper.member.dto.MyProfileResponse;
-import com.ryu.studyhelper.member.dto.VerifySolvedAcRequest;
+import com.ryu.studyhelper.member.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -86,6 +83,46 @@ public class MemberController {
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
         Member updated = memberService.verifySolvedAcHandle(principalDetails.getMemberId(), req.handle());
+        return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(updated), CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "이메일 중복 검사",
+            description = "변경하려는 이메일이 이미 사용 중인지 확인합니다."
+    )
+    @PostMapping("/check-email")
+    public ResponseEntity<ApiResponse<CheckEmailResponse>> checkEmail(
+            @Valid @RequestBody CheckEmailRequest req
+    ) {
+        boolean available = memberService.isEmailAvailable(req.email());
+        return ResponseEntity.ok(ApiResponse.createSuccess(
+                new CheckEmailResponse(available),
+                CustomResponseStatus.SUCCESS
+        ));
+    }
+
+    @Operation(
+            summary = "이메일 변경 인증 메일 발송",
+            description = "새로운 이메일로 인증 링크를 발송합니다. 링크는 5분간 유효합니다."
+    )
+    @PostMapping("/me/send-email-verification")
+    public ResponseEntity<ApiResponse<Void>> sendEmailVerification(
+            @Valid @RequestBody SendEmailVerificationRequest req,
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        memberService.sendEmailVerification(principalDetails.getMemberId(), req.email());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "이메일 변경 완료",
+            description = "이메일 인증 토큰을 검증하고 이메일을 변경합니다. 프론트엔드가 이메일 링크의 토큰을 추출하여 호출합니다."
+    )
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<MyProfileResponse>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest req
+    ) {
+        Member updated = memberService.verifyAndChangeEmail(req.token());
         return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(updated), CustomResponseStatus.SUCCESS));
     }
 }

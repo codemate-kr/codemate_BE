@@ -58,4 +58,8 @@ public class Member extends BaseEntity {
         this.handle = handle;
         this.isVerified = true;
     }
+
+    public void changeEmail(String email) {
+        this.email = email;
+    }
 }
