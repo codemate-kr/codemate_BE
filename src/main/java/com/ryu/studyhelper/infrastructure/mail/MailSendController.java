@@ -1,7 +1,7 @@
-package com.ryu.studyhelper.notification.email;
+package com.ryu.studyhelper.infrastructure.mail;
 
-import com.ryu.studyhelper.notification.email.dto.MailHtmlSendDto;
-import com.ryu.studyhelper.notification.email.dto.MailTxtSendDto;
+import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
+import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
