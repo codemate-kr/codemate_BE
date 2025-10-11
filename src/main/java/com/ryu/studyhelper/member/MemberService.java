@@ -7,6 +7,7 @@ import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
+import com.ryu.studyhelper.member.dto.MemberSearchResponse;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
@@ -66,12 +67,11 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<Member> getAllByHandle(String handle) {
+    public List<MemberSearchResponse> searchByHandle(String handle) {
         List<Member> members = memberRepository.findAllByHandle(handle);
-        if (members.isEmpty()) {
-            throw new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND);
-        }
-        return members;
+        return members.stream()
+                .map(MemberSearchResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
