@@ -29,6 +29,7 @@ public enum CustomResponseStatus {
     TEAM_ACCESS_DENIED(HttpStatus.FORBIDDEN.value(), "3005", "해당 팀에 대한 접근 권한이 없습니다."),
     ALREADY_VERIFIED(HttpStatus.CONFLICT.value(), "3006", "이미 인증된 회원입니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3007", "이미 사용 중인 이메일입니다."),
+    ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT.value(), "3008", "이미 팀에 속한 멤버입니다."),
 
     /***
      * 4000: NOT_FOUND

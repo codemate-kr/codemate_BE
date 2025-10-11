@@ -5,6 +5,8 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.CreateTeamResponse;
+import com.ryu.studyhelper.team.dto.InviteMemberRequest;
+import com.ryu.studyhelper.team.dto.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsRequest;
@@ -109,6 +111,22 @@ public class TeamController {
 
         TeamRecommendationSettingsResponse response = teamService.disableRecommendation(
                 teamId, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "멤버 초대",
+            description = "선택한 멤버를 팀에 초대합니다. 팀장만 초대 가능합니다. 초대된 멤버는 알림을 받습니다."
+    )
+    @PostMapping("/{teamId}/invite")
+    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
+    public ResponseEntity<ApiResponse<InviteMemberResponse>> inviteMember(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @Valid @RequestBody InviteMemberRequest request,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        InviteMemberResponse response = teamService.inviteMember(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }

@@ -50,16 +50,13 @@ public class MemberController {
 
     @Operation(
             summary = "핸들로 멤버 검색",
-            description = "백준 핸들로 멤버를 검색합니다. 중복 핸들이 허용되므로 여러 명의 결과가 반환될 수 있습니다."
+            description = "백준 핸들로 멤버를 검색합니다. 중복 핸들이 허용되므로 여러 명의 결과가 반환될 수 있습니다. 결과가 없을 경우 빈 배열을 반환합니다."
     )
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<MemberSearchResponse>>> getByHandle(
+    public ResponseEntity<ApiResponse<List<MemberSearchResponse>>> searchByHandle(
             @Parameter(description = "백준 핸들", example = "algorithm_master")
             @RequestParam String handle) {
-        List<Member> members = memberService.getAllByHandle(handle);
-        List<MemberSearchResponse> responses = members.stream()
-                .map(MemberSearchResponse::from)
-                .toList();
+        List<MemberSearchResponse> responses = memberService.searchByHandle(handle);
         return ResponseEntity.ok(ApiResponse.createSuccess(responses, CustomResponseStatus.SUCCESS));
     }
 

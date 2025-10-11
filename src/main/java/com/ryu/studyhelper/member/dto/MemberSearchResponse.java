@@ -22,7 +22,7 @@ public record MemberSearchResponse(
                 member.getId(),
                 member.getHandle(),
                 member.isVerified(),
-                member.isVerified() ? member.getEmail() : null
+                member.getEmail()
         );
     }
 }

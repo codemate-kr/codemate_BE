@@ -10,6 +10,8 @@ import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.dto.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.CreateTeamResponse;
+import com.ryu.studyhelper.team.dto.InviteMemberRequest;
+import com.ryu.studyhelper.team.dto.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsRequest;
@@ -29,6 +31,8 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final MemberRepository memberRepository;
+    // TODO: 알림 시스템 구현 후 주입
+    // private final NotificationService notificationService;
 
 
     @Transactional
@@ -67,7 +71,7 @@ public class TeamService {
         // 이미 팀에 속해있는지 확인
         boolean alreadyMember = teamMemberRepository.existsByTeamIdAndMemberId(teamId, memberId);
         if (alreadyMember) {
-            throw new CustomException(CustomResponseStatus.ALREADY_MAP_EXIST);
+            throw new CustomException(CustomResponseStatus.ALREADY_TEAM_MEMBER);
         }
 
         // 팀 가입
@@ -185,4 +189,50 @@ public class TeamService {
     public boolean isTeamLeader(Long teamId, Long memberId) {
         return teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, memberId, TeamRole.LEADER);
     }
+
+    /**
+     * 멤버 초대 (팀장만 가능)
+     * @param teamId 팀 ID
+     * @param request 초대 요청 (memberId)
+     * @param currentMemberId 현재 로그인한 멤버 ID (팀장)
+     * @return 초대 결과
+     */
+    @Transactional
+    public InviteMemberResponse inviteMember(Long teamId, InviteMemberRequest request, Long currentMemberId) {
+        // 팀 조회
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        // 팀장 권한 확인
+        validateTeamLeaderAccess(teamId, currentMemberId);
+
+        // 초대할 멤버 조회
+        Member invitedMember = memberRepository.findById(request.memberId())
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
+
+        // 이미 팀에 속해있는지 확인
+        boolean alreadyMember = teamMemberRepository.existsByTeamIdAndMemberId(teamId, invitedMember.getId());
+        if (alreadyMember) {
+            throw new CustomException(CustomResponseStatus.ALREADY_TEAM_MEMBER);
+        }
+
+        // 팀에 멤버 추가
+        TeamMember teamMember = TeamMember.createMember(team, invitedMember);
+        TeamMember savedTeamMember = teamMemberRepository.save(teamMember);
+
+        // TODO: 웹서비스 자체 알림 시스템을 통해 초대 알림 발송
+        // 알림 서비스가 구현되면 여기서 호출
+        // notificationService.sendTeamInvitationNotification(invitedMember.getId(), team.getId(), team.getName());
+
+        return InviteMemberResponse.from(savedTeamMember);
+    }
+
+    // TODO: 알림 시스템 구현 후 활성화
+    // /**
+    //  * 초대 알림 발송
+    //  */
+    // private void sendInvitationNotification(Long memberId, Long teamId, String teamName) {
+    //     // 웹서비스 자체 알림 시스템을 통해 알림 발송
+    //     // notificationService.createNotification(memberId, NotificationType.TEAM_INVITATION, teamId, teamName);
+    // }
 }
