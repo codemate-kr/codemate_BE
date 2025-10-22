@@ -40,12 +40,12 @@ chat:
 # 리뷰에서 제외할 파일들
 path_filters:
   excluded:
-    - "**/*.md"
-    - "**/*.txt"
-    - "**/build/**"
-    - "**/gradle/**"
-    - "**/.gradle/**"
-    - "**/gradlew*"
-    - "**/*.properties"
-    - "**/*.yml"
-    - "**/*.yaml"
+    - "!**/*.md"
+    - "!**/*.txt"
+    - "!**/build/**"
+    - "!**/gradle/**"
+    - "!**/.gradle/**"
+    - "!**/gradlew*"
+    - "!**/*.properties"
+    - "!**/*.yml"
+    - "!**/*.yaml"
