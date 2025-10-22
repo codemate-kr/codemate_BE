@@ -1,0 +1,51 @@
+# .coderabbit.yaml
+language: "ko-KR"
+early_access: false
+
+# 리뷰 설정
+reviews:
+  profile: "chill"  # 'assertive'(엄격), 'chill'(완화) 중 선택
+  request_changes_workflow: false  # true면 문제 발견 시 PR 승인 차단
+  high_level_summary: true
+  poem: true
+  review_status: true
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: false  # Draft PR은 리뷰하지 않음
+    base_branches:
+      - main
+      - develop
+
+  # 리뷰 범위 설정
+  path_instructions:
+    - path: "src/main/java/**/*.java"
+      instructions: |
+        - SOLID 원칙 준수 여부 확인
+        - 계층 구조(Controller-Service-Repository) 적절성 검토
+        - 비즈니스 로직의 명확성과 가독성 평가
+        - 예외 처리의 적절성 검토
+
+    - path: "src/test/**/*.java"
+      instructions: "테스트 커버리지와 테스트 케이스의 적절성 검토"
+
+    - path: "src/main/resources/**"
+      instructions: "설정 파일의 보안 이슈(하드코딩된 비밀번호 등) 확인"
+
+# 채팅 설정
+chat:
+  auto_reply: true
+
+# 리뷰에서 제외할 파일들
+path_filters:
+  excluded:
+    - "**/*.md"
+    - "**/*.txt"
+    - "**/build/**"
+    - "**/gradle/**"
+    - "**/.gradle/**"
+    - "**/gradlew*"
+    - "**/*.properties"
+    - "**/*.yml"
+    - "**/*.yaml"
