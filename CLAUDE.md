@@ -6,23 +6,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Build and Run:**
 ```bash
-./gradlew build          # Build the application
-./gradlew bootRun        # Run the Spring Boot application
-./gradlew test           # Run tests
+./gradlew build          # Build the application (compile + test)
+./gradlew bootRun        # Run Spring Boot app (default: http://localhost:8080)
+./gradlew test           # Run all tests (JUnit 5)
+./gradlew test --tests "ClassName"  # Run specific test class
 ```
 
 **Local Development with Docker:**
 ```bash
 cd scripts
-docker-compose up -d     # Start MySQL and Redis services
-docker-compose stop      # Stop services (preserves data)
-docker-compose down      # Stop and remove everything (data loss)
+docker-compose up -d     # Start MySQL, Redis, phpMyAdmin, RedisInsight
+docker-compose stop      # Stop services (preserves data volumes)
+docker-compose down      # Stop and remove containers (data persists in volumes)
 ```
 
-**Database Access:**
-- MySQL: `root` / `root` at localhost:3306
-- Adminer web client: http://localhost:18080
-- Direct connection: `docker exec -it docker-container mysql -uroot -p`
+**Database and Cache Access:**
+- MySQL: `root` / `root` at localhost:3306 (database: `codemate`)
+- phpMyAdmin: http://localhost:18080
+- Redis: localhost:6379
+- RedisInsight: http://localhost:18081
+- Direct MySQL CLI: `docker exec -it codemate-mysql mysql -uroot -proot`
 
 ## Architecture Overview
 
@@ -50,20 +53,30 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 - Swagger/OpenAPI documentation at `/swagger-ui`
 
 **Configuration:**
-- Uses `.env` file for environment variables (not committed)
+- Uses `.env` file for environment variables (loaded by `java-dotenv`, not committed)
 - Required env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET`, `REDIS_HOST`, `REDIS_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
+- Profiles: `local` (default), `test`, `prod` - configured in `application-{profile}.yml`
 - API endpoints follow `/api/**` pattern
 - JPA auditing enabled for entity timestamps
+- OAuth2 redirect URI: `${BASE_URL}/login/oauth2/code/google`
 
 **Domain Model:**
-- `Member` - User entity with OAuth provider info
+- `Member` - User entity with OAuth provider info, BOJ handle, email verification
   - `MemberSolvedProblem` - Tracks individual solved problems
-- `Team` - Team entity with recommendation settings
+- `Team` - Team entity with recommendation settings (difficulty preset, day of week, status)
   - `TeamMember` - Team membership with roles (LEADER, MEMBER)
-- `Problem` - Algorithm problem data from solved.ac
+- `Problem` - Algorithm problem data from solved.ac (problem ID, title, tier, tags)
 - `TeamRecommendation` - Batch recommendation records (manual or scheduled)
-  - `TeamRecommendationProblem` - Individual recommended problems
+  - `TeamRecommendationProblem` - Individual recommended problems in a batch
 - Role-based authorization system (ROLE_USER, ROLE_ADMIN)
+
+**Key Architectural Patterns:**
+- **Separation of Concerns**: 문제 추천 준비(새벽 2시 배치)와 이메일 발송(사용자 설정 요일/시간) 분리
+  - `ProblemRecommendationScheduler`: 매일 새벽 2시 solved.ac API 호출 및 문제 추천 데이터 DB 저장
+  - `EmailSendScheduler`: 팀별 설정된 요일/시간에 준비된 추천 데이터를 이메일로 발송
+- **Facade Pattern**: BOJ 인증은 `BojVerificationFacade`가 조율 (hash 생성, solved.ac 검증, DB 업데이트)
+- **JWT + Refresh Token**: Access token (짧은 유효기간) + Refresh token (Redis 저장, HttpOnly cookie)
+- **Entity-DTO Separation**: Controller는 DTO만 사용, Entity는 Service 계층 내부에서만 사용
 
 ## 코딩 가이드라인
 
@@ -91,3 +104,24 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 - 공통 기능은 common 패키지로 분리 (예외, 기본 엔티티, 공통 DTO)
 - 설정 클래스는 config 패키지에 집중화 (Security, JWT, Redis, Swagger)
 - 기술적 관심사는 infrastructure 패키지로 분리 (메일, 스케줄러)
+
+**코딩 스타일 및 네이밍:**
+- Java 17 기준, 4-space 들여쓰기, UTF-8 인코딩
+- 패키지명: lowercase (예: `com.ryu.studyhelper.member`)
+- 클래스명: UpperCamelCase (예: `MemberService`)
+- 메서드/필드명: lowerCamelCase (예: `findMemberById`)
+- Spring 스테레오타입 suffix 사용: `*Controller`, `*Service`, `*Repository`
+- Lombok 활용: 생성자 주입(`@RequiredArgsConstructor`), 로깅(`@Slf4j`)
+
+**테스트 작성:**
+- JUnit 5 (`spring-boot-starter-test`) 사용
+- 테스트 파일 위치: `src/test/java/...` (main 패키지 구조와 동일)
+- 테스트 클래스명: `*Tests.java` (예: `MemberServiceTests`)
+- `@SpringBootTest`는 필요시에만 사용, 단위 테스트 우선
+- 비즈니스 로직의 의미 있는 커버리지 확보 목표
+
+**커밋 및 PR 가이드라인:**
+- 커밋 메시지: present-tense, imperative, 간결하게
+- 기능 범위 prefix 사용 (예: `member: add repository method`, `auth: fix OAuth2 callback`)
+- PR 포함 사항: 변경 목적/요약, 관련 이슈 링크(`Closes #123`), 테스트 방법
+- PR 전 `./gradlew build` 성공 확인 필수
