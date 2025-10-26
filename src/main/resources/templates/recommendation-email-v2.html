@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title th:text="${subject}">오늘의 추천 문제</title>
+    <!--[if mso]>
+    <style>
+        table { border-collapse: collapse; }
+        .email-container { width: 600px !important; }
+    </style>
+    <![endif]-->
+</head>
+<body>
+
+<!-- 메인 테이블 래퍼 -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" class="email-wrapper">
+    <tr>
+        <td align="center">
+
+            <!-- 이메일 컨테이너 -->
+            <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0">
+
+                <!-- 헤더 -->
+                <tr>
+                    <td class="header">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="center">
+                                    <h1 class="header-title">CodeMate</h1>
+                                    <p class="header-subtitle">알고리즘 스터디 플랫폼</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- 서브헤더 (오늘의 문제) -->
+                <tr>
+                    <td class="subheader">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="center">
+                                    <h2 class="subheader-title">
+                                        오늘의 추천 문제
+                                        <span class="subheader-count" th:text="${problems.size()} + '개'">3개</span>
+                                    </h2>
+                                    <p class="subheader-date" th:text="${recommendationDate}">10/26</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- 콘텐츠 -->
+                <tr>
+                    <td class="content">
+
+                        <!-- 문제 목록 -->
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" th:each="problem, iterStat : ${problems}">
+                            <tr>
+                                <td>
+                                    <!-- 문제 카드 -->
+                                    <table width="100%" cellpadding="0" cellspacing="0" border="0" class="problem-card">
+                                        <tr>
+                                            <td>
+
+                                                <!-- 문제 헤더 (번호 + 제목) -->
+                                                <table width="100%" cellpadding="0" cellspacing="0" border="0" class="problem-header">
+                                                    <!-- 문제 번호 -->
+                                                    <tr>
+                                                        <td align="right">
+                                                            <span class="problem-number-inline" th:text="'#' + ${problem.problemId}">#1234</span>
+                                                        </td>
+                                                    </tr>
+                                                    <!-- 문제 제목 -->
+                                                    <tr>
+                                                        <td align="center">
+                                                            <h3 class="problem-title">
+                                                                <span th:text="${problem.title}">두 수의 합</span>
+                                                            </h3>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- 문제 정보 (해결자수, 난이도, 평균 시도) -->
+                                                <table width="100%" cellpadding="0" cellspacing="0" border="0" class="problem-info">
+                                                    <tr>
+                                                        <td align="center">
+                                                            <span class="tier-badge"
+                                                                  th:style="'color: ' + ${problem.tierColor} + '; background-color: ' + ${problem.tierBgColor} + ';'"
+                                                                  th:text="${problem.tierName}">Gold III</span>
+                                                            <span class="info-divider"> | </span>
+                                                            <span class="info-text" th:text="${problem.acceptedUserCount} + '명 해결'">50000명 해결</span>
+                                                            <span class="info-divider"> | </span>
+                                                            <span class="info-text" th:text="'평균 ' + ${problem.formattedAverageTries} + '회 시도'">평균 2.3회 시도</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- CTA 버튼 -->
+                                                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 12px;">
+                                                    <tr>
+                                                        <td class="cta-button">
+                                                            <a th:href="${problem.url}" target="_blank" class="cta-link">
+                                                                문제 풀러 가기 →
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- 격려 메시지 -->
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" class="encouragement">
+                            <tr>
+                                <td>
+                                    <h3 class="encouragement-title">오늘도 화이팅! 💪</h3>
+                                    <p class="encouragement-text">
+                                        한 문제씩 꾸준히 풀다 보면<br>
+                                        어느새 실력이 쌓여있을 거예요!
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- 푸터 -->
+                <tr>
+                    <td class="footer">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="center">
+                                    <p class="footer-brand">CodeMate</p>
+                                    <p class="footer-description">
+                                        함께 성장하는 알고리즘 스터디 플랫폼<br>
+                                        이 이메일은 자동으로 발송되었습니다.
+                                    </p>
+                                    <div class="footer-links">
+                                        <a href="https://codemate.kr" class="footer-link">웹사이트</a>
+                                        <span class="footer-divider">|</span>
+                                        <a href="mailto:codemate.study.official@gmail.com" class="footer-link">문의하기</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
