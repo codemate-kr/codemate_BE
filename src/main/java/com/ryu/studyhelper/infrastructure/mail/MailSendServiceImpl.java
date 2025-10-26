@@ -3,6 +3,7 @@ package com.ryu.studyhelper.infrastructure.mail;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
+import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.TeamRecommendationProblem;
@@ -28,16 +29,36 @@ import java.util.List;
 
 @Service
 public class MailSendServiceImpl implements MailSendService {
+    private static final String SENDER_NAME = "CodeMate";
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd");
+
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final CssInlinerService cssInlinerService;
 
-    public MailSendServiceImpl(JavaMailSender mailSender, TemplateEngine templateEngine) {
+    @Value("${spring.mail.username}")
+    private String emailSender;
+
+    public MailSendServiceImpl(JavaMailSender mailSender, TemplateEngine templateEngine, CssInlinerService cssInlinerService) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
+        this.cssInlinerService = cssInlinerService;
     }
 
-    @Value("${spring.mail.username}")    // 애플리케이션 설정에 꼭 있어야 함
-    private String EMAIL_SENDER;
+    /**
+     * 발신자 이메일 주소 포맷팅
+     */
+    private String getFromAddress() {
+        return SENDER_NAME + " <" + emailSender + ">";
+    }
+
+    /**
+     * MimeMessageHelper 생성 (multipart 지원)
+     */
+    private MimeMessageHelper createMimeMessageHelper() throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        return new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+    }
 
     /**
      * 텍스트 기반 메일 전송
@@ -45,16 +66,15 @@ public class MailSendServiceImpl implements MailSendService {
     @Override
     public void sendTxtEmail(MailTxtSendDto mailTxtSendDto) {
         SimpleMailMessage smm = new SimpleMailMessage();
-        smm.setTo(mailTxtSendDto.getEmailAddr());      // 받는 사람
-//        smm.setFrom(EMAIL_SENDER);
-        smm.setFrom("CodeMate <" + EMAIL_SENDER + ">");// 보내는 사람
-        smm.setSubject(mailTxtSendDto.getSubject());   // 제목
-        smm.setText(mailTxtSendDto.getContent());      // 내용(plain text)
+        smm.setTo(mailTxtSendDto.getEmailAddr());
+        smm.setFrom(getFromAddress());
+        smm.setSubject(mailTxtSendDto.getSubject());
+        smm.setText(mailTxtSendDto.getContent());
+
         try {
             mailSender.send(smm);
         } catch (MailException e) {
-            // 로깅으로 교체 권장
-            throw e;
+            throw new RuntimeException("텍스트 메일 전송 실패: " + e.getMessage(), e);
         }
     }
 
@@ -64,19 +84,14 @@ public class MailSendServiceImpl implements MailSendService {
     @Override
     public void sendHtmlEmail(MailHtmlSendDto mailHtmlSendDto) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            // 두 번째 파라미터 true = multipart(이미지 첨부/인라인 등 가능)
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = createMimeMessageHelper();
 
             // Thymeleaf 템플릿 컨텍스트 구성
             Context context = new Context();
             context.setVariable("subject", mailHtmlSendDto.getSubject());
-            // 간단한 안내 문구 표시용
             context.setVariable("message", mailHtmlSendDto.getContent());
-            // CTA 버튼 변수 (옵션)
             context.setVariable("buttonUrl", mailHtmlSendDto.getButtonUrl());
             context.setVariable("buttonText", mailHtmlSendDto.getButtonText());
-            // 단순 버튼 템플릿 사용 시(message/userType/logo 불필요) 최소 변수만 설정
 
             // 템플릿 이름 지정 (기본 email-template)
             String templateName = mailHtmlSendDto.getTemplateName() == null || mailHtmlSendDto.getTemplateName().isBlank()
@@ -84,14 +99,12 @@ public class MailSendServiceImpl implements MailSendService {
                     : mailHtmlSendDto.getTemplateName();
             String htmlContent = templateEngine.process(templateName, context);
 
-//            helper.setFrom(EMAIL_SENDER);
-            helper.setFrom("CodeMate <" + EMAIL_SENDER + ">");// 보내는 사람
-
+            helper.setFrom(getFromAddress());
             helper.setTo(mailHtmlSendDto.getEmailAddr());
             helper.setSubject(mailHtmlSendDto.getSubject());
-            helper.setText(htmlContent, true); // HTML로 전송
+            helper.setText(htmlContent, true);
 
-            mailSender.send(message);
+            mailSender.send(helper.getMimeMessage());
         } catch (MessagingException e) {
             throw new RuntimeException("HTML 메일 전송 실패: " + e.getMessage(), e);
         }
@@ -103,46 +116,17 @@ public class MailSendServiceImpl implements MailSendService {
     @Override
     public void sendRecommendationEmail(TeamRecommendation recommendation, List<String> memberEmails) {
         String subject = buildRecommendationSubject(recommendation);
+        String htmlContent = buildRecommendationHtml(recommendation, subject);
+        String plainText = buildRecommendationContent(recommendation);
 
         try {
-            // Build HTML content from Thymeleaf template
-            Context context = new Context();
-            context.setVariable("subject", subject);
-            context.setVariable("teamName", recommendation.getTeam().getName());
-            context.setVariable("recommendationDate", recommendation.getRecommendationDate()
-                    .format(DateTimeFormatter.ofPattern("MM/dd")));
-
-            // Prepare problem view models for template
-            List<ProblemView> problems = recommendation.getProblems().stream()
-                    .map(trp -> new ProblemView(
-                            trp.getRecommendationOrder(),
-                            trp.getProblem().getTitleKo(),
-                            trp.getProblem().getLevel(),
-                            trp.getProblem().getUrl()
-                    ))
-                    .toList();
-            context.setVariable("problems", problems);
-
-            // 로고 이미지 추가
-            try {
-                String base64Image = getBase64EncodedImage("static/images/logo.png");
-                context.setVariable("logoImage", base64Image);
-            } catch (IOException e) {
-                context.setVariable("logoImage", null);
-            }
-
-            String htmlContent = templateEngine.process("recommendation-email-template", context);
-            String plainText = buildRecommendationContent(recommendation);
-
-            // Send email to each recipient as multipart/alternative
             for (String email : memberEmails) {
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-                helper.setFrom("StudyHalp <" + EMAIL_SENDER + ">");
+                MimeMessageHelper helper = createMimeMessageHelper();
+                helper.setFrom(getFromAddress());
                 helper.setTo(email);
                 helper.setSubject(subject);
                 helper.setText(plainText, htmlContent);
-                mailSender.send(message);
+                mailSender.send(helper.getMimeMessage());
             }
         } catch (MessagingException e) {
             throw new RuntimeException("추천 HTML 메일 전송 실패: " + e.getMessage(), e);
@@ -150,12 +134,49 @@ public class MailSendServiceImpl implements MailSendService {
     }
 
     /**
+     * 추천 이메일 HTML 내용 생성
+     */
+    private String buildRecommendationHtml(TeamRecommendation recommendation, String subject) {
+        Context context = new Context();
+        context.setVariable("subject", subject);
+        context.setVariable("recommendationDate", recommendation.getRecommendationDate().format(DATE_FORMATTER));
+
+        // Prepare problem view models for template
+        List<ProblemView> problems = recommendation.getProblems().stream()
+                .map(trp -> {
+                    Problem p = trp.getProblem();
+                    return new ProblemView(
+                            trp.getRecommendationOrder(),
+                            p.getTitleKo(),
+                            p.getLevel(),
+                            p.getUrl(),
+                            p.getId(),
+                            p.getAcceptedUserCount(),
+                            p.getAverageTries(),
+                            false  // TODO: 완료 여부 확인 로직 필요
+                    );
+                })
+                .toList();
+        context.setVariable("problems", problems);
+
+        // 로고 이미지 추가
+        try {
+            String base64Image = getBase64EncodedImage("static/images/logo.png");
+            context.setVariable("logoImage", base64Image);
+        } catch (IOException e) {
+            context.setVariable("logoImage", null);
+        }
+
+        String htmlContent = templateEngine.process("recommendation-email-v2", context);
+        return cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
+    }
+
+    /**
      * 추천 이메일 제목 생성
      */
     private String buildRecommendationSubject(TeamRecommendation recommendation) {
-        return String.format("[StudyHalp] %s팀 오늘의 추천 문제 (%s)",
-                recommendation.getTeam().getName(),
-                recommendation.getRecommendationDate().format(DateTimeFormatter.ofPattern("MM/dd"))
+        return String.format("[CodeMate] 오늘의 미션 문제 (%s)",
+                recommendation.getRecommendationDate().format(DATE_FORMATTER)
         );
     }
 
@@ -179,27 +200,9 @@ public class MailSendServiceImpl implements MailSendService {
         return content.toString();
     }
 
-    // Template view for problems
-    private static class ProblemView {
-        private final Integer order;
-        private final String title;
-        private final Integer level;
-        private final String url;
-
-        public ProblemView(Integer order, String title, Integer level, String url) {
-            this.order = order;
-            this.title = title;
-            this.level = level;
-            this.url = url;
-        }
-
-        public Integer getOrder() { return order; }
-        public String getTitle() { return title; }
-        public Integer getLevel() { return level; }
-        public String getUrl() { return url; }
-    }
-
-    // 이미지를 Base64(data URI)로 인코딩
+    /**
+     * 이미지를 Base64(data URI)로 인코딩
+     */
     private String getBase64EncodedImage(String imagePath) throws IOException {
         Resource resource = new ClassPathResource(imagePath);
         byte[] bytes = StreamUtils.copyToByteArray(resource.getInputStream());
