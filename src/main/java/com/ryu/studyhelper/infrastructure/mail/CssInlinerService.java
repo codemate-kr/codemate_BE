@@ -54,8 +54,14 @@ public class CssInlinerService {
      */
     private String loadCssFile(String cssPath) throws IOException {
         ClassPathResource resource = new ClassPathResource(cssPath);
-        return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        if(!resource.exists()) {
+            throw new IOException("CSS 파일을 찾을 수 없습니다: " + cssPath);
+        }
+        try (var stream = resource.getInputStream()) {
+            return StreamUtils.copyToString(stream, StandardCharsets.UTF_8);
+        }
     }
+
 
     /**
      * 간단한 CSS 파서 (클래스 선택자 중심)

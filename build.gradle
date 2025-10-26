@@ -72,7 +72,7 @@ dependencies {
     implementation 'org.projectlombok:lombok'
 
     // CSS Inliner for email templates
-    implementation 'org.jsoup:jsoup:1.17.2'
+    implementation 'org.jsoup:jsoup:1.21.2'
 
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

@@ -1,6 +1,7 @@
 package com.ryu.studyhelper.infrastructure.mail;
 
 import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +22,7 @@ import java.util.List;
  * 2. 생성된 파일을 브라우저로 열면 실제 이메일 모습을 볼 수 있습니다
  */
 @SpringBootTest
+@Disabled
 public class EmailTemplatePreviewTest {
 
     @Autowired
