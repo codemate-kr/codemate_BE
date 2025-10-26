@@ -71,6 +71,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'
 
+    // CSS Inliner for email templates
+    implementation 'org.jsoup:jsoup:1.21.2'
+
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
