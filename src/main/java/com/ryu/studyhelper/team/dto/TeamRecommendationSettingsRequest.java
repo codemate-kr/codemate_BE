@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 
-import java.util.Set;
+import java.util.List;
 
 /**
  * 팀별 추천 설정 요청 DTO
@@ -17,9 +17,9 @@ import java.util.Set;
 public record TeamRecommendationSettingsRequest(
 
 //        @NotEmpty(message = "추천받을 요일을 최소 1개 이상 선택해야 합니다.")
-        @Schema(description = "추천받을 요일들",
+        @Schema(description = "추천받을 요일들 (월요일부터 일요일까지 순서대로)",
                 example = "[\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\", \"THURSDAY\", \"FRIDAY\"]")
-        Set<RecommendationDayOfWeek> recommendationDays,
+        List<RecommendationDayOfWeek> recommendationDays,
 
         @NotNull(message = "난이도 프리셋을 선택해야 합니다.")
         @Schema(description = "문제 난이도 프리셋",

@@ -2,7 +2,7 @@ package com.ryu.studyhelper.team.domain;
 
 import java.time.DayOfWeek;
 import java.util.Arrays;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -43,20 +43,21 @@ public enum RecommendationDayOfWeek {
 
     /**
      * 여러 요일을 비트마스크 값으로 변환
+     * OR 연산을 사용하여 중복된 요일이 있어도 안전하게 처리
      */
-    public static int toBitMask(Set<RecommendationDayOfWeek> days) {
+    public static int toBitMask(List<RecommendationDayOfWeek> days) {
         return days.stream()
                 .mapToInt(RecommendationDayOfWeek::getBitValue)
-                .sum();
+                .reduce(0, (a, b) -> a | b);
     }
 
     /**
-     * 비트마스크 값을 요일 Set으로 변환
+     * 비트마스크 값을 요일 List로 변환 (월요일부터 일요일까지 순서대로)
      */
-    public static Set<RecommendationDayOfWeek> fromBitMask(int bitMask) {
+    public static List<RecommendationDayOfWeek> fromBitMask(int bitMask) {
         return Arrays.stream(values())
                 .filter(day -> (bitMask & day.getBitValue()) != 0)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     /**

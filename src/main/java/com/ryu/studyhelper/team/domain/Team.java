@@ -77,7 +77,7 @@ public class Team extends BaseEntity {
     /**
      * 추천 요일 설정 업데이트
      */
-    public void updateRecommendationDays(java.util.Set<RecommendationDayOfWeek> days) {
+    public void updateRecommendationDays(java.util.List<RecommendationDayOfWeek> days) {
         this.recommendationDays = RecommendationDayOfWeek.toBitMask(days);
         // 추천이 설정되면 상태를 ACTIVE로, 설정이 없으면 INACTIVE로 변경
         if (this.recommendationDays > 0) {
@@ -139,9 +139,9 @@ public class Team extends BaseEntity {
     }
 
     /**
-     * 현재 설정된 추천 요일들 조회
+     * 현재 설정된 추천 요일들 조회 (월요일부터 일요일까지 순서대로)
      */
-    public java.util.Set<RecommendationDayOfWeek> getRecommendationDaysSet() {
+    public java.util.List<RecommendationDayOfWeek> getRecommendationDaysList() {
         return RecommendationDayOfWeek.fromBitMask(this.recommendationDays);
     }
 
