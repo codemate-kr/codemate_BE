@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -141,10 +140,10 @@ public class TeamService {
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
         
         validateTeamLeaderAccess(teamId, memberId);
-        
-        // 빈 Set으로 설정하여 비활성화
-        team.updateRecommendationDays(Set.of());
-        
+
+        // 빈 List로 설정하여 비활성화
+        team.updateRecommendationDays(List.of());
+
         return TeamRecommendationSettingsResponse.from(team);
     }
 
