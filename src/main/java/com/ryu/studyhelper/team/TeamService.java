@@ -244,6 +244,46 @@ public class TeamService {
         return InviteMemberResponse.from(savedTeamMember);
     }
 
+    /**
+     * 팀 탈퇴 (일반 멤버만 가능, 리더는 불가)
+     * @param teamId 팀 ID
+     * @param memberId 현재 로그인한 멤버 ID
+     */
+    @Transactional
+    public void leaveTeam(Long teamId, Long memberId) {
+
+        // 팀 멤버십 조회
+        TeamMember teamMember = teamMemberRepository.findByTeamIdAndMemberId(teamId, memberId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_MEMBER_NOT_FOUND));
+
+        // 리더는 탈퇴 불가
+        if (teamMember.getRole() == TeamRole.LEADER) {
+            throw new CustomException(CustomResponseStatus.TEAM_LEADER_CANNOT_LEAVE);
+        }
+
+        // 팀 멤버십 삭제
+        teamMemberRepository.delete(teamMember);
+    }
+
+    /**
+     * 팀 삭제 (리더만 가능)
+     * 팀과 연관된 모든 데이터(팀 멤버, 추천 기록 등)가 함께 삭제됩니다.
+     * @param teamId 팀 ID
+     * @param memberId 현재 로그인한 멤버 ID (리더)
+     */
+    @Transactional
+    public void deleteTeam(Long teamId, Long memberId) {
+        // 팀 조회
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        // 팀장 권한 확인
+        validateTeamLeaderAccess(teamId, memberId);
+
+        // 팀 삭제 (cascade로 연관된 TeamMember, TeamRecommendation 등도 함께 삭제됨)
+        teamRepository.delete(team);
+    }
+
     // TODO: 알림 시스템 구현 후 활성화
     // /**
     //  * 초대 알림 발송
