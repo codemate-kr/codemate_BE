@@ -144,5 +144,17 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 
+    @Operation(
+            summary = "팀 삭제",
+            description = "팀을 완전히 삭제합니다. 팀 리더만 삭제할 수 있습니다. 팀의 모든 데이터(멤버, 추천 기록 등)가 함께 삭제됩니다."
+    )
+    @PostMapping("/{teamId}/deleteTeam")
+    public ResponseEntity<ApiResponse<Void>> deleteTeam(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
+        teamService.deleteTeam(teamId, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
 }
