@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
@@ -41,4 +42,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
      * 특정 멤버가 속한 모든 팀 멤버십 조회
      */
     List<TeamMember> findByMemberId(Long memberId);
+
+    /**
+     * 특정 팀에서 특정 멤버의 팀 멤버십 조회
+     */
+    Optional<TeamMember> findByTeamIdAndMemberId(Long teamId, Long memberId);
+
+    /**
+     * 특정 멤버가 LEADER 역할로 속한 팀의 개수 조회
+     */
+    int countByMemberIdAndRole(Long memberId, TeamRole role);
 }
