@@ -129,4 +129,20 @@ public class TeamController {
         InviteMemberResponse response = teamService.inviteMember(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
+
+    @Operation(
+            summary = "팀 탈퇴",
+            description = "현재 로그인한 사용자가 팀에서 탈퇴합니다. 팀 리더는 탈퇴할 수 없습니다."
+    )
+    @PostMapping("/{teamId}/leaveTeam")
+    public ResponseEntity<ApiResponse<Void>> leaveTeam(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        teamService.leaveTeam(teamId, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+
 }
