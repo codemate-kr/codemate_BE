@@ -30,6 +30,8 @@ public enum CustomResponseStatus {
     ALREADY_VERIFIED(HttpStatus.CONFLICT.value(), "3006", "이미 인증된 회원입니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3007", "이미 사용 중인 이메일입니다."),
     ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT.value(), "3008", "이미 팀에 속한 멤버입니다."),
+    TEAM_LEADER_CANNOT_LEAVE(HttpStatus.FORBIDDEN.value(), "3009", "팀 리더는 팀을 탈퇴할 수 없습니다. 리더 양도 또는 팀 해산 기능을 사용해주세요."),
+    TEAM_CREATION_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN.value(), "3010", "최대 3개 팀까지만 생성할 수 있습니다."),
 
     /***
      * 4000: NOT_FOUND

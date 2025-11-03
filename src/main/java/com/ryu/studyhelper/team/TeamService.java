@@ -33,11 +33,19 @@ public class TeamService {
     // TODO: 알림 시스템 구현 후 주입
     // private final NotificationService notificationService;
 
+    /**
+     * 팀 생성 제한 상수 (LEADER 역할로 생성 가능한 최대 팀 개수)
+     */
+    private static final int MAX_TEAM_CREATION_LIMIT = 3;
+
 
     @Transactional
     public CreateTeamResponse create(@Valid CreateTeamRequest req, Long memberId) {
         Member owner = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
+
+        // 팀 생성 제한 검증 (LEADER 역할 최대 3개)
+        validateTeamCreationLimit(memberId);
 
         Team team = Team.create(req.name(), req.description());
         Team saved = teamRepository.save(team);
@@ -187,6 +195,16 @@ public class TeamService {
      */
     public boolean isTeamLeader(Long teamId, Long memberId) {
         return teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, memberId, TeamRole.LEADER);
+    }
+
+    /**
+     * 팀 생성 가능 여부 검증 (LEADER 역할 최대 3개 제한)
+     */
+    private void validateTeamCreationLimit(Long memberId) {
+        int leaderCount = teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER);
+        if (leaderCount >= MAX_TEAM_CREATION_LIMIT) {
+            throw new CustomException(CustomResponseStatus.TEAM_CREATION_LIMIT_EXCEEDED);
+        }
     }
 
     /**
