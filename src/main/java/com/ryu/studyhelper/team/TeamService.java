@@ -120,8 +120,8 @@ public class TeamService {
 
         // 커스텀 모드일 때 난이도 범위 유효성 검증
         if (request.problemDifficultyPreset().isCustom()) {
-            if (request.customMinLevel() != null && request.customMaxLevel() != null
-                && request.customMinLevel() > request.customMaxLevel()) {
+            if (request.minProblemLevel() != null && request.maxProblemLevel() != null
+                && request.minProblemLevel() > request.maxProblemLevel()) {
                 throw new CustomException(CustomResponseStatus.INVALID_PROBLEM_LEVEL_RANGE);
             }
         }
@@ -132,8 +132,8 @@ public class TeamService {
         // 추천 난이도 설정 업데이트 (프리셋 방식)
         team.updateProblemDifficultySettings(
                 request.problemDifficultyPreset(),
-                request.customMinLevel(),
-                request.customMaxLevel()
+                request.minProblemLevel(),
+                request.maxProblemLevel()
         );
 
         return TeamRecommendationSettingsResponse.from(team);
