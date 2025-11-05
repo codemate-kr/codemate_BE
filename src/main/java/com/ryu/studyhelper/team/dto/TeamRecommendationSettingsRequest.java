@@ -30,11 +30,11 @@ public record TeamRecommendationSettingsRequest(
         @Min(value = 1, message = "최소 난이도는 1 이상이어야 합니다.")
         @Max(value = 30, message = "최소 난이도는 30 이하여야 합니다.")
         @Schema(description = "커스텀 모드일 때 최소 난이도 (1~30)", example = "1")
-        Integer customMinLevel,
+        Integer minProblemLevel,
 
         @Min(value = 1, message = "최대 난이도는 1 이상이어야 합니다.")
         @Max(value = 30, message = "최대 난이도는 30 이하여야 합니다.")
         @Schema(description = "커스텀 모드일 때 최대 난이도 (1~30)", example = "30")
-        Integer customMaxLevel
+        Integer maxProblemLevel
 
 ) {}
