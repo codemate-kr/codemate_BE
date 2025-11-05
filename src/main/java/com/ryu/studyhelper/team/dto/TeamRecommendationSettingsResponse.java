@@ -17,8 +17,8 @@ public record TeamRecommendationSettingsResponse(
         String[] recommendationDayNames, // 한글 요일명
         ProblemDifficultyPreset problemDifficultyPreset,
         String difficultyDisplayName, // 난이도 프리셋 한글명
-        Integer customMinLevel, // 커스텀 모드일 때만 값 있음
-        Integer customMaxLevel // 커스텀 모드일 때만 값 있음
+        Integer MinProblemLevel, // 커스텀 모드일 때만 값 있음
+        Integer MaxProblemLevel // 커스텀 모드일 때만 값 있음
 ) {
     public static TeamRecommendationSettingsResponse from(Team team) {
         List<RecommendationDayOfWeek> days = team.getRecommendationDaysList();
