@@ -34,8 +34,8 @@ public record TeamRecommendationSettingsResponse(
                 dayNames,
                 team.getProblemDifficultyPreset(),
                 team.getProblemDifficultyPreset().getDisplayName(),
-                team.getMinProblemLevel(), // 커스텀일 때만 값 있음
-                team.getMaxProblemLevel() // 커스텀일 때만 값 있음
+                team.getEffectiveMinProblemLevel(),
+                team.getEffectiveMaxProblemLevel()
         );
     }
 }
