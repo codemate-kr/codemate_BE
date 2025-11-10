@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation.domain;
+package com.ryu.studyhelper.recommendation.domain.team;
 
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import com.ryu.studyhelper.problem.domain.Problem;

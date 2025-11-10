@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.team;
 
+import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
@@ -52,4 +53,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
      * 특정 멤버가 LEADER 역할로 속한 팀의 개수 조회
      */
     int countByMemberIdAndRole(Long memberId, TeamRole role);
+
+    /**
+     * 특정 팀의 모든 멤버 조회
+     */
+    @Query("""
+           select tm.member
+           from TeamMember tm
+           where tm.team.id = :teamId
+           """)
+    List<Member> findMembersByTeamId(Long teamId);
 }

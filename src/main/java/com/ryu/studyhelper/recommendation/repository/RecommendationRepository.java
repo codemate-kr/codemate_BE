@@ -1,0 +1,68 @@
+package com.ryu.studyhelper.recommendation.repository;
+
+import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Recommendation 엔티티에 대한 Repository
+ * 추천 배치 데이터를 관리합니다.
+ */
+@Repository
+public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {
+
+    /**
+     * 특정 팀의 특정 날짜 범위 내 추천 조회
+     * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
+     *
+     * @param teamId 팀 ID
+     * @param startDateTime 날짜 범위 시작 (예: 2025-01-10 00:00:00)
+     * @param endDateTime 날짜 범위 끝 (예: 2025-01-10 23:59:59.999999999)
+     * @param type 추천 타입
+     * @return 추천 배치 (Optional)
+     */
+    @Query("SELECT r FROM Recommendation r WHERE r.teamId = :teamId AND r.createdAt BETWEEN :start AND :end AND r.type = :type")
+    Optional<Recommendation> findByTeamIdAndCreatedAtBetweenAndType(
+            @Param("teamId") Long teamId,
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endDateTime,
+            @Param("type") RecommendationType type
+    );
+
+    /**
+     * 특정 팀의 추천 이력 조회 (최신순)
+     *
+     * @param teamId 팀 ID
+     * @return 추천 배치 목록
+     */
+    List<Recommendation> findByTeamIdOrderByCreatedAtDesc(Long teamId);
+
+    /**
+     * 특정 날짜 범위의 모든 스케줄 추천 조회
+     * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
+     *
+     * @param startDateTime 날짜 범위 시작
+     * @param endDateTime 날짜 범위 끝
+     * @return 추천 배치 목록
+     */
+    @Query("SELECT r FROM Recommendation r WHERE r.createdAt BETWEEN :start AND :end AND r.type = 'SCHEDULED'")
+    List<Recommendation> findScheduledRecommendationsByCreatedAtBetween(
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endDateTime
+    );
+
+    /**
+     * 특정 팀의 가장 최근 추천 조회
+     *
+     * @param teamId 팀 ID
+     * @return 가장 최근 추천 배치 (Optional)
+     */
+    Optional<Recommendation> findFirstByTeamIdOrderByCreatedAtDesc(Long teamId);
+}

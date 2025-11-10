@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation.domain;
+package com.ryu.studyhelper.recommendation.domain.team;
 
 /**
  * 추천 상태를 나타내는 열거형

@@ -1,6 +1,6 @@
-package com.ryu.studyhelper.recommendation;
+package com.ryu.studyhelper.recommendation.repository;
 
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.team.domain.Team;
 import org.springframework.data.domain.Page;

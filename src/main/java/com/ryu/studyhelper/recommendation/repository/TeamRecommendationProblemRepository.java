@@ -1,6 +1,6 @@
-package com.ryu.studyhelper.recommendation;
+package com.ryu.studyhelper.recommendation.repository;
 
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendationProblem;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
