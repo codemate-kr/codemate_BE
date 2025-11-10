@@ -2,7 +2,7 @@ package com.ryu.studyhelper.infrastructure.mail;
 
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

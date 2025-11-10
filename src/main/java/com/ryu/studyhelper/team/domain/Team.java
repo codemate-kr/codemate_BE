@@ -1,7 +1,7 @@
 package com.ryu.studyhelper.team.domain;
 
 import com.ryu.studyhelper.common.entity.BaseEntity;
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import jakarta.persistence.*;
 import lombok.*;
 

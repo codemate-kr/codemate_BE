@@ -1,7 +1,7 @@
 package com.ryu.studyhelper.recommendation.dto;
 
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
+import com.ryu.studyhelper.recommendation.domain.team.RecommendationStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

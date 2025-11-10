@@ -5,8 +5,8 @@ import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendation;
-import com.ryu.studyhelper.recommendation.domain.TeamRecommendationProblem;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
+import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;                 // <-- 여기!
