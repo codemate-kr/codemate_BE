@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,17 +19,21 @@ import java.util.Optional;
 public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {
 
     /**
-     * 특정 팀의 특정 날짜 추천 조회
+     * 특정 팀의 특정 날짜 범위 내 추천 조회
+     * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
      *
      * @param teamId 팀 ID
-     * @param recommendationDate 추천 날짜
+     * @param startDateTime 날짜 범위 시작 (예: 2025-01-10 00:00:00)
+     * @param endDateTime 날짜 범위 끝 (예: 2025-01-10 23:59:59.999999999)
      * @param type 추천 타입
      * @return 추천 배치 (Optional)
      */
-    Optional<Recommendation> findByTeamIdAndRecommendationDateAndType(
-            Long teamId,
-            LocalDate recommendationDate,
-            RecommendationType type
+    @Query("SELECT r FROM Recommendation r WHERE r.teamId = :teamId AND r.createdAt BETWEEN :start AND :end AND r.type = :type")
+    Optional<Recommendation> findByTeamIdAndCreatedAtBetweenAndType(
+            @Param("teamId") Long teamId,
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endDateTime,
+            @Param("type") RecommendationType type
     );
 
     /**
@@ -38,14 +42,27 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
      * @param teamId 팀 ID
      * @return 추천 배치 목록
      */
-    List<Recommendation> findByTeamIdOrderByRecommendationDateDesc(Long teamId);
+    List<Recommendation> findByTeamIdOrderByCreatedAtDesc(Long teamId);
 
     /**
-     * 특정 날짜의 모든 스케줄 추천 조회
+     * 특정 날짜 범위의 모든 스케줄 추천 조회
+     * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
      *
-     * @param date 추천 날짜
+     * @param startDateTime 날짜 범위 시작
+     * @param endDateTime 날짜 범위 끝
      * @return 추천 배치 목록
      */
-    @Query("SELECT r FROM Recommendation r WHERE r.recommendationDate = :date AND r.type = 'SCHEDULED'")
-    List<Recommendation> findScheduledRecommendationsByDate(@Param("date") LocalDate date);
+    @Query("SELECT r FROM Recommendation r WHERE r.createdAt BETWEEN :start AND :end AND r.type = 'SCHEDULED'")
+    List<Recommendation> findScheduledRecommendationsByCreatedAtBetween(
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endDateTime
+    );
+
+    /**
+     * 특정 팀의 가장 최근 추천 조회
+     *
+     * @param teamId 팀 ID
+     * @return 가장 최근 추천 배치 (Optional)
+     */
+    Optional<Recommendation> findFirstByTeamIdOrderByCreatedAtDesc(Long teamId);
 }

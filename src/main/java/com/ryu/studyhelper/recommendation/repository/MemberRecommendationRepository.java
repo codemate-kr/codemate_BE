@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,8 +27,8 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
     @Query("SELECT mr FROM MemberRecommendation mr " +
             "JOIN FETCH mr.recommendation r " +
             "WHERE mr.member.id = :memberId " +
-            "ORDER BY r.recommendationDate DESC")
-    List<MemberRecommendation> findByMemberIdOrderByRecommendationDateDesc(@Param("memberId") Long memberId);
+            "ORDER BY r.createdAt DESC")
+    List<MemberRecommendation> findByMemberIdOrderByCreatedAtDesc(@Param("memberId") Long memberId);
 
     /**
      * 특정 회원의 특정 추천 조회
@@ -49,20 +49,23 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
     List<MemberRecommendation> findByEmailSendStatus(EmailSendStatus status);
 
     /**
-     * 특정 날짜의 PENDING 상태 개인 추천 조회
+     * 특정 날짜 범위의 PENDING 상태 개인 추천 조회
      * 스케줄러에서 이메일 발송 대상을 찾을 때 사용됩니다.
+     * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
      *
-     * @param date 추천 날짜
+     * @param startDateTime 날짜 범위 시작
+     * @param endDateTime 날짜 범위 끝
      * @param status 이메일 발송 상태
      * @return 개인 추천 목록
      */
     @Query("SELECT mr FROM MemberRecommendation mr " +
             "JOIN FETCH mr.recommendation r " +
             "JOIN FETCH mr.member m " +
-            "WHERE r.recommendationDate = :date " +
+            "WHERE r.createdAt BETWEEN :start AND :end " +
             "AND mr.emailSendStatus = :status")
-    List<MemberRecommendation> findPendingRecommendationsByDate(
-            @Param("date") LocalDate date,
+    List<MemberRecommendation> findPendingRecommendationsByCreatedAtBetween(
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endDateTime,
             @Param("status") EmailSendStatus status
     );
 

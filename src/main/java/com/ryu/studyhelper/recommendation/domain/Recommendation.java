@@ -4,7 +4,6 @@ import com.ryu.studyhelper.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,12 +25,6 @@ public class Recommendation extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * 추천 날짜 (어느 날 추천인지)
-     */
-    @Column(name = "recommendation_date", nullable = false)
-    private LocalDate recommendationDate;
 
     /**
      * 추천 타입 (SCHEDULED: 스케줄 자동 추천, MANUAL: 수동 추천)
@@ -58,14 +51,12 @@ public class Recommendation extends BaseEntity {
      * 팀별 스케줄 추천 생성을 위한 팩토리 메서드
      *
      * @param teamId 팀 ID (DB FK 없음, 애플리케이션 레벨에서만 참조)
-     * @param date 추천 날짜
      * @return 생성된 Recommendation 엔티티
      */
-    public static Recommendation createScheduledRecommendation(Long teamId, LocalDate date) {
+    public static Recommendation createScheduledRecommendation(Long teamId) {
         return Recommendation.builder()
                 .teamId(teamId)
                 .type(RecommendationType.SCHEDULED)
-                .recommendationDate(date)
                 .build();
     }
 
@@ -79,7 +70,6 @@ public class Recommendation extends BaseEntity {
         return Recommendation.builder()
                 .teamId(teamId)
                 .type(RecommendationType.MANUAL)
-                .recommendationDate(LocalDate.now())
                 .build();
     }
 
