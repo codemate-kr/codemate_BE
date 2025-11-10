@@ -109,11 +109,16 @@ public class RecommendationService {
             // 5. 즉시 이메일 발송
             try {
                 String memberEmail = member.getEmail();
-                if (memberEmail != null && !memberEmail.isBlank()) {
-                    mailSendService.sendMemberRecommendationEmail(memberRecommendation);
-                    memberRecommendation.markEmailAsSent();
+                if (memberEmail == null || memberEmail.isBlank()) {
+                    memberRecommendation.markEmailAsFailed();
                     memberRecommendationRepository.save(memberRecommendation);
+                    log.warn("회원 ID {}에 이메일이 없습니다", member.getId());
+                    continue;
                 }
+
+                mailSendService.sendMemberRecommendationEmail(memberRecommendation);
+                memberRecommendation.markEmailAsSent();
+                memberRecommendationRepository.save(memberRecommendation);
             } catch (Exception e) {
                 memberRecommendation.markEmailAsFailed();
                 memberRecommendationRepository.save(memberRecommendation);
@@ -333,7 +338,10 @@ public class RecommendationService {
                 String memberEmail = memberRecommendation.getMember().getEmail();
 
                 if (memberEmail == null || memberEmail.isBlank()) {
+                    memberRecommendation.markEmailAsFailed();
+                    memberRecommendationRepository.save(memberRecommendation);
                     log.warn("회원 ID {}에 이메일이 없습니다", memberRecommendation.getMember().getId());
+                    failCount++;
                     continue;
                 }
 
