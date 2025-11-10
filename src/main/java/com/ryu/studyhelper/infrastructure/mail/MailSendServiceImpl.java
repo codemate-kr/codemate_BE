@@ -5,6 +5,8 @@ import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
 import com.ryu.studyhelper.problem.domain.Problem;
+import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import jakarta.mail.MessagingException;
@@ -193,6 +195,104 @@ public class MailSendServiceImpl implements MailSendService {
             content.append(String.format("%d. %s\n", 
                     trp.getRecommendationOrder(), problem.getTitleKo()));
             content.append(String.format("   레벨: %d | URL: %s\n\n", 
+                    problem.getLevel(), problem.getUrl()));
+        }
+
+        content.append("오늘도 화이팅하세요! 💪\n");
+        return content.toString();
+    }
+
+    /**
+     * 개인 추천 이메일 발송 (신규 스키마)
+     */
+    @Override
+    public void sendMemberRecommendationEmail(MemberRecommendation memberRecommendation) {
+        String memberEmail = memberRecommendation.getMember().getEmail();
+        if (memberEmail == null || memberEmail.isBlank()) {
+            throw new IllegalArgumentException("회원 이메일이 없습니다");
+        }
+
+        String subject = buildMemberRecommendationSubject(memberRecommendation);
+        String htmlContent = buildMemberRecommendationHtml(memberRecommendation, subject);
+        String plainText = buildMemberRecommendationContent(memberRecommendation);
+
+        try {
+            MimeMessageHelper helper = createMimeMessageHelper();
+            helper.setFrom(getFromAddress());
+            helper.setTo(memberEmail);
+            helper.setSubject(subject);
+            helper.setText(plainText, htmlContent);
+            mailSender.send(helper.getMimeMessage());
+        } catch (MessagingException e) {
+            throw new RuntimeException("개인 추천 HTML 메일 전송 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 개인 추천 이메일 HTML 내용 생성 (신규 스키마)
+     */
+    private String buildMemberRecommendationHtml(MemberRecommendation memberRecommendation, String subject) {
+        Context context = new Context();
+        context.setVariable("subject", subject);
+        context.setVariable("recommendationDate",
+                memberRecommendation.getRecommendation().getCreatedAt().format(DATE_FORMATTER));
+
+        // Prepare problem view models for template
+        List<ProblemView> problems = memberRecommendation.getRecommendation().getProblems().stream()
+                .map(rp -> {
+                    Problem p = rp.getProblem();
+                    return new ProblemView(
+                            memberRecommendation.getRecommendation().getProblems().indexOf(rp) + 1,
+                            p.getTitleKo(),
+                            p.getLevel(),
+                            p.getUrl(),
+                            p.getId(),
+                            p.getAcceptedUserCount(),
+                            p.getAverageTries(),
+                            false  // TODO: 완료 여부 확인 로직 필요
+                    );
+                })
+                .toList();
+        context.setVariable("problems", problems);
+
+        // 로고 이미지 추가
+        try {
+            String base64Image = getBase64EncodedImage("static/images/logo.png");
+            context.setVariable("logoImage", base64Image);
+        } catch (IOException e) {
+            context.setVariable("logoImage", null);
+        }
+
+        String htmlContent = templateEngine.process("recommendation-email-v2", context);
+        return cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
+    }
+
+    /**
+     * 개인 추천 이메일 제목 생성 (신규 스키마)
+     */
+    private String buildMemberRecommendationSubject(MemberRecommendation memberRecommendation) {
+        return String.format("[CodeMate] 오늘의 미션 문제 (%s)",
+                memberRecommendation.getRecommendation().getCreatedAt().format(DATE_FORMATTER)
+        );
+    }
+
+    /**
+     * 개인 추천 이메일 내용 생성 (신규 스키마)
+     */
+    private String buildMemberRecommendationContent(MemberRecommendation memberRecommendation) {
+        StringBuilder content = new StringBuilder();
+
+        // MemberRecommendationProblem에서 팀 이름 가져오기
+        String teamName = memberRecommendation.getProblems().isEmpty() ? "팀"
+                : memberRecommendation.getProblems().get(0).getTeamName();
+
+        content.append(String.format("안녕하세요! %s팀의 오늘 추천 문제입니다.\n\n", teamName));
+
+        List<RecommendationProblem> problems = memberRecommendation.getRecommendation().getProblems();
+        for (int i = 0; i < problems.size(); i++) {
+            Problem problem = problems.get(i).getProblem();
+            content.append(String.format("%d. %s\n", i + 1, problem.getTitleKo()));
+            content.append(String.format("   레벨: %d | URL: %s\n\n",
                     problem.getLevel(), problem.getUrl()));
         }
 
