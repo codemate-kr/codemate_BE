@@ -66,17 +66,78 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 - `Team` - Team entity with recommendation settings (difficulty preset, day of week, status)
   - `TeamMember` - Team membership with roles (LEADER, MEMBER)
 - `Problem` - Algorithm problem data from solved.ac (problem ID, title, tier, tags)
-- `TeamRecommendation` - Batch recommendation records (manual or scheduled)
-  - `TeamRecommendationProblem` - Individual recommended problems in a batch
+- **Recommendation System (New Schema):**
+  - `Recommendation` - Recommendation batch (team-independent, no DB FK to team)
+    - `RecommendationProblem` - Problems in a recommendation batch (order guaranteed by id)
+  - `MemberRecommendation` - Member-recommendation connection (email send status management)
+    - `MemberRecommendationProblem` - **Core entity**: Individual member's problem tracking
+      - Denormalized fields: `teamId`, `teamName` (preserved after team deletion)
+      - Supports duplicate recommendations with independent tracking
+      - Problem solving verification via `solvedAt` (null = unsolved)
+- `TeamRecommendation` (Legacy) - Old batch recommendation records (being phased out)
+  - `TeamRecommendationProblem` - Individual recommended problems in legacy schema
 - Role-based authorization system (ROLE_USER, ROLE_ADMIN)
 
 **Key Architectural Patterns:**
 - **Separation of Concerns**: 문제 추천 준비(새벽 2시 배치)와 이메일 발송(사용자 설정 요일/시간) 분리
   - `ProblemRecommendationScheduler`: 매일 새벽 2시 solved.ac API 호출 및 문제 추천 데이터 DB 저장
   - `EmailSendScheduler`: 팀별 설정된 요일/시간에 준비된 추천 데이터를 이메일로 발송
+- **Denormalization for Data Preservation**: `MemberRecommendationProblem`에 `teamId`, `teamName` 저장
+  - DB FK 없이 애플리케이션 레벨에서만 참조
+  - 팀 삭제 후에도 개인의 추천 이력 보존
+  - 팀 통계 쿼리 성능 최적화 (JOIN 절약)
+- **Duplicate Recommendation Support**: 동일 문제를 여러 날짜에 재추천 가능
+  - 각 추천마다 별도 `MemberRecommendationProblem` 레코드 생성
+  - `solvedAt` 필드로 독립적 해결 여부 추적 (null = 미해결)
+- **Problem Order Guarantee**: `RecommendationProblem.id` 순서로 문제 순서 보장 (별도 order 컬럼 없음)
 - **Facade Pattern**: BOJ 인증은 `BojVerificationFacade`가 조율 (hash 생성, solved.ac 검증, DB 업데이트)
 - **JWT + Refresh Token**: Access token (짧은 유효기간) + Refresh token (Redis 저장, HttpOnly cookie)
 - **Entity-DTO Separation**: Controller는 DTO만 사용, Entity는 Service 계층 내부에서만 사용
+
+## Recommendation System Deep Dive
+
+**새 추천 시스템 아키텍처 (2025-01 리팩토링):**
+
+```
+Recommendation (추천 배치, 팀과 독립)
+  ├─ team_id (Long, DB FK 없음)
+  └─ RecommendationProblem (1:N)
+       └─ problem_id (순서는 id로 보장)
+
+MemberRecommendation (개인-추천 연결, 이메일 발송 관리)
+  ├─ member_id (FK → Member)
+  ├─ recommendation_id (FK → Recommendation)
+  ├─ email_send_status (PENDING/SENT/FAILED)
+  └─ MemberRecommendationProblem (1:N) ← 핵심!
+       ├─ member_id (FK)
+       ├─ problem_id (FK, denormalized for performance)
+       ├─ team_id (denormalized, DB FK 없음)
+       ├─ team_name (denormalized, 팀 삭제 후에도 표시)
+       └─ solved_at (nullable, null=미해결)
+```
+
+**주요 설계 결정:**
+1. **팀 독립적 데이터 보존**: `Recommendation.teamId`는 DB FK 없이 애플리케이션 레벨만 참조 → 팀 삭제 시에도 추천 이력 보존
+2. **Denormalization**: `MemberRecommendationProblem`에 `teamId`, `teamName`, `problemId` 직접 저장 → 팀 통계 쿼리 최적화, JOIN 절약
+3. **중복 추천 추적**: 동일 문제 재추천 시 별도 레코드 생성 → 각 추천의 해결 여부 독립적 추적
+4. **필드 최소화**: `isSolved` 대신 `solvedAt`만 사용 → `WHERE solved_at IS NOT NULL`로 해결 여부 판단, 데이터 일관성 향상
+5. **문제 순서**: `problem_order` 컬럼 없이 `id` 순서로 보장 → Repository에서 `ORDER BY id ASC` 필수
+
+**데이터 흐름 (팀원 3명 × 문제 3개 예시):**
+```
+1. Recommendation 생성 (추천 배치)
+2. RecommendationProblem 3개 생성 (문제1, 문제2, 문제3)
+3. MemberRecommendation 3개 생성 (팀원별)
+4. MemberRecommendationProblem 9개 생성 (3명 × 3문제)
+   - 각 레코드에 teamId, teamName denormalized 저장
+```
+
+**팀 삭제 시 동작:**
+- `TeamMember` cascade 삭제됨
+- `Recommendation`, `MemberRecommendation`, `MemberRecommendationProblem` 보존됨 (FK 없음)
+- 사용자는 여전히 "2024-01-15에 'XX팀'에서 받은 추천" 조회 가능
+
+**참고 문서:** `RECOMMENDATION_REFACTORING.md` - 상세 설계 및 마이그레이션 계획
 
 ## 코딩 가이드라인
 
@@ -116,8 +177,9 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 **테스트 작성:**
 - JUnit 5 (`spring-boot-starter-test`) 사용
 - 테스트 파일 위치: `src/test/java/...` (main 패키지 구조와 동일)
-- 테스트 클래스명: `*Tests.java` (예: `MemberServiceTests`)
+- 테스트 클래스명: `*Test.java` 또는 `*Tests.java`
 - `@SpringBootTest`는 필요시에만 사용, 단위 테스트 우선
+- **통합 테스트**: `@SpringBootTest` + `@ActiveProfiles("test")` 사용하여 H2 인메모리 DB로 테스트 (로컬 MySQL과 격리)
 - 비즈니스 로직의 의미 있는 커버리지 확보 목표
 
 **커밋 및 PR 가이드라인:**
