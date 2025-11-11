@@ -3,9 +3,10 @@ package com.ryu.studyhelper.recommendation;
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
-import com.ryu.studyhelper.recommendation.dto.DailyRecommendationSummary;
-import com.ryu.studyhelper.recommendation.dto.TeamRecommendationDetailResponse;
-import com.ryu.studyhelper.recommendation.dto.TeamRecommendationHistoryResponse;
+import com.ryu.studyhelper.recommendation.dto.response.DailyRecommendationSummary;
+import com.ryu.studyhelper.recommendation.dto.response.MyTodayRecommendationResponse;
+import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
+import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationHistoryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -106,6 +107,7 @@ public class RecommendationController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO: 레거시 삭제
     @Operation(
             summary = "금일 추천 현황 대시보드",
             description = """
@@ -154,5 +156,25 @@ public class RecommendationController {
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> healthCheck() {
         return ResponseEntity.ok(ApiResponse.createSuccess("추천 시스템이 정상 작동 중입니다.", CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "개인 대시보드 - 오늘의 모든 추천 문제 조회",
+            description = """
+                    유저가 속한 모든 팀의 오늘 추천 문제들을 조회합니다.
+                    각 문제별로 팀명과 해결 여부가 함께 표시됩니다.
+                    대시보드에서 오늘 풀어야 할 모든 문제를 한눈에 볼 수 있습니다.
+                    """
+    )
+    @GetMapping("/my/today-problem")
+    public ResponseEntity<ApiResponse<MyTodayRecommendationResponse>> getMyTodayRecommendations(
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        log.info("사용자 {}가 오늘의 모든 추천 문제 조회", principalDetails.getMemberId());
+
+        MyTodayRecommendationResponse response =
+                recommendationService.getMyTodayRecommendations(principalDetails.getMemberId());
+
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }

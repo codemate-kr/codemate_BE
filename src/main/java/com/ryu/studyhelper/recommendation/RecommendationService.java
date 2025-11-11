@@ -13,10 +13,12 @@ import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendationProblem;
-import com.ryu.studyhelper.recommendation.domain.team.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
-import com.ryu.studyhelper.recommendation.dto.*;
+import com.ryu.studyhelper.recommendation.dto.response.DailyRecommendationSummary;
+import com.ryu.studyhelper.recommendation.dto.response.MyTodayRecommendationResponse;
+import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
+import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationHistoryResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
@@ -173,6 +175,28 @@ public class RecommendationService {
                 .stream()
                 .map(DailyRecommendationSummary::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 개인 대시보드 - 오늘의 모든 추천 문제 조회
+     * 유저가 속한 모든 팀의 오늘 추천 문제들을 반환합니다.
+     * 각 문제별로 팀명과 해결 여부가 포함됩니다.
+     *
+     * @param memberId 회원 ID
+     * @return 오늘의 모든 추천 문제 (팀명 포함)
+     */
+    @Transactional(readOnly = true)
+    public MyTodayRecommendationResponse getMyTodayRecommendations(Long memberId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59, 999999999);
+
+        List<MemberRecommendationProblem> todayProblems =
+                memberRecommendationProblemRepository.findTodayRecommendationsByMemberId(
+                        memberId, startOfDay, endOfDay
+                );
+
+        return MyTodayRecommendationResponse.from(todayProblems);
     }
 
     /**

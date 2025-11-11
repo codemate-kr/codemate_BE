@@ -135,4 +135,28 @@ public interface MemberRecommendationProblemRepository extends JpaRepository<Mem
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    /**
+     * 특정 회원의 오늘 추천 문제들 조회 (모든 팀 포함)
+     * 대시보드에서 오늘의 모든 추천 문제를 표시하는 데 사용됩니다.
+     * RecommendationProblem.id 순서로 정렬하여 문제 순서를 보장합니다.
+     *
+     * @param memberId 회원 ID
+     * @param startDate 오늘 시작 시각
+     * @param endDate 오늘 종료 시각
+     * @return 추천 문제 목록 (문제 순서 보장)
+     */
+    @Query("SELECT mrp FROM MemberRecommendationProblem mrp " +
+            "JOIN FETCH mrp.problem p " +
+            "JOIN FETCH mrp.memberRecommendation mr " +
+            "JOIN FETCH mr.recommendation r " +
+            "LEFT JOIN r.problems rp ON rp.problem.id = p.id " +
+            "WHERE mrp.member.id = :memberId " +
+            "AND mrp.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY mr.id ASC, rp.id ASC")
+    List<MemberRecommendationProblem> findTodayRecommendationsByMemberId(
+            @Param("memberId") Long memberId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }

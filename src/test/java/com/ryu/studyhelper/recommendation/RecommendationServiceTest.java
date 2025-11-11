@@ -346,6 +346,125 @@ class RecommendationServiceTest {
         assertThat(saved.getCreatedAt()).isNotNull();
     }
 
+    @Test
+    @DisplayName("개인 대시보드 - 오늘의 모든 추천 문제 조회")
+    void getMyTodayRecommendations_returnsAllProblems() {
+        // given: 오늘 추천 생성
+        Recommendation recommendation = Recommendation.createScheduledRecommendation(team.getId());
+        recommendationRepository.save(recommendation);
+
+        List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
+        List<Problem> problems = List.of(problem1, problem2, problem3);
+
+        for (Member member : teamMembers) {
+            MemberRecommendation memberRecommendation = MemberRecommendation.builder()
+                    .member(member)
+                    .recommendation(recommendation)
+                    .emailSendStatus(EmailSendStatus.PENDING)
+                    .build();
+            memberRecommendationRepository.save(memberRecommendation);
+
+            for (Problem problem : problems) {
+                MemberRecommendationProblem mrp = MemberRecommendationProblem.builder()
+                        .member(member)
+                        .memberRecommendation(memberRecommendation)
+                        .problem(problem)
+                        .teamId(team.getId())
+                        .teamName(team.getName())
+                        .build();
+                memberRecommendationProblemRepository.save(mrp);
+            }
+        }
+
+        // when: member1의 오늘 추천 조회
+        var response = recommendationService.getMyTodayRecommendations(member1.getId());
+
+        // then
+        assertThat(response.problems()).hasSize(3);
+        assertThat(response.problems())
+                .extracting(p -> p.problemId())
+                .containsExactlyInAnyOrder(problem1.getId(), problem2.getId(), problem3.getId());
+
+        // 모든 문제가 동일한 팀명을 가지는지 확인
+        assertThat(response.problems())
+                .allMatch(p -> p.teamName().equals(team.getName()));
+
+        // 모든 문제가 미해결 상태인지 확인
+        assertThat(response.problems())
+                .allMatch(p -> !p.isSolved())
+                .allMatch(p -> p.solvedAt() == null);
+    }
+
+    @Test
+    @DisplayName("개인 대시보드 - 해결한 문제는 isSolved=true로 표시")
+    void getMyTodayRecommendations_showsSolvedStatus() {
+        // given: 오늘 추천 생성
+        Recommendation recommendation = Recommendation.createScheduledRecommendation(team.getId());
+        recommendationRepository.save(recommendation);
+
+        MemberRecommendation memberRecommendation = MemberRecommendation.builder()
+                .member(member1)
+                .recommendation(recommendation)
+                .emailSendStatus(EmailSendStatus.PENDING)
+                .build();
+        memberRecommendationRepository.save(memberRecommendation);
+
+        // 문제 3개 추가
+        MemberRecommendationProblem mrp1 = MemberRecommendationProblem.builder()
+                .member(member1)
+                .memberRecommendation(memberRecommendation)
+                .problem(problem1)
+                .teamId(team.getId())
+                .teamName(team.getName())
+                .build();
+        memberRecommendationProblemRepository.save(mrp1);
+
+        MemberRecommendationProblem mrp2 = MemberRecommendationProblem.builder()
+                .member(member1)
+                .memberRecommendation(memberRecommendation)
+                .problem(problem2)
+                .teamId(team.getId())
+                .teamName(team.getName())
+                .build();
+        memberRecommendationProblemRepository.save(mrp2);
+
+        // problem1 해결 처리
+        mrp1.markAsSolved();
+        memberRecommendationProblemRepository.save(mrp1);
+
+        // when
+        var response = recommendationService.getMyTodayRecommendations(member1.getId());
+
+        // then
+        assertThat(response.problems()).hasSize(2);
+
+        var solvedProblem = response.problems().stream()
+                .filter(p -> p.problemId().equals(problem1.getId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(solvedProblem.isSolved()).isTrue();
+        assertThat(solvedProblem.solvedAt()).isNotNull();
+
+        var unsolvedProblem = response.problems().stream()
+                .filter(p -> p.problemId().equals(problem2.getId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(unsolvedProblem.isSolved()).isFalse();
+        assertThat(unsolvedProblem.solvedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("개인 대시보드 - 오늘 추천이 없으면 빈 리스트 반환")
+    void getMyTodayRecommendations_emptyWhenNoRecommendations() {
+        // given: 추천 없음
+
+        // when
+        var response = recommendationService.getMyTodayRecommendations(member1.getId());
+
+        // then
+        assertThat(response.problems()).isEmpty();
+    }
+
     /**
      * 테스트용 Member 생성 헬퍼 메서드
      */
