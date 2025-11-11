@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation.dto;
+package com.ryu.studyhelper.recommendation.dto.response;
 
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
@@ -7,7 +7,6 @@ import com.ryu.studyhelper.recommendation.domain.team.RecommendationStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 팀별 추천 이력 목록 조회용 응답 DTO

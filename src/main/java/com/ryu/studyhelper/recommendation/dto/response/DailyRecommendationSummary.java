@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation.dto;
+package com.ryu.studyhelper.recommendation.dto.response;
 
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.RecommendationStatus;
