@@ -116,29 +116,6 @@ public class RecommendationService {
         return TeamRecommendationDetailResponse.from(legacyResponse);
     }
 
-    // TODO: 별도 티켓에서 구현 예정 - RecommendationProblem + MemberSolvedProblem JOIN으로 변경
-    // /**
-    //  * 개인 대시보드 - 오늘의 모든 추천 문제 조회
-    //  * 유저가 속한 모든 팀의 오늘 추천 문제들을 반환합니다.
-    //  * 각 문제별로 팀명과 해결 여부가 포함됩니다.
-    //  *
-    //  * @param memberId 회원 ID
-    //  * @return 오늘의 모든 추천 문제 (팀명 포함)
-    //  */
-    // @Transactional(readOnly = true)
-    // public MyTodayRecommendationResponse getMyTodayRecommendations(Long memberId) {
-    //     LocalDate today = LocalDate.now();
-    //     LocalDateTime startOfDay = today.atStartOfDay();
-    //     LocalDateTime endOfDay = today.atTime(23, 59, 59, 999999999);
-    //
-    //     List<MemberRecommendationProblem> todayProblems =
-    //             memberRecommendationProblemRepository.findTodayRecommendationsByMemberId(
-    //                     memberId, startOfDay, endOfDay
-    //             );
-    //
-    //     return MyTodayRecommendationResponse.from(todayProblems);
-    // }
-
     /**
      * 팀 접근 권한 검증
      */
