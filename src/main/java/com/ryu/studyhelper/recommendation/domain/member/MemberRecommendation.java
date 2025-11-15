@@ -3,6 +3,7 @@ package com.ryu.studyhelper.recommendation.domain.member;
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.team.domain.Team;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -51,10 +52,12 @@ public class MemberRecommendation extends BaseEntity {
     @Column(name = "email_sent_at")
     private LocalDateTime emailSentAt;
 
-    public static MemberRecommendation create(Member member, Recommendation recommendation) {
+    public static MemberRecommendation create(Member member, Recommendation recommendation, Team team) {
         return MemberRecommendation.builder()
                 .member(member)
                 .recommendation(recommendation)
+                .teamId(team.getId())
+                .teamName(team.getName())
                 .emailSendStatus(EmailSendStatus.PENDING)
                 .build();
     }

@@ -87,13 +87,7 @@ public class RecommendationService {
         // 3. 팀원별 MemberRecommendation 생성 및 즉시 이메일 발송
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
         for (Member member : teamMembers) {
-            MemberRecommendation memberRecommendation = MemberRecommendation.builder()
-                    .member(member)
-                    .recommendation(recommendation)
-                    .teamId(team.getId())
-                    .teamName(team.getName())
-                    .emailSendStatus(EmailSendStatus.PENDING)
-                    .build();
+            MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
 
             // 4. 즉시 이메일 발송
@@ -302,14 +296,7 @@ public class RecommendationService {
         // 3. 팀원별 MemberRecommendation 생성
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
         for (Member member : teamMembers) {
-
-            MemberRecommendation memberRecommendation = MemberRecommendation.builder()
-                    .member(member)
-                    .recommendation(recommendation)
-                    .teamId(team.getId())
-                    .teamName(team.getName())
-                    .emailSendStatus(EmailSendStatus.PENDING)
-                    .build();
+            MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
         }
 
