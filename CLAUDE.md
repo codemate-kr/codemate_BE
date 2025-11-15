@@ -53,11 +53,13 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - 회원 프로필 조회/수정
   - BOJ 핸들 인증 (solved.ac 연동)
   - 이메일 인증 및 변경
+  - 문제 해결 인증 (solved.ac API로 검증)
 - **API 엔드포인트**: `/api/member`
   - `GET /me` - 내 프로필 조회
   - `GET /{id}` - 멤버 공개 정보 조회
   - `GET /search` - 핸들로 멤버 검색
   - `POST /me/verify-solvedac` - BOJ 핸들 인증
+  - `POST /me/problems/{problemId}/verify-solved` - 문제 해결 인증
 - **주요 엔티티**:
   - `Member` - 회원 정보 (OAuth, BOJ 핸들)
   - `MemberSolvedProblem` - 개인이 푼 문제 기록 (UNIQUE: member_id, problem_id)
@@ -94,7 +96,7 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - 이메일 발송 관리 (개인별 발송 상태 추적)
 - **API 엔드포인트**: `/api/recommendation`
   - `POST /team/{teamId}/manual` - 수동 추천 생성
-  - `GET /team/{teamId}/today-problem` - 팀 오늘의 문제
+  - `GET /team/{teamId}/today-problem` - 팀 오늘의 문제 (로그인 시 해결 여부 포함)
   - `GET /health` - 추천 시스템 상태 확인
 - **주요 엔티티**:
   - `Recommendation` - 추천 배치 (팀 독립적, DB FK 없음)
@@ -127,6 +129,7 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - 풀지 않은 문제 추천 알고리즘
   - 문제 메타데이터 동기화
   - 사용자가 푼 문제 목록 조회
+  - 특정 문제 해결 여부 확인 (`hasUserSolvedProblem`)
 - **API 엔드포인트**: 없음 (내부 서비스)
 - **사용처**: `RecommendationService`, `MemberService` 내부에서 사용
 - **주요 컴포넌트**: `SolvedAcService`, `SolvedAcApiClient`
