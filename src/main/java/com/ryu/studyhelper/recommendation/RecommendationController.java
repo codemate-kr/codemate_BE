@@ -68,7 +68,7 @@ public class RecommendationController {
         log.info("사용자 {}가 팀 {}의 오늘의 문제 조회", principalDetails.getMemberId(), teamId);
 
         TeamRecommendationDetailResponse response =
-                recommendationService.getTodayRecommendation(teamId, principalDetails.getMemberId());
+                recommendationService.getTodayRecommendation(teamId);
 
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }

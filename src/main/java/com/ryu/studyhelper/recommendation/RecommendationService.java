@@ -154,9 +154,7 @@ public class RecommendationService {
      * 신규 스키마 사용: Recommendation 조회
      */
     @Transactional(readOnly = true)
-    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId, Long memberId) {
-        // 팀 접근 권한 검증
-        validateTeamAccess(teamId, memberId);
+    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId) {
 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
