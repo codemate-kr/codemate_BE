@@ -12,14 +12,11 @@ import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
-import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import com.ryu.studyhelper.recommendation.dto.response.DailyRecommendationSummary;
-import com.ryu.studyhelper.recommendation.dto.response.MyTodayRecommendationResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationHistoryResponse;
-import com.ryu.studyhelper.recommendation.repository.MemberRecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.TeamRecommendationProblemRepository;
@@ -61,7 +58,6 @@ public class RecommendationService {
     // 신규 추천 시스템
     private final RecommendationRepository recommendationRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
-    private final MemberRecommendationProblemRepository memberRecommendationProblemRepository;
 
 
 

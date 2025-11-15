@@ -7,8 +7,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 개인-추천 연결 (이메일 발송 상태 관리)
@@ -53,24 +51,12 @@ public class MemberRecommendation extends BaseEntity {
     @Column(name = "email_sent_at")
     private LocalDateTime emailSentAt;
 
-    @OneToMany(mappedBy = "memberRecommendation")
-    @Builder.Default
-    private List<MemberRecommendationProblem> problems = new ArrayList<>();
-
     public static MemberRecommendation create(Member member, Recommendation recommendation) {
         return MemberRecommendation.builder()
                 .member(member)
                 .recommendation(recommendation)
                 .emailSendStatus(EmailSendStatus.PENDING)
                 .build();
-    }
-
-    /**
-     * 양방향 연관관계 편의 메서드
-     */
-    public void addProblem(MemberRecommendationProblem problem) {
-        problems.add(problem);
-        problem.setMemberRecommendation(this);
     }
 
     public void markEmailAsSent() {
