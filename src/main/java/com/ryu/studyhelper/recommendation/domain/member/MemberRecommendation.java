@@ -53,6 +53,9 @@ public class MemberRecommendation extends BaseEntity {
     private LocalDateTime emailSentAt;
 
     public static MemberRecommendation create(Member member, Recommendation recommendation, Team team) {
+        if (team == null) {
+            throw new IllegalArgumentException("Team must not be null");
+        }
         return MemberRecommendation.builder()
                 .member(member)
                 .recommendation(recommendation)
