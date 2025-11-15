@@ -12,4 +12,6 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
     boolean existsByMemberIdAndProblemId(Long memberId, Long problemId);
 
     List<MemberSolvedProblem> findByMemberId(Long memberId);
+
+    List<MemberSolvedProblem> findByMemberIdAndProblemIdIn(Long memberId, List<Long> problemIds);
 }

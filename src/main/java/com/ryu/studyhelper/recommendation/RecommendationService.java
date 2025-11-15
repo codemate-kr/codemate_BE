@@ -15,9 +15,11 @@ import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
+import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.member.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.TeamMemberRepository;
 import com.ryu.studyhelper.team.TeamRepository;
@@ -43,7 +45,6 @@ public class RecommendationService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
-//    private final TeamRecommendationRepository teamRecommendationRepository;
     private final ProblemRepository problemRepository;
     private final ProblemService problemService;
     private final MailSendService mailSendService;
@@ -52,6 +53,7 @@ public class RecommendationService {
     private final RecommendationRepository recommendationRepository;
     private final RecommendationProblemRepository recommendationProblemRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
+    private final MemberSolvedProblemRepository memberSolvedProblemRepository;
 
 
 
@@ -127,17 +129,41 @@ public class RecommendationService {
     }
 
     /**
-     * 특정 팀의 오늘 추천 조회
-     * 신규 스키마 사용: Recommendation 조회
+     * 특정 팀의 오늘 추천 조회 (사용자별 해결 여부 포함)
+     * @param teamId 팀 ID
+     * @param memberId 회원 ID (nullable - 비로그인 시 null)
      */
     @Transactional(readOnly = true)
-    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId) {
+    public TodayProblemResponse getTodayRecommendation(Long teamId, Long memberId) {
+        Recommendation recommendation = findTodayRecommendation(teamId);
+        List<Long> solvedProblemIds = getSolvedProblemIds(recommendation, memberId);
 
+        return TodayProblemResponse.from(recommendation, solvedProblemIds);
+    }
+
+    private List<Long> getSolvedProblemIds(Recommendation recommendation, Long memberId) {
+        if (memberId == null) {
+            return List.of();
+        }
+
+        List<Long> problemIds = recommendation.getProblems().stream()
+                .map(rp -> rp.getProblem().getId())
+                .toList();
+
+        return memberSolvedProblemRepository.findByMemberIdAndProblemIdIn(memberId, problemIds)
+                .stream()
+                .map(msp -> msp.getProblem().getId())
+                .toList();
+    }
+
+    /**
+     * 특정 팀의 오늘 추천 조회 (공통 로직)
+     */
+    private Recommendation findTodayRecommendation(Long teamId) {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(23, 59, 59, 999999999);
 
-        // 신규 스키마에서 오늘 추천 조회 (created_at 기준)
         List<Recommendation> todayRecommendations = recommendationRepository
                 .findScheduledRecommendationsByCreatedAtBetween(startOfDay, endOfDay)
                 .stream()
@@ -148,25 +174,7 @@ public class RecommendationService {
             throw new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND);
         }
 
-        // 가장 최근 추천 반환
-        Recommendation latestRecommendation = todayRecommendations.get(0);
-
-        // 레거시 응답 형식으로 변환 (호환성 유지)
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-
-        TeamRecommendation legacyResponse = TeamRecommendation.createScheduledRecommendation(team, today);
-        List<Problem> problems = latestRecommendation.getProblems().stream()
-                .map(RecommendationProblem::getProblem)
-                .toList();
-
-        for (int i = 0; i < problems.size(); i++) {
-            TeamRecommendationProblem trp = TeamRecommendationProblem.create(problems.get(i), i + 1);
-            legacyResponse.addProblem(trp);
-        }
-        legacyResponse.markAsSent();
-
-        return TeamRecommendationDetailResponse.from(legacyResponse);
+        return todayRecommendations.get(0);
     }
 
 
