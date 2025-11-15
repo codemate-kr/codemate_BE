@@ -93,6 +93,21 @@ public class SolvedAcService {
                 .toList();
     }
 
+    /**
+     * 특정 사용자가 특정 문제를 풀었는지 확인
+     * @param handle 사용자 핸들
+     * @param problemId 문제 번호
+     * @return 해결 여부
+     */
+    public boolean hasUserSolvedProblem(String handle, Long problemId) {
+        try {
+            return solvedAcClient.hasUserSolvedProblem(handle, problemId);
+        } catch (Exception e) {
+            log.error("Failed to check if user {} solved problem {}", handle, problemId, e);
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
+        }
+    }
+
 
 
 

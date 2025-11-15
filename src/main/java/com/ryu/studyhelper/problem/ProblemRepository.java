@@ -17,4 +17,7 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
 
 //     문제 번호로 문제 조회
 //    Optional<Problem> findByNumber(String number);
+
+    // 문제 번호(BOJ problemId)로 문제 조회
+    // Problem.id가 BOJ 문제 번호이므로 findById와 동일
 }

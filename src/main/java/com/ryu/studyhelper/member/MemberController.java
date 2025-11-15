@@ -4,7 +4,8 @@ import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.member.dto.*;
+import com.ryu.studyhelper.member.dto.request.*;
+import com.ryu.studyhelper.member.dto.response.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -121,5 +122,19 @@ public class MemberController {
     ) {
         Member updated = memberService.verifyAndChangeEmail(req.token());
         return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(updated), CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "문제 해결 인증",
+            description = "BOJ 문제 해결을 solved.ac API로 검증하고 인증합니다. 성공 시 MemberSolvedProblem 레코드가 생성됩니다."
+    )
+    @PostMapping("/me/problems/{problemId}/verify-solved")
+    public ResponseEntity<ApiResponse<Void>> verifyProblemSolved(
+            @Parameter(description = "BOJ 문제 번호", example = "1000")
+            @PathVariable Long problemId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        memberService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 }

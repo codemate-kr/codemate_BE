@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
                 name = "uk_member_problem",
                 columnNames = {"member_id", "problem_id"}
         ))
-public class MemberSolvedProblem extends BaseEntity {
+public class MemberSolvedProblem  extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +32,12 @@ public class MemberSolvedProblem extends BaseEntity {
     private Problem problem;
 
     private LocalDateTime solvedAt;
+
+    public static MemberSolvedProblem create(Member member, Problem problem) {
+        return MemberSolvedProblem.builder()
+                .member(member)
+                .problem(problem)
+                .solvedAt(LocalDateTime.now())
+                .build();
+    }
 }
