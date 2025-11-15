@@ -18,6 +18,7 @@ import com.ryu.studyhelper.recommendation.dto.response.DailyRecommendationSummar
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationHistoryResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.TeamRecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.TeamRecommendationRepository;
@@ -57,6 +58,7 @@ public class RecommendationService {
 
     // 신규 추천 시스템
     private final RecommendationRepository recommendationRepository;
+    private final RecommendationProblemRepository recommendationProblemRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
 
 
@@ -79,8 +81,8 @@ public class RecommendationService {
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
+            recommendationProblemRepository.save(rp);
         }
-        recommendationRepository.save(recommendation);
 
         // 3. 팀원별 MemberRecommendation 생성 및 즉시 이메일 발송
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
@@ -294,8 +296,8 @@ public class RecommendationService {
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
+            recommendationProblemRepository.save(rp);
         }
-        recommendationRepository.save(recommendation);
 
         // 3. 팀원별 MemberRecommendation 생성
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
