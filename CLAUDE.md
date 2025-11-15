@@ -53,21 +53,15 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - 회원 프로필 조회/수정
   - BOJ 핸들 인증 (solved.ac 연동)
   - 이메일 인증 및 변경
-  - **개인 추천 문제 이력 조회**
-  - **문제 해결 인증** (추천받은 문제)
 - **API 엔드포인트**: `/api/member`
   - `GET /me` - 내 프로필 조회
   - `GET /{id}` - 멤버 공개 정보 조회
   - `GET /search` - 핸들로 멤버 검색
   - `POST /me/verify-solvedac` - BOJ 핸들 인증
-  - `POST /me/recommendation-problems/{id}/solve` - 문제 해결 인증 (리팩토링 예정)
-  - `GET /me/recommendations` - 내 추천 이력 (리팩토링 예정)
-  - `GET /me/recommendations/stats` - 내 추천 통계 (리팩토링 예정)
 - **주요 엔티티**:
   - `Member` - 회원 정보 (OAuth, BOJ 핸들)
-  - `MemberSolvedProblem` - 개인이 푼 문제 기록
-  - `MemberRecommendationProblem` - 추천받은 문제별 해결 이력
-- **주요 컴포넌트**: `MemberController`, `MemberService`, `MemberRecommendationService` (신규 예정)
+  - `MemberSolvedProblem` - 개인이 푼 문제 기록 (UNIQUE: member_id, problem_id)
+- **주요 컴포넌트**: `MemberController`, `MemberService`
 
 **3. Team 도메인** (`team/`)
 - **책임**: 팀 생성/관리 및 팀 단위 추천 설정
@@ -98,21 +92,17 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - 팀별 문제 추천 생성 (스케줄러 기반)
   - 수동 추천 생성 (팀장)
   - 이메일 발송 관리 (개인별 발송 상태 추적)
-  - 팀 추천 이력 조회
 - **API 엔드포인트**: `/api/recommendation`
   - `POST /team/{teamId}/manual` - 수동 추천 생성
-  - `GET /team/{teamId}/history` - 팀 추천 이력
   - `GET /team/{teamId}/today-problem` - 팀 오늘의 문제
-  - `GET /{recommendationId}` - 추천 상세 조회
-  - `GET /my/today-problem` - 오늘의 모든 추천 문제 (개인 대시보드)
+  - `GET /health` - 추천 시스템 상태 확인
 - **주요 엔티티**:
   - `Recommendation` - 추천 배치 (팀 독립적, DB FK 없음)
-  - `RecommendationProblem` - 추천에 포함된 문제들
-  - `MemberRecommendation` - 개인-추천 연결 (이메일 발송 상태)
-  - `MemberRecommendationProblem` - 개인별 추천 문제 추적 (해결 여부)
+  - `RecommendationProblem` - 추천에 포함된 문제들 (ORDER BY id로 순서 보장)
+  - `MemberRecommendation` - 개인-추천 연결 (teamId, teamName 스냅샷, 이메일 발송 상태)
 - **스케줄러**:
   - `ProblemRecommendationScheduler` - 매일 새벽 2시 추천 준비
-  - `EmailSendScheduler` - 팀별 설정 요일/시간에 이메일 발송
+  - `EmailSendScheduler` - 매일 오전 9시 이메일 발송
 - **주요 컴포넌트**: `RecommendationController`, `RecommendationService`
 
 **5. Problem 도메인** (`problem/`)
@@ -187,7 +177,7 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 
 **Domain Model:**
 - `Member` - User entity with OAuth provider info, BOJ handle, email verification
-  - `MemberSolvedProblem` - Tracks individual solved problems
+  - `MemberSolvedProblem` - Tracks individual solved problems (UNIQUE: member_id, problem_id)
 - `Team` - Team entity with recommendation settings (difficulty preset, day of week, status)
   - `TeamMember` - Team membership with roles (LEADER, MEMBER)
 - `Problem` - Algorithm problem data from solved.ac (problem ID, title, tier, tags)
@@ -195,25 +185,22 @@ This is a Spring Boot 3.2 application providing study helper services with algor
   - `Recommendation` - Recommendation batch (team-independent, no DB FK to team)
     - `RecommendationProblem` - Problems in a recommendation batch (order guaranteed by id)
   - `MemberRecommendation` - Member-recommendation connection (email send status management)
-    - `MemberRecommendationProblem` - **Core entity**: Individual member's problem tracking
-      - Denormalized fields: `teamId`, `teamName` (preserved after team deletion)
-      - Supports duplicate recommendations with independent tracking
-      - Problem solving verification via `solvedAt` (null = unsolved)
+    - Denormalized fields: `teamId`, `teamName` (preserved after team deletion)
+    - Email status tracking: `emailSendStatus`, `emailSentAt`
 - `TeamRecommendation` (Legacy) - Old batch recommendation records (being phased out)
   - `TeamRecommendationProblem` - Individual recommended problems in legacy schema
 - Role-based authorization system (ROLE_USER, ROLE_ADMIN)
 
 **Key Architectural Patterns:**
-- **Separation of Concerns**: 문제 추천 준비(새벽 2시 배치)와 이메일 발송(사용자 설정 요일/시간) 분리
+- **Separation of Concerns**: 문제 추천 준비(새벽 2시 배치)와 이메일 발송(오전 9시) 분리
   - `ProblemRecommendationScheduler`: 매일 새벽 2시 solved.ac API 호출 및 문제 추천 데이터 DB 저장
-  - `EmailSendScheduler`: 팀별 설정된 요일/시간에 준비된 추천 데이터를 이메일로 발송
-- **Denormalization for Data Preservation**: `MemberRecommendationProblem`에 `teamId`, `teamName` 저장
+  - `EmailSendScheduler`: 매일 오전 9시 PENDING 상태의 이메일 발송
+- **Denormalization for Data Preservation**: `MemberRecommendation`에 `teamId`, `teamName` 저장
   - DB FK 없이 애플리케이션 레벨에서만 참조
   - 팀 삭제 후에도 개인의 추천 이력 보존
-  - 팀 통계 쿼리 성능 최적화 (JOIN 절약)
-- **Duplicate Recommendation Support**: 동일 문제를 여러 날짜에 재추천 가능
-  - 각 추천마다 별도 `MemberRecommendationProblem` 레코드 생성
-  - `solvedAt` 필드로 독립적 해결 여부 추적 (null = 미해결)
+- **No Cascade Strategy**: 엔티티 저장 시 명시적으로 Repository.save() 호출
+  - `RecommendationProblem`을 직접 저장 (cascade 없이)
+  - 동작 예측 가능성 향상
 - **Problem Order Guarantee**: `RecommendationProblem.id` 순서로 문제 순서 보장 (별도 order 컬럼 없음)
 - **Facade Pattern**: BOJ 인증은 `BojVerificationFacade`가 조율 (hash 생성, solved.ac 검증, DB 업데이트)
 - **JWT + Refresh Token**: Access token (짧은 유효기간) + Refresh token (Redis 저장, HttpOnly cookie)
@@ -221,7 +208,7 @@ This is a Spring Boot 3.2 application providing study helper services with algor
 
 ## Recommendation System Deep Dive
 
-**새 추천 시스템 아키텍처 (2025-01 리팩토링):**
+**새 추천 시스템 아키텍처 (2025-11 리팩토링):**
 
 ```
 Recommendation (추천 배치, 팀과 독립)
@@ -232,37 +219,38 @@ Recommendation (추천 배치, 팀과 독립)
 MemberRecommendation (개인-추천 연결, 이메일 발송 관리)
   ├─ member_id (FK → Member)
   ├─ recommendation_id (FK → Recommendation)
+  ├─ team_id (denormalized, DB FK 없음)
+  ├─ team_name (denormalized, 팀 삭제 후에도 표시)
   ├─ email_send_status (PENDING/SENT/FAILED)
-  └─ MemberRecommendationProblem (1:N) ← 핵심!
-       ├─ member_id (FK)
-       ├─ problem_id (FK, denormalized for performance)
-       ├─ team_id (denormalized, DB FK 없음)
-       ├─ team_name (denormalized, 팀 삭제 후에도 표시)
-       └─ solved_at (nullable, null=미해결)
+  └─ email_sent_at (nullable)
+
+MemberSolvedProblem (문제 해결 추적, 별도)
+  ├─ member_id (FK → Member)
+  ├─ problem_id (FK → Problem)
+  └─ solved_at (UNIQUE 제약: member_id + problem_id)
 ```
 
 **주요 설계 결정:**
 1. **팀 독립적 데이터 보존**: `Recommendation.teamId`는 DB FK 없이 애플리케이션 레벨만 참조 → 팀 삭제 시에도 추천 이력 보존
-2. **Denormalization**: `MemberRecommendationProblem`에 `teamId`, `teamName`, `problemId` 직접 저장 → 팀 통계 쿼리 최적화, JOIN 절약
-3. **중복 추천 추적**: 동일 문제 재추천 시 별도 레코드 생성 → 각 추천의 해결 여부 독립적 추적
-4. **필드 최소화**: `isSolved` 대신 `solvedAt`만 사용 → `WHERE solved_at IS NOT NULL`로 해결 여부 판단, 데이터 일관성 향상
+2. **Denormalization**: `MemberRecommendation`에 `teamId`, `teamName` 직접 저장 → 팀 삭제 후에도 이력 조회 가능
+3. **문제 해결 추적 분리**: `MemberSolvedProblem`을 별도 테이블로 관리 → UNIQUE 제약으로 중복 방지
+4. **Cascade 제거**: 모든 엔티티를 명시적으로 저장 → 동작 예측성 향상
 5. **문제 순서**: `problem_order` 컬럼 없이 `id` 순서로 보장 → Repository에서 `ORDER BY id ASC` 필수
 
 **데이터 흐름 (팀원 3명 × 문제 3개 예시):**
 ```
 1. Recommendation 생성 (추천 배치)
-2. RecommendationProblem 3개 생성 (문제1, 문제2, 문제3)
-3. MemberRecommendation 3개 생성 (팀원별)
-4. MemberRecommendationProblem 9개 생성 (3명 × 3문제)
-   - 각 레코드에 teamId, teamName denormalized 저장
+2. RecommendationProblem 3개 생성 (문제1, 문제2, 문제3) - 직접 저장
+3. MemberRecommendation 3개 생성 (팀원별) - teamId, teamName 스냅샷
+4. 이메일 발송 시 emailSendStatus 업데이트
 ```
 
 **팀 삭제 시 동작:**
 - `TeamMember` cascade 삭제됨
-- `Recommendation`, `MemberRecommendation`, `MemberRecommendationProblem` 보존됨 (FK 없음)
-- 사용자는 여전히 "2024-01-15에 'XX팀'에서 받은 추천" 조회 가능
+- `Recommendation`, `MemberRecommendation` 보존됨 (FK 없음)
+- 사용자는 여전히 "2024-01-15에 'XX팀'에서 받은 추천" 조회 가능 (teamName 스냅샷)
 
-**참고 문서:** `RECOMMENDATION_REFACTORING.md` - 상세 설계 및 마이그레이션 계획
+**참고 문서:** `RECOMMENDATION_REFACTORING_PROGRESS.md` - 진행 현황 및 체크리스트
 
 ## 코딩 가이드라인
 
