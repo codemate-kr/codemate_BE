@@ -29,12 +29,6 @@ public class Recommendation extends BaseEntity {
     @Column(name = "team_id")
     private Long teamId;
 
-    /**
-     * denormalized - Team JOIN 없이 조회
-     */
-    @Column(name = "team_name")
-    private String teamName;
-
     @OneToMany(mappedBy = "recommendation")
     @Builder.Default
     private List<RecommendationProblem> problems = new ArrayList<>();
