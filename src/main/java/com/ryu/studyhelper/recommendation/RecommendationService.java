@@ -12,24 +12,18 @@ import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
-import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendationProblem;
-import com.ryu.studyhelper.recommendation.domain.team.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
-import com.ryu.studyhelper.recommendation.dto.*;
-import com.ryu.studyhelper.recommendation.repository.MemberRecommendationProblemRepository;
+import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
-import com.ryu.studyhelper.recommendation.repository.TeamRecommendationProblemRepository;
-import com.ryu.studyhelper.recommendation.repository.TeamRecommendationRepository;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.TeamMemberRepository;
 import com.ryu.studyhelper.team.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +31,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 추천 시스템 비즈니스 로직을 담당하는 서비스
@@ -50,22 +43,21 @@ public class RecommendationService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
-    private final TeamRecommendationRepository teamRecommendationRepository;
-    private final TeamRecommendationProblemRepository teamRecommendationProblemRepository;
+//    private final TeamRecommendationRepository teamRecommendationRepository;
     private final ProblemRepository problemRepository;
     private final ProblemService problemService;
     private final MailSendService mailSendService;
 
     // 신규 추천 시스템
     private final RecommendationRepository recommendationRepository;
+    private final RecommendationProblemRepository recommendationProblemRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
-    private final MemberRecommendationProblemRepository memberRecommendationProblemRepository;
 
 
 
     /**
      * 수동 추천 생성 (팀장 요청)
-     * 신규 스키마 사용: Recommendation → MemberRecommendation → MemberRecommendationProblem
+     * 신규 스키마 사용: Recommendation → RecommendationProblem, MemberRecommendation
      * 즉시 이메일 발송
      */
     public TeamRecommendationDetailResponse createManualRecommendation(Long teamId, int count) {
@@ -81,32 +73,16 @@ public class RecommendationService {
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
+            recommendationProblemRepository.save(rp);
         }
-        recommendationRepository.save(recommendation);
 
         // 3. 팀원별 MemberRecommendation 생성 및 즉시 이메일 발송
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
         for (Member member : teamMembers) {
-            MemberRecommendation memberRecommendation = MemberRecommendation.builder()
-                    .member(member)
-                    .recommendation(recommendation)
-                    .emailSendStatus(EmailSendStatus.PENDING)
-                    .build();
+            MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
 
-            // 4. MemberRecommendationProblem 생성
-            for (Problem problem : recommendedProblems) {
-                MemberRecommendationProblem mrp = MemberRecommendationProblem.builder()
-                        .member(member)
-                        .memberRecommendation(memberRecommendation)
-                        .problem(problem)
-                        .teamId(team.getId())
-                        .teamName(team.getName())
-                        .build();
-                memberRecommendationProblemRepository.save(mrp);
-            }
-
-            // 5. 즉시 이메일 발송
+            // 4. 즉시 이메일 발송
             try {
                 String memberEmail = member.getEmail();
                 if (memberEmail == null || memberEmail.isBlank()) {
@@ -141,41 +117,6 @@ public class RecommendationService {
     }
 
     /**
-     * 팀별 추천 이력 조회 (페이징)
-     */
-    @Transactional(readOnly = true)
-    public Page<TeamRecommendationHistoryResponse> getTeamRecommendationHistory(Long teamId, Pageable pageable) {
-        return teamRecommendationRepository.findByTeamIdOrderByRecommendationDateDesc(teamId, pageable)
-                .map(TeamRecommendationHistoryResponse::from);
-    }
-
-    /**
-     * 추천 상세 조회
-     */
-    @Transactional(readOnly = true)
-    public TeamRecommendationDetailResponse getRecommendationDetail(Long recommendationId, Long memberId) {
-        TeamRecommendation recommendation = teamRecommendationRepository.findById(recommendationId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND));
-
-        // 팀 접근 권한 검증
-        validateTeamAccess(recommendation.getTeam().getId(), memberId);
-
-        return TeamRecommendationDetailResponse.from(recommendation);
-    }
-
-    /**
-     * 오늘 추천 현황 조회
-     */
-    @Transactional(readOnly = true)
-    public List<DailyRecommendationSummary> getTodayRecommendationSummary(Long memberId) {
-        LocalDate today = LocalDate.now();
-        return teamRecommendationRepository.findTodayRecommendationsByMemberId(memberId, today)
-                .stream()
-                .map(DailyRecommendationSummary::from)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 팀 접근 권한 검증
      */
     public void validateTeamAccess(Long teamId, Long memberId) {
@@ -190,9 +131,7 @@ public class RecommendationService {
      * 신규 스키마 사용: Recommendation 조회
      */
     @Transactional(readOnly = true)
-    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId, Long memberId) {
-        // 팀 접근 권한 검증
-        validateTeamAccess(teamId, memberId);
+    public TeamRecommendationDetailResponse getTodayRecommendation(Long teamId) {
 
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
@@ -271,7 +210,7 @@ public class RecommendationService {
 
     /**
      * 특정 팀에 대한 문제 추천 준비 (이메일 발송 X)
-     * 신규 스키마 사용: Recommendation → MemberRecommendation → MemberRecommendationProblem
+     * 신규 스키마 사용: Recommendation → RecommendationProblem, MemberRecommendation
      */
     private void prepareDailyRecommendation(Team team, LocalDate date) {
         // 1. Recommendation 생성
@@ -283,32 +222,14 @@ public class RecommendationService {
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
+            recommendationProblemRepository.save(rp);
         }
-        recommendationRepository.save(recommendation);
 
         // 3. 팀원별 MemberRecommendation 생성
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
         for (Member member : teamMembers) {
-            // TODO: 이메일 수신 거부 필터링
-
-            MemberRecommendation memberRecommendation = MemberRecommendation.builder()
-                    .member(member)
-                    .recommendation(recommendation)
-                    .emailSendStatus(EmailSendStatus.PENDING)
-                    .build();
+            MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
-
-            // 4. MemberRecommendationProblem 생성 (팀원 × 문제)
-            for (Problem problem : recommendedProblems) {
-                MemberRecommendationProblem mrp = MemberRecommendationProblem.builder()
-                        .member(member)
-                        .memberRecommendation(memberRecommendation)
-                        .problem(problem)
-                        .teamId(team.getId())
-                        .teamName(team.getName())
-                        .build();
-                memberRecommendationProblemRepository.save(mrp);
-            }
         }
 
         log.info("팀 '{}' 신규 스키마 추천 생성 완료 - 팀원: {}명, 문제: {}개",
@@ -411,50 +332,4 @@ public class RecommendationService {
                 .toList();
     }
 
-    /**
-     * 추천에 문제 추가 (핸들 조회 → API 호출 → 문제 저장)
-     */
-    private void addProblemsToRecommendation(
-            TeamRecommendation recommendation,
-            Team team,
-            int count
-    ) {
-        List<String> handles = teamMemberRepository.findHandlesByTeamId(team.getId());
-        if (handles.isEmpty()) {
-            log.warn("팀 '{}'에 인증된 핸들이 없습니다", team.getName());
-            recommendation.markAsFailed();
-            return;
-        }
-
-        List<ProblemInfo> problemInfos = problemService.recommend(
-                handles, count,
-                team.getEffectiveMinProblemLevel(),
-                team.getEffectiveMaxProblemLevel()
-        );
-
-        for (int i = 0; i < problemInfos.size(); i++) {
-            Problem problem = findOrCreateProblem(problemInfos.get(i));
-            TeamRecommendationProblem recommendationProblem =
-                    TeamRecommendationProblem.create(problem, i + 1);
-            recommendation.addProblem(recommendationProblem);
-        }
-    }
-
-    /**
-     * 추천 이메일 발송
-     */
-    private void sendRecommendationEmailWithStatusUpdate(TeamRecommendation recommendation) {
-        try {
-            List<String> memberEmails = teamMemberRepository.findEmailsByTeamId(
-                    recommendation.getTeam().getId()
-            );
-            mailSendService.sendRecommendationEmail(recommendation, memberEmails);
-            recommendation.markAsSent();
-            log.info("팀 '{}' 추천 이메일 발송 완료", recommendation.getTeam().getName());
-        } catch (Exception e) {
-            recommendation.markAsFailed();
-            log.error("팀 '{}' 이메일 발송 실패", recommendation.getTeam().getName(), e);
-            throw e;
-        }
-    }
 }

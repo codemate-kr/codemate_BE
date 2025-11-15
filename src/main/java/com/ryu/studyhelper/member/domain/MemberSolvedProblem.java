@@ -12,6 +12,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@Table(name = "member_solved_problem",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_member_problem",
+                columnNames = {"member_id", "problem_id"}
+        ))
 public class MemberSolvedProblem extends BaseEntity {
 
     @Id
@@ -26,6 +31,5 @@ public class MemberSolvedProblem extends BaseEntity {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
-    // 문제를 푼 날짜 (optional)
     private LocalDateTime solvedAt;
 }

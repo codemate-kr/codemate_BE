@@ -282,9 +282,10 @@ public class MailSendServiceImpl implements MailSendService {
     private String buildMemberRecommendationContent(MemberRecommendation memberRecommendation) {
         StringBuilder content = new StringBuilder();
 
-        // MemberRecommendationProblem에서 팀 이름 가져오기
-        String teamName = memberRecommendation.getProblems().isEmpty() ? "팀"
-                : memberRecommendation.getProblems().get(0).getTeamName();
+        // MemberRecommendation에서 팀 이름 가져오기
+        String teamName = memberRecommendation.getTeamName() != null
+                ? memberRecommendation.getTeamName()
+                : "팀";
 
         content.append(String.format("안녕하세요! %s팀의 오늘 추천 문제입니다.\n\n", teamName));
 

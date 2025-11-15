@@ -63,7 +63,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private String determineRedirectUrl(Member member, String accessToken) {
         String tokenParams = String.format("?access_token=%s", accessToken);
-        log.info("Generated access token: {}", accessToken);
+//        log.info("Generated access token: {}", accessToken);
 
         return frontendUrl + tokenParams;
 

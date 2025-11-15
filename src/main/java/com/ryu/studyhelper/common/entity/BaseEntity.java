@@ -14,12 +14,25 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
     @CreatedDate
-    @Column(updatable = false, columnDefinition = "TIMESTAMP")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(columnDefinition = "TIMESTAMP")
+    @Column(name = "modified_at")
     private LocalDateTime modifiedAt;
 
+    @Column(name = "deleted_at")
     protected LocalDateTime deletedAt;
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    public void restore() {
+        this.deletedAt = null;
+    }
 }
