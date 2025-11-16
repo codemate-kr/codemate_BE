@@ -33,8 +33,8 @@ public class MemberController {
     public ResponseEntity<ApiResponse<MyProfileResponse>> me(
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
-        Member me = memberService.getById(principalDetails.getMemberId());
-        return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(me), CustomResponseStatus.SUCCESS));
+        MyProfileResponse response = memberService.getMyProfile(principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
     @Operation(
@@ -73,15 +73,15 @@ public class MemberController {
 
     @Operation(
             summary = "백준 핸들 인증",
-            description = "백준 핸들을 인증하여 사용자와 연결합니다. 인증 성공시 업데이트된 프로필을 반환합니다."
+            description = "백준 핸들을 인증하여 사용자와 연결합니다. 인증 성공시 업데이트된 핸들을 반환합니다."
     )
     @PostMapping("/me/verify-solvedac")
-    public ResponseEntity<ApiResponse<MyProfileResponse>> verifySolvedAc(
+    public ResponseEntity<ApiResponse<HandleVerificationResponse>> verifySolvedAc(
             @Valid @RequestBody VerifySolvedAcRequest req,
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
         Member updated = memberService.verifySolvedAcHandle(principalDetails.getMemberId(), req.handle());
-        return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(updated), CustomResponseStatus.SUCCESS));
+        return ResponseEntity.ok(ApiResponse.createSuccess(HandleVerificationResponse.from(updated), CustomResponseStatus.SUCCESS));
     }
 
     @Operation(
@@ -117,11 +117,11 @@ public class MemberController {
             description = "이메일 인증 토큰을 검증하고 이메일을 변경합니다. 프론트엔드가 이메일 링크의 토큰을 추출하여 호출합니다."
     )
     @PostMapping("/verify-email")
-    public ResponseEntity<ApiResponse<MyProfileResponse>> verifyEmail(
+    public ResponseEntity<ApiResponse<EmailChangeResponse>> verifyEmail(
             @Valid @RequestBody VerifyEmailRequest req
     ) {
         Member updated = memberService.verifyAndChangeEmail(req.token());
-        return ResponseEntity.ok(ApiResponse.createSuccess(MyProfileResponse.from(updated), CustomResponseStatus.SUCCESS));
+        return ResponseEntity.ok(ApiResponse.createSuccess(EmailChangeResponse.from(updated), CustomResponseStatus.SUCCESS));
     }
 
     @Operation(

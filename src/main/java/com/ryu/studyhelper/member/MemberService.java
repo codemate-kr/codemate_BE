@@ -8,6 +8,7 @@ import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
+import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
@@ -61,6 +62,13 @@ public class MemberService {
     public Member getById(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public MyProfileResponse getMyProfile(Long memberId) {
+        Member member = getById(memberId);
+        long solvedCount = memberSolvedProblemRepository.countByMemberId(memberId);
+        return MyProfileResponse.from(member, solvedCount);
     }
 
     @Transactional(readOnly = true)

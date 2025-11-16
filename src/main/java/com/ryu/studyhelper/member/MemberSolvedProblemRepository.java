@@ -14,4 +14,6 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
     List<MemberSolvedProblem> findByMemberId(Long memberId);
 
     List<MemberSolvedProblem> findByMemberIdAndProblemIdIn(Long memberId, List<Long> problemIds);
+
+    long countByMemberId(Long memberId);
 }
