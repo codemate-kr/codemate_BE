@@ -139,8 +139,6 @@ class MemberServiceTest {
                     .build();
 
             given(memberRepository.findById(1L)).willReturn(Optional.of(memberWithoutHandle));
-            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> memberService.verifyProblemSolved(1L, 1000L))
@@ -176,8 +174,6 @@ class MemberServiceTest {
                     .build();
 
             given(memberRepository.findById(1L)).willReturn(Optional.of(memberWithEmptyHandle));
-            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> memberService.verifyProblemSolved(1L, 1000L))
