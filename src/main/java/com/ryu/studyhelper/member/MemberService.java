@@ -148,9 +148,9 @@ public class MemberService {
     /**
      * 이메일 변경 인증 완료
      * @param token 이메일 인증 토큰
-     * @return 업데이트된 회원 정보
+     * @return 변경된 이메일 주소
      */
-    public Member verifyAndChangeEmail(String token) {
+    public String verifyAndChangeEmail(String token) {
         // 1. 토큰 유효성 검증 (만료, 잘못된 서명 등)
         jwtUtil.validateTokenOrThrow(token);
 
@@ -173,7 +173,7 @@ public class MemberService {
         Member member = getById(memberId);
         member.changeEmail(newEmail);
 
-        return member;
+        return newEmail;
     }
 
     /**
@@ -185,27 +185,28 @@ public class MemberService {
         // 1. Member 조회
         Member member = getById(memberId);
 
-        // 2. Problem 조회 (DB에 존재하는지 확인)
-        Problem problem = problemRepository.findById(problemId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.PROBLEM_NOT_FOUND));
-
-        // 3. 이미 인증된 문제인지 확인
-        if (memberSolvedProblemRepository.existsByMemberIdAndProblemId(memberId, problemId)) {
-            throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
-        }
-
-        // 4. solved.ac API로 실제 해결 여부 검증
+        // 2. 핸들 존재 여부 확인 (조기 검증)
         if (member.getHandle() == null || member.getHandle().isEmpty()) {
             throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
         }
 
+        // 3. Problem 조회 (DB에 존재하는지 확인)
+        Problem problem = problemRepository.findById(problemId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.PROBLEM_NOT_FOUND));
+
+        // 4. 이미 인증된 문제인지 확인
+        if (memberSolvedProblemRepository.existsByMemberIdAndProblemId(memberId, problemId)) {
+            throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
+        }
+
+        // 5. solved.ac API로 실제 해결 여부 검증
         boolean isSolved = solvedacService.hasUserSolvedProblem(member.getHandle(), problemId);
 
         if (!isSolved) {
             throw new CustomException(CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);
         }
 
-        // 5. MemberSolvedProblem 레코드 생성
+        // 6. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
         memberSolvedProblemRepository.save(memberSolvedProblem);
     }

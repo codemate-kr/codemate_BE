@@ -120,8 +120,8 @@ public class MemberController {
     public ResponseEntity<ApiResponse<EmailChangeResponse>> verifyEmail(
             @Valid @RequestBody VerifyEmailRequest req
     ) {
-        Member updated = memberService.verifyAndChangeEmail(req.token());
-        return ResponseEntity.ok(ApiResponse.createSuccess(EmailChangeResponse.from(updated), CustomResponseStatus.SUCCESS));
+        String newEmail = memberService.verifyAndChangeEmail(req.token());
+        return ResponseEntity.ok(ApiResponse.createSuccess(new EmailChangeResponse(newEmail), CustomResponseStatus.SUCCESS));
     }
 
     @Operation(
