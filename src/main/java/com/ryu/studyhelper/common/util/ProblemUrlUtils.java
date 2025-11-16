@@ -12,6 +12,9 @@ public final class ProblemUrlUtils {
     }
 
     public static String generateProblemUrl(Long problemId) {
+        if (problemId == null) {
+            throw new IllegalArgumentException("problemId는 null일 수 없습니다");
+        }
         return BOJ_PROBLEM_BASE_URL + problemId;
     }
 }
