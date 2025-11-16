@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.problem.domain;
 
+import com.ryu.studyhelper.common.util.ProblemUrlUtils;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import jakarta.persistence.*;
 import lombok.*;
@@ -57,6 +58,6 @@ public class Problem {
      * 백준 문제 URL 생성
      */
     public String getUrl() {
-        return "https://www.acmicpc.net/problem/" + id;
+        return ProblemUrlUtils.generateProblemUrl(id);
     }
 }

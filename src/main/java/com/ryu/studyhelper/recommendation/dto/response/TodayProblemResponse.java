@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.recommendation.dto.response;
 
+import com.ryu.studyhelper.common.util.ProblemUrlUtils;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 
@@ -30,7 +31,7 @@ public record TodayProblemResponse(
                     projection.getTitle(),
                     projection.getTitleKo(),
                     projection.getLevel(),
-                    "https://www.acmicpc.net/problem/" + projection.getProblemId(),
+                    ProblemUrlUtils.generateProblemUrl(projection.getProblemId()),
                     projection.getAcceptedUserCount(),
                     projection.getAverageTries(),
                     projection.getIsSolved()

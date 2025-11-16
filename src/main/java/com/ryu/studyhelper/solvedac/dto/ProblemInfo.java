@@ -1,6 +1,7 @@
 package com.ryu.studyhelper.solvedac.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ryu.studyhelper.common.util.ProblemUrlUtils;
 
 public record ProblemInfo(
         @JsonProperty("problemId")
@@ -31,7 +32,7 @@ public record ProblemInfo(
                 level,
                 acceptedUserCount,
                 averageTries,
-                "https://www.acmicpc.net/problem/" + problemId
+                ProblemUrlUtils.generateProblemUrl(problemId)
         );
     }
 }
