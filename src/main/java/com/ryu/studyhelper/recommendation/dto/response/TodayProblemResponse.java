@@ -1,7 +1,7 @@
 package com.ryu.studyhelper.recommendation.dto.response;
 
-import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,32 +24,25 @@ public record TodayProblemResponse(
             Double averageTries,
             Boolean isSolved
     ) {
-        public static ProblemWithSolvedStatus from(Problem problem, boolean isSolved) {
+        public static ProblemWithSolvedStatus from(ProblemWithSolvedStatusProjection projection) {
             return new ProblemWithSolvedStatus(
-                    problem.getId(),
-                    problem.getTitle(),
-                    problem.getTitleKo(),
-                    problem.getLevel(),
-                    problem.getUrl(),
-                    problem.getAcceptedUserCount(),
-                    problem.getAverageTries(),
-                    isSolved
+                    projection.getProblemId(),
+                    projection.getTitle(),
+                    projection.getTitleKo(),
+                    projection.getLevel(),
+                    "https://www.acmicpc.net/problem/" + projection.getProblemId(),
+                    projection.getAcceptedUserCount(),
+                    projection.getAverageTries(),
+                    projection.getIsSolved()
             );
         }
     }
 
-    public static TodayProblemResponse from(Recommendation recommendation, List<Long> solvedProblemIds) {
-        List<ProblemWithSolvedStatus> problemsWithStatus = recommendation.getProblems().stream()
-                .map(rp -> ProblemWithSolvedStatus.from(
-                        rp.getProblem(),
-                        solvedProblemIds.contains(rp.getProblem().getId())
-                ))
+    public static TodayProblemResponse from(Recommendation recommendation, List<ProblemWithSolvedStatusProjection> projections) {
+        List<ProblemWithSolvedStatus> problems = projections.stream()
+                .map(ProblemWithSolvedStatus::from)
                 .toList();
 
-        return new TodayProblemResponse(
-                recommendation.getId(),
-                recommendation.getCreatedAt(),
-                problemsWithStatus
-        );
+        return new TodayProblemResponse(recommendation.getId(), recommendation.getCreatedAt(), problems);
     }
 }

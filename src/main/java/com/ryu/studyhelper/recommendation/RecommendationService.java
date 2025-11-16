@@ -14,12 +14,12 @@ import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
+import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
-import com.ryu.studyhelper.member.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.TeamMemberRepository;
 import com.ryu.studyhelper.team.TeamRepository;
@@ -53,7 +53,6 @@ public class RecommendationService {
     private final RecommendationRepository recommendationRepository;
     private final RecommendationProblemRepository recommendationProblemRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
-    private final MemberSolvedProblemRepository memberSolvedProblemRepository;
 
 
 
@@ -136,24 +135,11 @@ public class RecommendationService {
     @Transactional(readOnly = true)
     public TodayProblemResponse getTodayRecommendation(Long teamId, Long memberId) {
         Recommendation recommendation = findTodayRecommendation(teamId);
-        List<Long> solvedProblemIds = getSolvedProblemIds(recommendation, memberId);
 
-        return TodayProblemResponse.from(recommendation, solvedProblemIds);
-    }
+        List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
+                .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
 
-    private List<Long> getSolvedProblemIds(Recommendation recommendation, Long memberId) {
-        if (memberId == null) {
-            return List.of();
-        }
-
-        List<Long> problemIds = recommendation.getProblems().stream()
-                .map(rp -> rp.getProblem().getId())
-                .toList();
-
-        return memberSolvedProblemRepository.findByMemberIdAndProblemIdIn(memberId, problemIds)
-                .stream()
-                .map(msp -> msp.getProblem().getId())
-                .toList();
+        return TodayProblemResponse.from(recommendation, problemsWithStatus);
     }
 
     /**
