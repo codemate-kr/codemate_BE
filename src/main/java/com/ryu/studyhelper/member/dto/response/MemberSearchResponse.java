@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.member.dto;
+package com.ryu.studyhelper.member.dto.response;
 
 import com.ryu.studyhelper.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;

@@ -1,6 +1,7 @@
 package com.ryu.studyhelper.recommendation.repository;
 
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
+import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +31,29 @@ public interface RecommendationProblemRepository extends JpaRepository<Recommend
             "WHERE rp.recommendation.id = :recommendationId " +
             "ORDER BY rp.id ASC")
     List<RecommendationProblem> findByRecommendationIdOrderById(@Param("recommendationId") Long recommendationId);
+
+    /**
+     * 특정 추천의 문제들과 회원의 해결 여부를 함께 조회 (OUTER JOIN)
+     * @param recommendationId 추천 ID
+     * @param memberId 회원 ID (nullable - null이면 모두 미해결로 처리)
+     * @return 문제와 해결 여부 목록
+     */
+    @Query("""
+            SELECT p.id AS problemId,
+                   p.title AS title,
+                   p.titleKo AS titleKo,
+                   p.level AS level,
+                   p.acceptedUserCount AS acceptedUserCount,
+                   p.averageTries AS averageTries,
+                   CASE WHEN msp.id IS NOT NULL THEN true ELSE false END AS isSolved
+            FROM RecommendationProblem rp
+            JOIN rp.problem p
+            LEFT JOIN MemberSolvedProblem msp ON msp.problem.id = p.id AND msp.member.id = :memberId
+            WHERE rp.recommendation.id = :recommendationId
+            ORDER BY rp.id ASC
+            """)
+    List<ProblemWithSolvedStatusProjection> findProblemsWithSolvedStatus(
+            @Param("recommendationId") Long recommendationId,
+            @Param("memberId") Long memberId
+    );
 }

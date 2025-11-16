@@ -32,6 +32,8 @@ public enum CustomResponseStatus {
     ALREADY_TEAM_MEMBER(HttpStatus.CONFLICT.value(), "3008", "이미 팀에 속한 멤버입니다."),
     TEAM_LEADER_CANNOT_LEAVE(HttpStatus.FORBIDDEN.value(), "3009", "팀 리더는 팀을 탈퇴할 수 없습니다. 리더 양도 또는 팀 해산 기능을 사용해주세요."),
     TEAM_CREATION_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN.value(), "3010", "최대 3개 팀까지만 생성할 수 있습니다."),
+    ALREADY_SOLVED(HttpStatus.CONFLICT.value(), "3011", "이미 해결된 문제입니다."),
+    FORBIDDEN(HttpStatus.FORBIDDEN.value(), "3012", "권한이 없습니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -52,6 +54,7 @@ public enum CustomResponseStatus {
     TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4012", "팀 멤버를 찾을 수 없습니다."),
     VERIFICATION_HASH_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4013", "인증 해시를 찾을 수 없습니다. 먼저 해시를 생성해주세요."),
     SOLVED_AC_USER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4014", "solved.ac에서 해당 핸들을 찾을 수 없습니다."),
+    PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4015", "문제를 찾을 수 없습니다."),
     //    MAP_VALUE_NOT_EXIST(HttpStatus.NOT_FOUND.value(), "4005", "채팅이 존재하지 않습니다. 채팅을 새롭게 시작해주세요."),
     //    EVALUATION_SERVER_NOT_ANSWER(HttpStatus.NOT_FOUND.value(), "4006", "평가서버가 응답하지 않습니다."),
     //    CS_CHAT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4007", "해당 CS 채팅이 존재하지 않습니다."),
@@ -66,6 +69,7 @@ public enum CustomResponseStatus {
     MEMBER_NOT_MATCH(HttpStatus.BAD_REQUEST.value(), "5003", "사용자가 일치하지 않습니다."),
     INVALID_PROBLEM_LEVEL_RANGE(HttpStatus.BAD_REQUEST.value(), "5004", "최소 난이도가 최대 난이도보다 클 수 없습니다."),
     INVALID_EMAIL_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST.value(), "5005", "유효하지 않은 이메일 인증 토큰입니다."),
+    PROBLEM_NOT_SOLVED_YET(HttpStatus.BAD_REQUEST.value(), "5006", "아직 해결하지 않은 문제입니다. solved.ac에서 확인되지 않았습니다."),
 
 
     /***

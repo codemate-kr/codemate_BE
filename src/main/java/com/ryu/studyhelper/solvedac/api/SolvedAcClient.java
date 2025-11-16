@@ -79,10 +79,24 @@ public class SolvedAcClient {
 
     public ProblemSearchResponse getSolvedProblemsRaw(String handle) {
         return get("/search/problem", Map.of(
-                "query", "solved_by:" + handle,
-                "sort", "accuracy",
-                "direction", "desc"
+                "query", "s@" + handle,
+                "sort", "id",
+                "direction", "asc"
         ), ProblemSearchResponse.class);
+    }
+
+    /**
+     * 특정 사용자가 특정 문제를 풀었는지 확인
+     * @param handle 사용자 핸들
+     * @param problemId 문제 번호
+     * @return 해결 여부
+     */
+    public boolean hasUserSolvedProblem(String handle, Long problemId) {
+        // solved.ac 쿼리에서 조건은 공백으로 구분 (URL에서 +는 공백으로 해석됨)
+        ProblemSearchResponse resp = get("/search/problem", Map.of(
+                "query", "id:" + problemId + " s@" + handle
+        ), ProblemSearchResponse.class);
+        return resp.items() != null && !resp.items().isEmpty();
     }
 
     /**

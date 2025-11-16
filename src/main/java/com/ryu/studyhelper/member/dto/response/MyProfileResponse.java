@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.member.dto;
+package com.ryu.studyhelper.member.dto.response;
 
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.Role;
@@ -23,25 +23,21 @@ public record MyProfileResponse(
         @Schema(description = "사용자 역할", example = "ROLE_USER")
         Role role,
 
-        @Schema(description = "OAuth 제공자", example = "google")
-        String provider,
-
-        @Schema(description = "OAuth 제공자 ID")
-        String providerId,
-
         @Schema(description = "가입일시")
-        LocalDateTime joinedAt
+        LocalDateTime joinedAt,
+
+        @Schema(description = "해결한 문제 수", example = "42")
+        long solvedCount
 ) {
-    public static MyProfileResponse from(Member member) {
+    public static MyProfileResponse from(Member member, long solvedCount) {
         return new MyProfileResponse(
                 member.getId(),
                 member.getEmail(),
                 member.getHandle(),
                 member.isVerified(),
                 member.getRole(),
-                member.getProvider(),
-                member.getProviderId(),
-                member.getCreatedAt()
+                member.getCreatedAt(),
+                solvedCount
         );
     }
 }
