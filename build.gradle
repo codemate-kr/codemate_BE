@@ -67,6 +67,10 @@ dependencies {
     // External HTTP client for synchronous calls
     implementation 'org.apache.httpcomponents.client5:httpclient5'
 
+    // Sentry - Error tracking and monitoring
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.18.0'
+    implementation 'io.sentry:sentry-logback:7.18.0'
+
     // Lombok
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'

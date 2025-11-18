@@ -60,4 +60,18 @@ springdoc:
     display-request-duration: true
   paths-to-match: /api/**
 
+# Sentry 공통 설정
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}
+  enable-tracing: true
+  logging:
+    minimum-event-level: warn
+    minimum-breadcrumb-level: info
+  exception-resolver-order: -2147483647
+  send-default-pii: false  # 민감 정보 전송 방지
+  ignored-exceptions-for-type:
+    - io.jsonwebtoken.JwtException
+    - org.springframework.security.core.AuthenticationException
 
