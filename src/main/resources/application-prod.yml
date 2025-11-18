@@ -94,3 +94,10 @@ management:
       show-details: never  # 상세 정보 숨김
   server:
     port: 9090  # 관리 포트 분리
+
+# Sentry 프로덕션 설정
+sentry:
+  environment: prod
+  traces-sample-rate: 0.2  # 운영 환경에서는 20%만 샘플링 (성능 고려)
+  logging:
+    minimum-event-level: error  # 에러 레벨 이상만 전송
