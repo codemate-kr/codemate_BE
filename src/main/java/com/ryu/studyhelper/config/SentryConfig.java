@@ -37,7 +37,7 @@ public class SentryConfig {
         }
 
         log.info("Sentry 초기화 완료 - 환경: {}", environment);
-        log.info("Sentry DSN: {}...", dsn.substring(0, Math.min(30, dsn.length())));
+//        log.info("Sentry DSN: {}...", dsn.substring(0, Math.min(30, dsn.length())));
     }
 
     /**
