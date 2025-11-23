@@ -3,8 +3,10 @@ package com.ryu.studyhelper.infrastructure.ratelimit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,7 +22,24 @@ public class RateLimiterService {
     private final RedisTemplate<String, String> redisTemplate;
 
     /**
-     * Rate limit 체크 및 카운터 증가
+     * Rate Limit을 원자적으로 체크하고 증가시키는 Lua 스크립트
+     * Race Condition 방지를 위해 GET-CHECK-INCR을 단일 원자적 연산으로 수행
+     */
+    private static final String RATE_LIMIT_SCRIPT =
+            "local current = redis.call('get', KEYS[1]) " +
+            "if current and tonumber(current) >= tonumber(ARGV[1]) then " +
+            "    return 0 " +
+            "end " +
+            "local newCount = redis.call('incr', KEYS[1]) " +
+            "if newCount == 1 then " +
+            "    redis.call('expire', KEYS[1], ARGV[2]) " +
+            "end " +
+            "return 1";
+
+    /**
+     * Rate limit 체크 및 카운터 증가 (원자적 연산)
+     * Lua 스크립트를 사용하여 Race Condition 방지
+     *
      * @param userId 사용자 ID
      * @param type Rate Limit 타입
      * @return 요청 허용 여부 (true: 허용, false: 제한 초과)
@@ -31,28 +50,24 @@ public class RateLimiterService {
         long windowSeconds = type.getWindowSeconds();
 
         try {
-            // 현재 카운터 값 조회
-            String currentCountStr = redisTemplate.opsForValue().get(key);
-            int currentCount = (currentCountStr != null) ? Integer.parseInt(currentCountStr) : 0;
+            // Lua 스크립트 실행 (원자적 연산)
+            // 반환값: 1 = 허용, 0 = 거부
+            Long result = redisTemplate.execute(
+                    RedisScript.of(RATE_LIMIT_SCRIPT, Long.class),
+                    Collections.singletonList(key),
+                    String.valueOf(maxRequests),
+                    String.valueOf(windowSeconds)
+            );
 
-            // Rate limit 초과 체크
-            if (currentCount >= maxRequests) {
-                log.warn("Rate limit exceeded for user: {}, type: {}, current count: {}",
-                        userId, type, currentCount);
-                return false;
+            boolean allowed = result != null && result == 1;
+
+            if (!allowed) {
+                log.warn("Rate limit exceeded for user: {}, type: {}", userId, type);
+            } else {
+                log.debug("Rate limit check passed for user: {}, type: {}", userId, type);
             }
 
-            // 카운터 증가
-            Long newCount = redisTemplate.opsForValue().increment(key);
-
-            // 첫 요청인 경우 TTL 설정
-            if (newCount != null && newCount == 1) {
-                redisTemplate.expire(key, windowSeconds, TimeUnit.SECONDS);
-            }
-
-            log.debug("Rate limit check for user: {}, type: {}, count: {}/{}",
-                    userId, type, newCount, maxRequests);
-            return true;
+            return allowed;
 
         } catch (Exception e) {
             log.error("Failed to check rate limit for user: {}, type: {}", userId, type, e);
