@@ -70,6 +70,7 @@ public enum CustomResponseStatus {
     INVALID_PROBLEM_LEVEL_RANGE(HttpStatus.BAD_REQUEST.value(), "5004", "최소 난이도가 최대 난이도보다 클 수 없습니다."),
     INVALID_EMAIL_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST.value(), "5005", "유효하지 않은 이메일 인증 토큰입니다."),
     PROBLEM_NOT_SOLVED_YET(HttpStatus.BAD_REQUEST.value(), "5006", "아직 해결하지 않은 문제입니다. solved.ac에서 확인되지 않았습니다."),
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS.value(), "5007", "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요."),
 
 
     /***
