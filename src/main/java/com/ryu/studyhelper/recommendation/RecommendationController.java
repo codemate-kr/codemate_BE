@@ -3,6 +3,8 @@ package com.ryu.studyhelper.recommendation;
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
+import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
+import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +37,7 @@ public class RecommendationController {
                     추천 생성 즉시 팀원들에게 이메일이 발송됩니다.
                     """
     )
+    @RateLimit(type = RateLimitType.SOLVED_AC)
     @PostMapping("/team/{teamId}/manual")
     @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
     public ResponseEntity<ApiResponse<TeamRecommendationDetailResponse>> createManualRecommendation(

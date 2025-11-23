@@ -49,7 +49,7 @@ jwt:
   secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHktdGhpcy1pcy1ub3QtZm9yLXByb2R1Y3Rpb24=
   redis:
     host: localhost
-    port: 6370  # 테스트용 포트 (Redis가 없어도 Bean 생성은 가능)
+    port: 6379  # 로컬 Docker Redis 사용
 
 # 테스트용 쿠키 설정
 cookie:
