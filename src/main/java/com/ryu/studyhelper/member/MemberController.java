@@ -4,6 +4,7 @@ import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
+import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.dto.request.*;
 import com.ryu.studyhelper.member.dto.response.*;
@@ -76,7 +77,7 @@ public class MemberController {
             summary = "백준 핸들 인증",
             description = "백준 핸들을 인증하여 사용자와 연결합니다. 인증 성공시 업데이트된 핸들을 반환합니다."
     )
-    @RateLimit
+    @RateLimit(type = RateLimitType.SOLVED_AC)
     @PostMapping("/me/verify-solvedac")
     public ResponseEntity<ApiResponse<HandleVerificationResponse>> verifySolvedAc(
             @Valid @RequestBody VerifySolvedAcRequest req,
@@ -130,7 +131,7 @@ public class MemberController {
             summary = "문제 해결 인증",
             description = "BOJ 문제 해결을 solved.ac API로 검증하고 인증합니다. 성공 시 MemberSolvedProblem 레코드가 생성됩니다."
     )
-    @RateLimit
+    @RateLimit(type = RateLimitType.SOLVED_AC)
     @PostMapping("/me/problems/{problemId}/verify-solved")
     public ResponseEntity<ApiResponse<Void>> verifyProblemSolved(
             @Parameter(description = "BOJ 문제 번호", example = "1000")
