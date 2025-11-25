@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,6 +43,14 @@ import java.util.List;
 @Transactional
 @Slf4j
 public class RecommendationService {
+
+    // 시간 관련 상수
+    private static final LocalTime MISSION_RESET_TIME = LocalTime.of(2, 0);   // 미션 사이클 시작 (새벽 2시)
+    private static final LocalTime BLOCKED_START_TIME = LocalTime.of(1, 0);   // 수동 추천 금지 시작 (새벽 1시)
+    private static final LocalTime EMAIL_START_TIME = LocalTime.of(9, 0);     // 이메일 즉시 발송 시작 (오전 9시)
+
+    // 테스트 용이성을 위한 Clock 주입 (단위 테스트에서 시간 제어 가능)
+    private final Clock clock;
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
@@ -182,7 +191,7 @@ public class RecommendationService {
         for (Team team : activeTeams) {
             try {
                 // 오늘 이미 추천이 있는지 체크 (SCHEDULED, MANUAL 모두 포함)
-                if (recommendationRepository.findFirstByTeamIdAndCreatedAtBetween(
+                if (recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
                         team.getId(), startOfDay, endOfDay
                 ).isPresent()) {
                     log.debug("팀 '{}'에 대해 오늘({}) 이미 추천 존재 - 스킵", team.getName(), today);
@@ -327,9 +336,6 @@ public class RecommendationService {
                 .toList();
     }
 
-    private static final LocalTime MISSION_RESET_TIME = LocalTime.of(2, 0);  // 새벽 2시
-    private static final LocalTime BLOCKED_START_TIME = LocalTime.of(1, 0);  // 새벽 1시
-
     /**
      * 수동 추천 생성 가능 여부 검증
      * 1. 새벽 1시~2시 사이: 생성 금지 (스케줄러 전환 구간)
@@ -339,23 +345,22 @@ public class RecommendationService {
      * @throws CustomException 생성 불가 시
      */
     private void validateNoRecommendationToday(Long teamId) {
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(clock);
 
         // 새벽 1시~2시 사이는 수동 추천 금지
         if (!now.isBefore(BLOCKED_START_TIME) && now.isBefore(MISSION_RESET_TIME)) {
             throw new CustomException(CustomResponseStatus.RECOMMENDATION_BLOCKED_TIME);
         }
 
-        // 현재 미션 사이클 시작 시간 이후에 생성된 추천이 있으면 금지
+        // 현재 미션 사이클 시작 시간 이후(포함)에 생성된 추천이 있으면 금지
+        // !isBefore 사용: 정확히 2시에 생성된 추천도 현재 사이클에 포함
         LocalDateTime missionCycleStart = getMissionCycleStart();
         recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)
-                .filter(recommendation -> recommendation.getCreatedAt().isAfter(missionCycleStart))
+                .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
                 .ifPresent(recommendation -> {
                     throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                 });
     }
-
-    private static final LocalTime EMAIL_START_TIME = LocalTime.of(9, 0);   // 오전 9시
 
     /**
      * 이메일 즉시 발송 가능 시간인지 확인
@@ -364,7 +369,7 @@ public class RecommendationService {
      * - 01:00 ~ 01:59: 수동 추천 자체 불가 (validateNoRecommendationToday에서 처리)
      */
     private boolean isEmailSendableTime() {
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(clock);
         // 09:00 이후 또는 01:00 이전 (자정~00:59)
         return !now.isBefore(EMAIL_START_TIME) || now.isBefore(BLOCKED_START_TIME);
     }
@@ -375,7 +380,7 @@ public class RecommendationService {
      * - 새벽 2시 이전: 어제 새벽 2시
      */
     private LocalDateTime getMissionCycleStart() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         if (now.toLocalTime().isBefore(MISSION_RESET_TIME)) {
             return now.toLocalDate().minusDays(1).atTime(MISSION_RESET_TIME);
