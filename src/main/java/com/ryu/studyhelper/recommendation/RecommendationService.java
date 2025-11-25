@@ -99,7 +99,7 @@ public class RecommendationService {
             MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
 
-            // 4. 09:00 ~ 23:59에만 즉시 이메일 발송, 그 외 시간은 PENDING 유지 → 오전 9시 배치에서 발송
+            // 4. 09:00 ~ 익일 00:59 에만 즉시 이메일 발송, 그 외 시간은 PENDING 유지 → 오전 9시 배치에서 발송
             if (shouldSendImmediately) {
                 try {
                     String memberEmail = member.getEmail();
@@ -140,16 +140,6 @@ public class RecommendationService {
     }
 
     /**
-     * 팀 접근 권한 검증
-     */
-    public void validateTeamAccess(Long teamId, Long memberId) {
-        boolean isMember = teamMemberRepository.existsByTeamIdAndMemberId(teamId, memberId);
-        if (!isMember) {
-            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
-        }
-    }
-
-    /**
      * 특정 팀의 오늘 추천 조회 (사용자별 해결 여부 포함)
      * @param teamId 팀 ID
      * @param memberId 회원 ID (nullable - 비로그인 시 null)
@@ -166,10 +156,12 @@ public class RecommendationService {
 
     /**
      * 특정 팀의 현재 미션 추천 조회
-     * 가장 최근 추천을 반환 (다음날 새벽 2시까지 유효)
+     * 현재 미션 사이클(오늘 02:00 ~ 내일 02:00) 내의 추천만 반환
      */
     private Recommendation findTodayRecommendation(Long teamId) {
+        LocalDateTime missionCycleStart = getMissionCycleStart();
         return recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)
+                .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND));
     }
 
@@ -178,7 +170,7 @@ public class RecommendationService {
      * 문제 추천만 수행 (이메일 발송 X) - 새벽 스케줄러용
      */
     public void prepareDailyRecommendations() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         log.info("문제 추천 준비 시작: {}", today);
 
         List<Team> activeTeams = getActiveTeams(today);
@@ -198,7 +190,7 @@ public class RecommendationService {
                     continue;
                 }
 
-                prepareDailyRecommendation(team, today);
+                prepareDailyRecommendation(team);
                 successCount++;
                 log.info("팀 '{}' 문제 추천 완료", team.getName());
 
@@ -216,7 +208,7 @@ public class RecommendationService {
      * 특정 팀에 대한 문제 추천 준비 (이메일 발송 X)
      * 신규 스키마 사용: Recommendation → RecommendationProblem, MemberRecommendation
      */
-    private void prepareDailyRecommendation(Team team, LocalDate date) {
+    private void prepareDailyRecommendation(Team team) {
         // 1. Recommendation 생성
         Recommendation recommendation = Recommendation.createScheduledRecommendation(team.getId());
         recommendationRepository.save(recommendation);
@@ -245,7 +237,7 @@ public class RecommendationService {
      * 신규 스키마 사용: MemberRecommendation 개별 발송
      */
     public void sendPendingRecommendationEmails() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         log.info("이메일 발송 배치 시작: {}", today);
 
         // 오늘 날짜의 PENDING 상태 개인 추천 조회
