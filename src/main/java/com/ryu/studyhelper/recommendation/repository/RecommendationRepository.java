@@ -45,17 +45,16 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     List<Recommendation> findByTeamIdOrderByCreatedAtDesc(Long teamId);
 
     /**
-     * 특정 날짜 범위의 모든 스케줄 추천 조회
+     * 특정 날짜 범위의 모든 추천 조회 (타입 무관)
      * Service 레이어에서 날짜를 LocalDateTime 범위로 변환하여 전달
      *
      * @param startDateTime 날짜 범위 시작
      * @param endDateTime 날짜 범위 끝
      * @return 추천 배치 목록
      */
-    @Query("SELECT r FROM Recommendation r WHERE r.createdAt BETWEEN :start AND :end AND r.type = 'SCHEDULED'")
-    List<Recommendation> findScheduledRecommendationsByCreatedAtBetween(
-            @Param("start") LocalDateTime startDateTime,
-            @Param("end") LocalDateTime endDateTime
+    List<Recommendation> findAllByCreatedAtBetween(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
     );
 
     /**
@@ -65,4 +64,20 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
      * @return 가장 최근 추천 배치 (Optional)
      */
     Optional<Recommendation> findFirstByTeamIdOrderByCreatedAtDesc(Long teamId);
+
+    /**
+     * 특정 팀의 특정 날짜 범위 내 추천 조회 (타입 무관, 1개만)
+     * 수동 추천 시 오늘 이미 추천이 있는지 검증할 때 사용
+     * Spring Data JPA 메서드 네이밍 컨벤션 사용 (Hibernate 버전 독립적)
+     *
+     * @param teamId 팀 ID
+     * @param startDateTime 날짜 범위 시작
+     * @param endDateTime 날짜 범위 끝
+     * @return 추천 (Optional)
+     */
+    Optional<Recommendation> findFirstByTeamIdAndCreatedAtBetweenOrderById(
+            Long teamId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 }

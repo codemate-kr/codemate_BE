@@ -71,6 +71,8 @@ public enum CustomResponseStatus {
     INVALID_EMAIL_VERIFICATION_TOKEN(HttpStatus.BAD_REQUEST.value(), "5005", "유효하지 않은 이메일 인증 토큰입니다."),
     PROBLEM_NOT_SOLVED_YET(HttpStatus.BAD_REQUEST.value(), "5006", "아직 해결하지 않은 문제입니다. solved.ac에서 확인되지 않았습니다."),
     RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS.value(), "5007", "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요."),
+    RECOMMENDATION_ALREADY_EXISTS_TODAY(HttpStatus.CONFLICT.value(), "5008", "오늘 이미 추천이 발행되었습니다. 내일 다시 시도해주세요."),
+    RECOMMENDATION_BLOCKED_TIME(HttpStatus.CONFLICT.value(), "5009", "새벽 1시~2시 사이에는 추천을 생성할 수 없습니다. 새벽 2시 이후에 다시 시도해주세요."),
 
 
     /***
