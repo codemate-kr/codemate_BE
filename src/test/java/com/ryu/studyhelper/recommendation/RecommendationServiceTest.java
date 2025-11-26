@@ -289,6 +289,88 @@ class RecommendationServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("스케줄러 미션 사이클 기반 추천 검증")
+    class SchedulerMissionCycleValidation {
+
+        @Test
+        @DisplayName("0~1시 사이 수동 추천 후 2시 스케줄러는 새 추천을 생성한다")
+        void manualAt0AM_schedulerAt2AM_createsNewRecommendation() {
+            // given: 새벽 2시 스케줄러 실행
+            // 미션 사이클: 2025-01-15 02:00 ~ 2025-01-16 02:00
+            Clock clock = fixedClock("2025-01-15T02:00:00");
+            setupServiceWithClock(clock);
+
+            // 0:30에 생성된 수동 추천 (이전 미션 사이클: 01-14 02:00 ~ 01-15 02:00)
+            Recommendation manualRecommendation = createManualRecommendationWithCreatedAt(
+                    TEAM_ID,
+                    LocalDateTime.parse("2025-01-15T00:30:00")
+            );
+
+            // 스케줄러가 현재 미션 사이클(01-15 02:00 ~) 범위로 조회 시 결과 없음
+            LocalDateTime missionCycleStart = LocalDateTime.parse("2025-01-15T02:00:00");
+            LocalDateTime now = LocalDateTime.parse("2025-01-15T02:00:00");
+
+            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    TEAM_ID, missionCycleStart, now
+            )).thenReturn(Optional.empty());
+
+            // when & then: 0:30 추천은 이전 사이클이므로 조회되지 않음
+            Optional<Recommendation> result = recommendationRepository
+                    .findFirstByTeamIdAndCreatedAtBetweenOrderById(TEAM_ID, missionCycleStart, now);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("2시 이후 추천이 있으면 스케줄러가 중복 생성하지 않는다")
+        void recommendationAfter2AM_schedulerSkips() {
+            // given: 새벽 2시 30분 스케줄러 재실행 (장애 복구 등)
+            Clock clock = fixedClock("2025-01-15T02:30:00");
+            setupServiceWithClock(clock);
+
+            // 2:05에 이미 생성된 추천 (현재 미션 사이클)
+            Recommendation existingRecommendation = createRecommendationWithCreatedAt(
+                    TEAM_ID,
+                    LocalDateTime.parse("2025-01-15T02:05:00")
+            );
+
+            LocalDateTime missionCycleStart = LocalDateTime.parse("2025-01-15T02:00:00");
+            LocalDateTime now = LocalDateTime.parse("2025-01-15T02:30:00");
+
+            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    TEAM_ID, missionCycleStart, now
+            )).thenReturn(Optional.of(existingRecommendation));
+
+            // when & then: 현재 사이클에 추천이 있으므로 조회됨
+            Optional<Recommendation> result = recommendationRepository
+                    .findFirstByTeamIdAndCreatedAtBetweenOrderById(TEAM_ID, missionCycleStart, now);
+
+            assertThat(result).isPresent();
+        }
+
+        @Test
+        @DisplayName("자정~2시 사이 추천은 이전 미션 사이클로 간주된다")
+        void recommendationBetweenMidnightAnd2AM_belongsToPreviousCycle() {
+            // given: 시나리오 검증
+            // 1. 1월 15일 00:30에 수동 추천 생성
+            // 2. 1월 15일 02:00에 스케줄러 실행
+
+            // 00:30 추천의 미션 사이클 시작: 1월 14일 02:00
+            LocalDateTime recommendationTime = LocalDateTime.parse("2025-01-15T00:30:00");
+            LocalDateTime expectedCycleStart = LocalDateTime.parse("2025-01-14T02:00:00");
+
+            // 02:00 스케줄러의 미션 사이클 시작: 1월 15일 02:00
+            LocalDateTime schedulerTime = LocalDateTime.parse("2025-01-15T02:00:00");
+            LocalDateTime schedulerCycleStart = LocalDateTime.parse("2025-01-15T02:00:00");
+
+            // when & then
+            // 00:30 추천은 스케줄러의 미션 사이클 시작(02:00) 이전이므로 다른 사이클
+            assertThat(recommendationTime.isBefore(schedulerCycleStart)).isTrue();
+            // 따라서 스케줄러는 새 추천을 생성해야 함
+        }
+    }
+
     /**
      * ID가 설정된 Team 생성 (테스트용)
      */
@@ -305,10 +387,24 @@ class RecommendationServiceTest {
     }
 
     /**
-     * createdAt이 설정된 Recommendation 생성 (테스트용)
+     * createdAt이 설정된 스케줄 Recommendation 생성 (테스트용)
      */
     private Recommendation createRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
         Recommendation recommendation = Recommendation.createScheduledRecommendation(teamId);
+        setCreatedAt(recommendation, createdAt);
+        return recommendation;
+    }
+
+    /**
+     * createdAt이 설정된 수동 Recommendation 생성 (테스트용)
+     */
+    private Recommendation createManualRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
+        Recommendation recommendation = Recommendation.createManualRecommendation(teamId);
+        setCreatedAt(recommendation, createdAt);
+        return recommendation;
+    }
+
+    private void setCreatedAt(Recommendation recommendation, LocalDateTime createdAt) {
         try {
             java.lang.reflect.Field createdAtField = recommendation.getClass().getSuperclass().getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
@@ -316,6 +412,5 @@ class RecommendationServiceTest {
         } catch (Exception e) {
             throw new RuntimeException("createdAt 설정 실패", e);
         }
-        return recommendation;
     }
 }

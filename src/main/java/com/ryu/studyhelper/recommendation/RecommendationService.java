@@ -168,25 +168,24 @@ public class RecommendationService {
 
     /**
      * 문제 추천만 수행 (이메일 발송 X) - 새벽 스케줄러용
+     * 미션 사이클 기준(02:00~02:00)으로 중복 체크
      */
     public void prepareDailyRecommendations() {
-        LocalDate today = LocalDate.now(clock);
-        log.info("문제 추천 준비 시작: {}", today);
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime missionCycleStart = getMissionCycleStart();
+        log.info("문제 추천 준비 시작: {} (미션 사이클: {} 02:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
 
-        List<Team> activeTeams = getActiveTeams(today);
+        List<Team> activeTeams = getActiveTeams(now.toLocalDate());
         int successCount = 0;
         int failCount = 0;
 
-        LocalDateTime startOfDay = today.atStartOfDay();
-        LocalDateTime endOfDay = today.atTime(23, 59, 59, 999999999);
-
         for (Team team : activeTeams) {
             try {
-                // 오늘 이미 추천이 있는지 체크 (SCHEDULED, MANUAL 모두 포함)
+                // 현재 미션 사이클 내 이미 추천이 있는지 체크 (SCHEDULED, MANUAL 모두 포함)
                 if (recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                        team.getId(), startOfDay, endOfDay
+                        team.getId(), missionCycleStart, now
                 ).isPresent()) {
-                    log.debug("팀 '{}'에 대해 오늘({}) 이미 추천 존재 - 스킵", team.getName(), today);
+                    log.debug("팀 '{}'에 대해 현재 미션 사이클({})에 이미 추천 존재 - 스킵", team.getName(), missionCycleStart);
                     continue;
                 }
 
@@ -235,17 +234,16 @@ public class RecommendationService {
     /**
      * PENDING 상태의 추천들에 대해 이메일 발송 - 오전 스케줄러용
      * 신규 스키마 사용: MemberRecommendation 개별 발송
+     * 미션 사이클 기준(02:00~02:00)으로 조회
      */
     public void sendPendingRecommendationEmails() {
-        LocalDate today = LocalDate.now(clock);
-        log.info("이메일 발송 배치 시작: {}", today);
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime missionCycleStart = getMissionCycleStart();
+        log.info("이메일 발송 배치 시작: {} (미션 사이클: {} 02:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
 
-        // 오늘 날짜의 PENDING 상태 개인 추천 조회
-        LocalDateTime startOfDay = today.atStartOfDay();
-        LocalDateTime endOfDay = today.atTime(23, 59, 59, 999999999);
-
+        // 현재 미션 사이클의 PENDING 상태 개인 추천 조회
         List<MemberRecommendation> pendingRecommendations = memberRecommendationRepository
-                .findPendingRecommendationsByCreatedAtBetween(startOfDay, endOfDay, EmailSendStatus.PENDING);
+                .findPendingRecommendationsByCreatedAtBetween(missionCycleStart, now, EmailSendStatus.PENDING);
 
         int successCount = 0;
         int failCount = 0;
