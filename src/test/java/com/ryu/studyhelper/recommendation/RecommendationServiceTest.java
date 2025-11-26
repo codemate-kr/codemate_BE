@@ -18,17 +18,24 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -289,6 +296,137 @@ class RecommendationServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("스케줄러 미션 사이클 기반 추천 검증")
+    class SchedulerMissionCycleValidation {
+
+        @Test
+        @DisplayName("prepareDailyRecommendations()는 미션 사이클 시작(02:00)부터 현재까지의 범위로 조회한다")
+        void prepareDailyRecommendations_usesMissionCycleRange() {
+            // given: 새벽 2시 스케줄러 실행 (수요일)
+            Clock clock = fixedClock("2025-01-15T02:00:00");
+            setupServiceWithClock(clock);
+
+            // 수요일에 추천 활성화된 팀 설정
+            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(teamRepository.findAll()).thenReturn(List.of(team));
+
+            // 현재 미션 사이클 내 추천 없음
+            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), any(LocalDateTime.class), any(LocalDateTime.class)
+            )).thenReturn(Optional.empty());
+
+            // 핸들 없어서 추천 생성 실패하도록 설정 (범위 검증이 목적)
+            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of());
+
+            // when
+            recommendationService.prepareDailyRecommendations();
+
+            // then: 미션 사이클 범위(02:00 ~ now)로 조회했는지 검증
+            ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+            ArgumentCaptor<LocalDateTime> toCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+
+            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), fromCaptor.capture(), toCaptor.capture()
+            );
+
+            LocalDateTime capturedFrom = fromCaptor.getValue();
+            LocalDateTime capturedTo = toCaptor.getValue();
+
+            // 미션 사이클 시작: 2025-01-15 02:00 (0시가 아님!)
+            assertThat(capturedFrom).isEqualTo(LocalDateTime.parse("2025-01-15T02:00:00"));
+            assertThat(capturedTo).isEqualTo(LocalDateTime.parse("2025-01-15T02:00:00"));
+        }
+
+        @Test
+        @DisplayName("0시~2시 사이 수동 추천은 이전 미션 사이클로 간주되어 2시 스케줄러에서 조회되지 않는다")
+        void manualAt0AM_notFoundBySchedulerAt2AM() {
+            // given: 새벽 2시 스케줄러 실행 (수요일)
+            Clock clock = fixedClock("2025-01-15T02:00:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(teamRepository.findAll()).thenReturn(List.of(team));
+
+            // 0:30에 생성된 수동 추천 - 이전 미션 사이클(01-14 02:00 ~ 01-15 02:00)에 속함
+            // 스케줄러가 조회하는 범위(01-15 02:00~)에 포함되지 않음
+            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID),
+                    eq(LocalDateTime.parse("2025-01-15T02:00:00")),
+                    eq(LocalDateTime.parse("2025-01-15T02:00:00"))
+            )).thenReturn(Optional.empty());  // 0:30 추천은 범위 밖이므로 조회 안됨
+
+            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of());
+
+            // when
+            recommendationService.prepareDailyRecommendations();
+
+            // then: 미션 사이클 범위로 조회 확인 (0시가 아닌 2시부터)
+            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID),
+                    eq(LocalDateTime.parse("2025-01-15T02:00:00")),
+                    eq(LocalDateTime.parse("2025-01-15T02:00:00"))
+            );
+        }
+
+        @Test
+        @DisplayName("캘린더 날짜(0시)가 아닌 미션 사이클(2시) 기준으로 조회해야 한다")
+        void shouldUseMissionCycleNotCalendarDate() {
+            // given: 2시 30분 스케줄러 실행
+            Clock clock = fixedClock("2025-01-15T02:30:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(teamRepository.findAll()).thenReturn(List.of(team));
+            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    any(), any(), any()
+            )).thenReturn(Optional.empty());
+            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of());
+
+            // when
+            recommendationService.prepareDailyRecommendations();
+
+            // then
+            ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), fromCaptor.capture(), any()
+            );
+
+            // 핵심: 0시가 아닌 2시부터 조회해야 함
+            LocalDateTime from = fromCaptor.getValue();
+            assertThat(from.getHour()).isEqualTo(2);
+            assertThat(from.getMinute()).isEqualTo(0);
+        }
+    }
+
+    /**
+     * 추천 요일이 설정된 Team 생성 (테스트용)
+     * - getActiveTeams() 필터를 통과하려면 teamMembers가 비어있지 않아야 함
+     */
+    private Team createTeamWithIdAndRecommendationDay(Long id, DayOfWeek dayOfWeek) {
+        Team team = Team.create("테스트팀", "설명");
+        try {
+            java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(team, id);
+
+            // 추천 활성화 및 요일 설정
+            com.ryu.studyhelper.team.domain.RecommendationDayOfWeek recommendationDay =
+                    com.ryu.studyhelper.team.domain.RecommendationDayOfWeek.from(dayOfWeek);
+            team.updateRecommendationDays(List.of(recommendationDay));
+
+            // 팀원 목록에 더미 데이터 추가 (getActiveTeams() 필터 통과용)
+            java.lang.reflect.Field teamMembersField = team.getClass().getDeclaredField("teamMembers");
+            teamMembersField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> teamMembers = (java.util.List<Object>) teamMembersField.get(team);
+            teamMembers.add(new Object()); // 더미 객체 추가
+        } catch (Exception e) {
+            throw new RuntimeException("Team 설정 실패", e);
+        }
+        return team;
+    }
+
     /**
      * ID가 설정된 Team 생성 (테스트용)
      */
@@ -305,10 +443,24 @@ class RecommendationServiceTest {
     }
 
     /**
-     * createdAt이 설정된 Recommendation 생성 (테스트용)
+     * createdAt이 설정된 스케줄 Recommendation 생성 (테스트용)
      */
     private Recommendation createRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
         Recommendation recommendation = Recommendation.createScheduledRecommendation(teamId);
+        setCreatedAt(recommendation, createdAt);
+        return recommendation;
+    }
+
+    /**
+     * createdAt이 설정된 수동 Recommendation 생성 (테스트용)
+     */
+    private Recommendation createManualRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
+        Recommendation recommendation = Recommendation.createManualRecommendation(teamId);
+        setCreatedAt(recommendation, createdAt);
+        return recommendation;
+    }
+
+    private void setCreatedAt(Recommendation recommendation, LocalDateTime createdAt) {
         try {
             java.lang.reflect.Field createdAtField = recommendation.getClass().getSuperclass().getDeclaredField("createdAt");
             createdAtField.setAccessible(true);
@@ -316,6 +468,5 @@ class RecommendationServiceTest {
         } catch (Exception e) {
             throw new RuntimeException("createdAt 설정 실패", e);
         }
-        return recommendation;
     }
 }
