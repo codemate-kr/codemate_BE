@@ -104,11 +104,11 @@ class RecommendationServiceTest {
 
         @ParameterizedTest
         @CsvSource({
-                "2025-01-15T01:00:00",
-                "2025-01-15T01:30:00",
-                "2025-01-15T01:59:59"
+                "2025-01-15T05:00:00",
+                "2025-01-15T05:30:00",
+                "2025-01-15T06:59:59"
         })
-        @DisplayName("새벽 1시~2시 사이에는 수동 추천 생성이 금지된다")
+        @DisplayName("오전 5시~7시 사이에는 수동 추천 생성이 금지된다")
         void blockedTime_throwsException(String dateTime) {
             // given
             Clock clock = fixedClock(dateTime);
@@ -128,9 +128,9 @@ class RecommendationServiceTest {
 
         @ParameterizedTest
         @CsvSource({
-                "2025-01-15T00:59:59",
-                "2025-01-15T02:00:00",
-                "2025-01-15T02:00:01",
+                "2025-01-15T04:59:59",
+                "2025-01-15T07:00:00",
+                "2025-01-15T07:00:01",
                 "2025-01-15T10:00:00",
                 "2025-01-15T23:59:59"
         })
@@ -170,7 +170,7 @@ class RecommendationServiceTest {
 
             Recommendation existingRecommendation = createRecommendationWithCreatedAt(
                     TEAM_ID,
-                    LocalDateTime.parse("2025-01-15T02:30:00")
+                    LocalDateTime.parse("2025-01-15T06:30:00")
             );
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(existingRecommendation));
@@ -187,7 +187,7 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("이전 미션 사이클의 추천은 현재 사이클에 영향을 주지 않는다")
         void previousCycleRecommendation_allowsNewRecommendation() {
-            // given: 오전 10시 (2025-01-15), 미션 사이클: 01-15 02:00 ~
+            // given: 오전 10시 (2025-01-15), 미션 사이클: 01-15 06:00 ~
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
@@ -211,20 +211,20 @@ class RecommendationServiceTest {
         }
 
         @Test
-        @DisplayName("새벽 2시 전에는 전날 02:00부터가 미션 사이클이다")
-        void before2AM_usesYesterdayCycleStart() {
-            // given: 새벽 0시 30분 (2025-01-15)
-            // 미션 사이클: 2025-01-14 02:00 ~ 2025-01-15 02:00
-            Clock clock = fixedClock("2025-01-15T00:30:00");
+        @DisplayName("오전 6시 전에는 전날 06:00부터가 미션 사이클이다")
+        void before6AM_usesYesterdayCycleStart() {
+            // given: 새벽 3시 30분 (2025-01-15)
+            // 미션 사이클: 2025-01-14 06:00 ~ 2025-01-15 06:00
+            Clock clock = fixedClock("2025-01-15T03:30:00");
             setupServiceWithClock(clock);
 
             Team team = Team.create("테스트팀", "설명");
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
-            // 2025-01-14 03:00에 생성된 추천 (현재 사이클)
+            // 2025-01-14 07:00에 생성된 추천 (현재 사이클)
             Recommendation existingRecommendation = createRecommendationWithCreatedAt(
                     TEAM_ID,
-                    LocalDateTime.parse("2025-01-14T03:00:00")
+                    LocalDateTime.parse("2025-01-14T07:00:00")
             );
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(existingRecommendation));
@@ -239,8 +239,8 @@ class RecommendationServiceTest {
         }
 
         @Test
-        @DisplayName("정확히 02:00에 생성된 추천도 현재 사이클에 포함된다")
-        void exactlyAt2AM_isIncludedInCurrentCycle() {
+        @DisplayName("정확히 06:00에 생성된 추천도 현재 사이클에 포함된다")
+        void exactlyAt6AM_isIncludedInCurrentCycle() {
             // given: 오전 10시
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
@@ -248,10 +248,10 @@ class RecommendationServiceTest {
             Team team = Team.create("테스트팀", "설명");
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
-            // 정확히 오늘 02:00:00에 생성된 추천
+            // 정확히 오늘 06:00:00에 생성된 추천
             Recommendation existingRecommendation = createRecommendationWithCreatedAt(
                     TEAM_ID,
-                    LocalDateTime.parse("2025-01-15T02:00:00")
+                    LocalDateTime.parse("2025-01-15T06:00:00")
             );
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(existingRecommendation));
@@ -301,10 +301,10 @@ class RecommendationServiceTest {
     class SchedulerMissionCycleValidation {
 
         @Test
-        @DisplayName("prepareDailyRecommendations()는 미션 사이클 시작(02:00)부터 현재까지의 범위로 조회한다")
+        @DisplayName("prepareDailyRecommendations()는 미션 사이클 시작(06:00)부터 현재까지의 범위로 조회한다")
         void prepareDailyRecommendations_usesMissionCycleRange() {
-            // given: 새벽 2시 스케줄러 실행 (수요일)
-            Clock clock = fixedClock("2025-01-15T02:00:00");
+            // given: 오전 6시 스케줄러 실행 (수요일)
+            Clock clock = fixedClock("2025-01-15T06:00:00");
             setupServiceWithClock(clock);
 
             // 수요일에 추천 활성화된 팀 설정
@@ -322,7 +322,7 @@ class RecommendationServiceTest {
             // when
             recommendationService.prepareDailyRecommendations();
 
-            // then: 미션 사이클 범위(02:00 ~ now)로 조회했는지 검증
+            // then: 미션 사이클 범위(06:00 ~ now)로 조회했는지 검증
             ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
             ArgumentCaptor<LocalDateTime> toCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
 
@@ -333,27 +333,27 @@ class RecommendationServiceTest {
             LocalDateTime capturedFrom = fromCaptor.getValue();
             LocalDateTime capturedTo = toCaptor.getValue();
 
-            // 미션 사이클 시작: 2025-01-15 02:00 (0시가 아님!)
-            assertThat(capturedFrom).isEqualTo(LocalDateTime.parse("2025-01-15T02:00:00"));
-            assertThat(capturedTo).isEqualTo(LocalDateTime.parse("2025-01-15T02:00:00"));
+            // 미션 사이클 시작: 2025-01-15 06:00 (0시가 아님!)
+            assertThat(capturedFrom).isEqualTo(LocalDateTime.parse("2025-01-15T06:00:00"));
+            assertThat(capturedTo).isEqualTo(LocalDateTime.parse("2025-01-15T06:00:00"));
         }
 
         @Test
-        @DisplayName("0시~2시 사이 수동 추천은 이전 미션 사이클로 간주되어 2시 스케줄러에서 조회되지 않는다")
-        void manualAt0AM_notFoundBySchedulerAt2AM() {
-            // given: 새벽 2시 스케줄러 실행 (수요일)
-            Clock clock = fixedClock("2025-01-15T02:00:00");
+        @DisplayName("0시~6시 사이 수동 추천은 이전 미션 사이클로 간주되어 6시 스케줄러에서 조회되지 않는다")
+        void manualAt0AM_notFoundBySchedulerAt6AM() {
+            // given: 오전 6시 스케줄러 실행 (수요일)
+            Clock clock = fixedClock("2025-01-15T06:00:00");
             setupServiceWithClock(clock);
 
             Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
             when(teamRepository.findAll()).thenReturn(List.of(team));
 
-            // 0:30에 생성된 수동 추천 - 이전 미션 사이클(01-14 02:00 ~ 01-15 02:00)에 속함
-            // 스케줄러가 조회하는 범위(01-15 02:00~)에 포함되지 않음
+            // 0:30에 생성된 수동 추천 - 이전 미션 사이클(01-14 06:00 ~ 01-15 06:00)에 속함
+            // 스케줄러가 조회하는 범위(01-15 06:00~)에 포함되지 않음
             when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
                     eq(TEAM_ID),
-                    eq(LocalDateTime.parse("2025-01-15T02:00:00")),
-                    eq(LocalDateTime.parse("2025-01-15T02:00:00"))
+                    eq(LocalDateTime.parse("2025-01-15T06:00:00")),
+                    eq(LocalDateTime.parse("2025-01-15T06:00:00"))
             )).thenReturn(Optional.empty());  // 0:30 추천은 범위 밖이므로 조회 안됨
 
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of());
@@ -361,19 +361,19 @@ class RecommendationServiceTest {
             // when
             recommendationService.prepareDailyRecommendations();
 
-            // then: 미션 사이클 범위로 조회 확인 (0시가 아닌 2시부터)
+            // then: 미션 사이클 범위로 조회 확인 (0시가 아닌 6시부터)
             verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
                     eq(TEAM_ID),
-                    eq(LocalDateTime.parse("2025-01-15T02:00:00")),
-                    eq(LocalDateTime.parse("2025-01-15T02:00:00"))
+                    eq(LocalDateTime.parse("2025-01-15T06:00:00")),
+                    eq(LocalDateTime.parse("2025-01-15T06:00:00"))
             );
         }
 
         @Test
-        @DisplayName("캘린더 날짜(0시)가 아닌 미션 사이클(2시) 기준으로 조회해야 한다")
+        @DisplayName("캘린더 날짜(0시)가 아닌 미션 사이클(6시) 기준으로 조회해야 한다")
         void shouldUseMissionCycleNotCalendarDate() {
-            // given: 2시 30분 스케줄러 실행
-            Clock clock = fixedClock("2025-01-15T02:30:00");
+            // given: 6시 30분 스케줄러 실행
+            Clock clock = fixedClock("2025-01-15T06:30:00");
             setupServiceWithClock(clock);
 
             Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
@@ -392,9 +392,9 @@ class RecommendationServiceTest {
                     eq(TEAM_ID), fromCaptor.capture(), any()
             );
 
-            // 핵심: 0시가 아닌 2시부터 조회해야 함
+            // 핵심: 0시가 아닌 6시부터 조회해야 함
             LocalDateTime from = fromCaptor.getValue();
-            assertThat(from.getHour()).isEqualTo(2);
+            assertThat(from.getHour()).isEqualTo(6);
             assertThat(from.getMinute()).isEqualTo(0);
         }
     }
