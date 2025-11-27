@@ -13,15 +13,19 @@ import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class MemberService {
 
     private final MemberRepository memberRepository;
@@ -30,33 +34,10 @@ public class MemberService {
     private final SolvedAcService solvedacService;
     private final JwtUtil jwtUtil;
     private final MailSendService mailSendService;
+    private final Clock clock;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")
     private String frontendUrl;
-
-//    public void syncSolvedProblems(String handle) {
-//        // 1. handle 기반 Member 조회
-//        Member member = memberRepository.findByHandle(handle)
-//                .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
-//
-//        // 2. solved.ac 에서 해당 회원이 푼 문제 목록 가져오기
-//        List<ProblemInfo> solvedProblems = solvedacService.fetchSolvedProblems(handle);
-//
-//        for (ProblemInfo info : solvedProblems) {
-//            // 3. 문제 DB에 저장 (기존에 없으면 insert, 있으면 skip)
-//            Problem problem = problemRepository.findById(info.getProblemId())
-//                    .orElseGet(() -> problemRepository.save(Problem.from(info)));
-//
-//            // 4. 이미 저장된 관계가 없다면 MemberSolvedProblem 저장
-//            if (!memberSolvedProblemRepository.existsByMemberAndProblem(member, problem)) {
-//                memberSolvedProblemRepository.save(MemberSolvedProblem.builder()
-//                        .member(member)
-//                        .problem(problem)
-//                        .solvedAt(LocalDateTime.now()) // solved.ac가 시간 제공 안 하면 now() 사용
-//                        .build());
-//            }
-//        }
-//    }
 
     @Transactional(readOnly = true)
     public Member getById(Long id) {
@@ -108,7 +89,7 @@ public class MemberService {
      */
     @Transactional(readOnly = true)
     public boolean isEmailAvailable(String email) {
-        return !memberRepository.findByEmail(email).isPresent();
+        return memberRepository.findByEmail(email).isEmpty();
     }
 
     /**
@@ -123,7 +104,7 @@ public class MemberService {
         }
 
         // 2. 회원 존재 확인
-        Member member = getById(memberId);
+        getById(memberId);
 
         // 3. 이메일 인증 토큰 생성 (5분 만료)
         String token = jwtUtil.createEmailVerificationToken(memberId, newEmail);
@@ -209,6 +190,19 @@ public class MemberService {
         // 6. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
         memberSolvedProblemRepository.save(memberSolvedProblem);
+    }
+
+    /**
+     * 마지막 접속 시간 업데이트
+     * @param memberId 회원 ID
+     */
+    public void updateLastLoginAt(Long memberId) {
+        try {
+            Member member = getById(memberId);
+            member.updateLastLoginAt(LocalDateTime.now(clock));
+        } catch (Exception e) {
+            log.warn("마지막 접속 시간 업데이트 실패: memberId={}", memberId, e);
+        }
     }
 
 }

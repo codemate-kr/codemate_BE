@@ -6,6 +6,7 @@ import com.ryu.studyhelper.auth.token.RefreshTokenService;
 import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
+import com.ryu.studyhelper.member.MemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final RefreshCookieManager refreshCookieManager;
     private final JwtUtil jwtUtil;
+    private final MemberService memberService;
 
     public AccessToken refresh(HttpServletRequest request) {
         String refreshToken = refreshCookieManager.read(request)
@@ -25,7 +27,11 @@ public class AuthService {
 
         String newAccessToken = refreshTokenService.refreshAccessToken(refreshToken);
         long expiresIn = jwtUtil.getAccessTokenValidMs() / 1000;
-        
+
+        // 마지막 접속 시간 업데이트
+        Long memberId = jwtUtil.getIdFromToken(refreshToken);
+        memberService.updateLastLoginAt(memberId);
+
         return new AccessToken(newAccessToken, expiresIn);
     }
 

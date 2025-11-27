@@ -5,6 +5,7 @@ import com.ryu.studyhelper.auth.token.RefreshCookieManager;
 import com.ryu.studyhelper.auth.token.RefreshTokenService;
 import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
+import com.ryu.studyhelper.member.MemberService;
 import com.ryu.studyhelper.member.domain.Member;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final RefreshTokenService refreshTokenService;
     private final RefreshCookieManager refreshCookieManager;
     private final ObjectMapper objectMapper;
+    private final MemberService memberService;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")
     private String frontendUrl;
@@ -54,7 +56,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 3. Refresh Token을 HttpOnly 쿠키에 저장
         refreshCookieManager.write(response, refreshToken);
 
-        // 4. 사용자 상태에 따라 리다이렉트 결정 (Access Token만 URL로 전달)
+        // 4. 마지막 접속 시간 업데이트
+        memberService.updateLastLoginAt(member.getId());
+
+        // 5. 사용자 상태에 따라 리다이렉트 결정 (Access Token만 URL로 전달)
         String redirectUrl = determineRedirectUrl(member, accessToken);
 
         log.info("OAuth2 login success for user: {}", member.getEmail());

@@ -4,6 +4,8 @@ import com.ryu.studyhelper.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 
 @Entity
 @Getter
@@ -38,6 +40,9 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private boolean isVerified;
 
+    // 마지막 접속 시간
+    private LocalDateTime lastLoginAt;
+
 
     //팩토리 메소드
     public static Member create(String provider, String providerId, String email) {
@@ -61,5 +66,9 @@ public class Member extends BaseEntity {
 
     public void changeEmail(String email) {
         this.email = email;
+    }
+
+    public void updateLastLoginAt(LocalDateTime loginTime) {
+        this.lastLoginAt = loginTime;
     }
 }
