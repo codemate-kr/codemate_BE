@@ -45,9 +45,9 @@ import java.util.List;
 public class RecommendationService {
 
     // 시간 관련 상수
-    private static final LocalTime MISSION_RESET_TIME = LocalTime.of(2, 0);   // 미션 사이클 시작 (새벽 2시)
-    private static final LocalTime BLOCKED_START_TIME = LocalTime.of(1, 0);   // 수동 추천 금지 시작 (새벽 1시)
-    private static final LocalTime EMAIL_START_TIME = LocalTime.of(9, 0);     // 이메일 즉시 발송 시작 (오전 9시)
+    private static final LocalTime MISSION_RESET_TIME = LocalTime.of(6, 0);   // 미션 사이클 시작 (오전 6시)
+    private static final LocalTime BLOCKED_START_TIME = LocalTime.of(5, 0);   // 수동 추천 금지 시작 (오전 5시)
+    private static final LocalTime BLOCKED_END_TIME = LocalTime.of(7, 0);     // 수동 추천 금지 종료 (오전 7시)
 
     // 테스트 용이성을 위한 Clock 주입 (단위 테스트에서 시간 제어 가능)
     private final Clock clock;
@@ -91,38 +91,31 @@ public class RecommendationService {
             recommendationProblemRepository.save(rp);
         }
 
-        // 3. 팀원별 MemberRecommendation 생성
+        // 3. 팀원별 MemberRecommendation 생성 및 즉시 이메일 발송
         List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
-        boolean shouldSendImmediately = isEmailSendableTime();
 
         for (Member member : teamMembers) {
             MemberRecommendation memberRecommendation = MemberRecommendation.create(member, recommendation, team);
             memberRecommendationRepository.save(memberRecommendation);
 
-            // 4. 09:00 ~ 익일 00:59 에만 즉시 이메일 발송, 그 외 시간은 PENDING 유지 → 오전 9시 배치에서 발송
-            if (shouldSendImmediately) {
-                try {
-                    String memberEmail = member.getEmail();
-                    if (memberEmail == null || memberEmail.isBlank()) {
-                        memberRecommendation.markEmailAsFailed();
-                        memberRecommendationRepository.save(memberRecommendation);
-                        log.warn("회원 ID {}에 이메일이 없습니다", member.getId());
-                        continue;
-                    }
-
-                    mailSendService.sendMemberRecommendationEmail(memberRecommendation);
-                    memberRecommendation.markEmailAsSent();
-                    memberRecommendationRepository.save(memberRecommendation);
-                } catch (Exception e) {
+            // 4. 수동 추천은 항상 즉시 이메일 발송
+            try {
+                String memberEmail = member.getEmail();
+                if (memberEmail == null || memberEmail.isBlank()) {
                     memberRecommendation.markEmailAsFailed();
                     memberRecommendationRepository.save(memberRecommendation);
-                    log.error("회원 ID {} 수동 추천 이메일 발송 실패", member.getId(), e);
+                    log.warn("회원 ID {}에 이메일이 없습니다", member.getId());
+                    continue;
                 }
-            }
-        }
 
-        if (!shouldSendImmediately) {
-            log.info("새벽 시간대(02:00~08:59) 수동 추천 - 이메일은 오전 9시 배치에서 발송됩니다");
+                mailSendService.sendMemberRecommendationEmail(memberRecommendation);
+                memberRecommendation.markEmailAsSent();
+                memberRecommendationRepository.save(memberRecommendation);
+            } catch (Exception e) {
+                memberRecommendation.markEmailAsFailed();
+                memberRecommendationRepository.save(memberRecommendation);
+                log.error("회원 ID {} 수동 추천 이메일 발송 실패", member.getId(), e);
+            }
         }
 
         log.info("팀 '{}' 수동 추천 생성 완료 - 팀원: {}명, 문제: {}개",
@@ -156,7 +149,7 @@ public class RecommendationService {
 
     /**
      * 특정 팀의 현재 미션 추천 조회
-     * 현재 미션 사이클(오늘 02:00 ~ 내일 02:00) 내의 추천만 반환
+     * 현재 미션 사이클(오늘 06:00 ~ 내일 06:00) 내의 추천만 반환
      */
     private Recommendation findTodayRecommendation(Long teamId) {
         LocalDateTime missionCycleStart = getMissionCycleStart();
@@ -167,13 +160,13 @@ public class RecommendationService {
 
 
     /**
-     * 문제 추천만 수행 (이메일 발송 X) - 새벽 스케줄러용
-     * 미션 사이클 기준(02:00~02:00)으로 중복 체크
+     * 문제 추천만 수행 (이메일 발송 X) - 오전 스케줄러용
+     * 미션 사이클 기준(06:00~06:00)으로 중복 체크
      */
     public void prepareDailyRecommendations() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime missionCycleStart = getMissionCycleStart();
-        log.info("문제 추천 준비 시작: {} (미션 사이클: {} 02:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
+        log.info("문제 추천 준비 시작: {} (미션 사이클: {} 06:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
 
         List<Team> activeTeams = getActiveTeams(now.toLocalDate());
         int successCount = 0;
@@ -234,12 +227,12 @@ public class RecommendationService {
     /**
      * PENDING 상태의 추천들에 대해 이메일 발송 - 오전 스케줄러용
      * 신규 스키마 사용: MemberRecommendation 개별 발송
-     * 미션 사이클 기준(02:00~02:00)으로 조회
+     * 미션 사이클 기준(06:00~06:00)으로 조회
      */
     public void sendPendingRecommendationEmails() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime missionCycleStart = getMissionCycleStart();
-        log.info("이메일 발송 배치 시작: {} (미션 사이클: {} 02:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
+        log.info("이메일 발송 배치 시작: {} (미션 사이클: {} 06:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
 
         // 현재 미션 사이클의 PENDING 상태 개인 추천 조회
         List<MemberRecommendation> pendingRecommendations = memberRecommendationRepository
@@ -328,7 +321,7 @@ public class RecommendationService {
 
     /**
      * 수동 추천 생성 가능 여부 검증
-     * 1. 새벽 1시~2시 사이: 생성 금지 (스케줄러 전환 구간)
+     * 1. 오전 5시~7시 사이: 생성 금지 (스케줄러 전환 구간)
      * 2. 현재 미션 사이클 내 추천이 있으면: 생성 금지
      *
      * @param teamId 팀 ID
@@ -337,13 +330,13 @@ public class RecommendationService {
     private void validateNoRecommendationToday(Long teamId) {
         LocalTime now = LocalTime.now(clock);
 
-        // 새벽 1시~2시 사이는 수동 추천 금지
-        if (!now.isBefore(BLOCKED_START_TIME) && now.isBefore(MISSION_RESET_TIME)) {
+        // 오전 5시~7시 사이는 수동 추천 금지
+        if (!now.isBefore(BLOCKED_START_TIME) && now.isBefore(BLOCKED_END_TIME)) {
             throw new CustomException(CustomResponseStatus.RECOMMENDATION_BLOCKED_TIME);
         }
 
         // 현재 미션 사이클 시작 시간 이후(포함)에 생성된 추천이 있으면 금지
-        // !isBefore 사용: 정확히 2시에 생성된 추천도 현재 사이클에 포함
+        // !isBefore 사용: 정확히 6시에 생성된 추천도 현재 사이클에 포함
         LocalDateTime missionCycleStart = getMissionCycleStart();
         recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)
                 .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
@@ -353,21 +346,9 @@ public class RecommendationService {
     }
 
     /**
-     * 이메일 즉시 발송 가능 시간인지 확인
-     * - 09:00 ~ 00:59 (다음날): 즉시 발송
-     * - 02:00 ~ 08:59: PENDING → 오전 9시 배치에서 발송
-     * - 01:00 ~ 01:59: 수동 추천 자체 불가 (validateNoRecommendationToday에서 처리)
-     */
-    private boolean isEmailSendableTime() {
-        LocalTime now = LocalTime.now(clock);
-        // 09:00 이후 또는 01:00 이전 (자정~00:59)
-        return !now.isBefore(EMAIL_START_TIME) || now.isBefore(BLOCKED_START_TIME);
-    }
-
-    /**
      * 현재 미션 사이클 시작 시간 계산
-     * - 새벽 2시 이후: 오늘 새벽 2시
-     * - 새벽 2시 이전: 어제 새벽 2시
+     * - 오전 6시 이후: 오늘 오전 6시
+     * - 오전 6시 이전: 어제 오전 6시
      */
     private LocalDateTime getMissionCycleStart() {
         LocalDateTime now = LocalDateTime.now(clock);
