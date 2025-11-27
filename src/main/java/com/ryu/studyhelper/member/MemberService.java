@@ -13,6 +13,7 @@ import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class MemberService {
 
     private final MemberRepository memberRepository;
@@ -219,8 +221,12 @@ public class MemberService {
      * @param memberId 회원 ID
      */
     public void updateLastLoginAt(Long memberId) {
-        Member member = getById(memberId);
-        member.updateLastLoginAt(LocalDateTime.now(clock));
+        try {
+            Member member = getById(memberId);
+            member.updateLastLoginAt(LocalDateTime.now(clock));
+        } catch (Exception e) {
+            log.warn("마지막 접속 시간 업데이트 실패: memberId={}", memberId, e);
+        }
     }
 
 }
