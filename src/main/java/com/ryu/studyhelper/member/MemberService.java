@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -30,6 +32,7 @@ public class MemberService {
     private final SolvedAcService solvedacService;
     private final JwtUtil jwtUtil;
     private final MailSendService mailSendService;
+    private final Clock clock;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")
     private String frontendUrl;
@@ -209,6 +212,15 @@ public class MemberService {
         // 6. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
         memberSolvedProblemRepository.save(memberSolvedProblem);
+    }
+
+    /**
+     * 마지막 접속 시간 업데이트
+     * @param memberId 회원 ID
+     */
+    public void updateLastLoginAt(Long memberId) {
+        Member member = getById(memberId);
+        member.updateLastLoginAt(LocalDateTime.now(clock));
     }
 
 }
