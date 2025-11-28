@@ -219,13 +219,14 @@ public class MemberService {
         Member member = getById(memberId);
 
         // 팀 소속 여부 확인
-        boolean hasTeam = !teamMemberRepository.findByMemberId(memberId).isEmpty();
+        boolean hasTeam = teamMemberRepository.existsByMemberId(memberId);
         if (hasTeam) {
             throw new CustomException(CustomResponseStatus.MEMBER_HAS_TEAM);
         }
 
         // 민감정보 마스킹 + 소프트 딜리트
         member.withdraw();
+        memberRepository.save(member);
     }
 
 }

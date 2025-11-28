@@ -10,7 +10,6 @@ import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
 import com.ryu.studyhelper.team.TeamMemberRepository;
-import com.ryu.studyhelper.team.domain.TeamMember;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,8 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -200,7 +197,7 @@ class MemberServiceTest {
         void success() {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
-            given(teamMemberRepository.findByMemberId(1L)).willReturn(Collections.emptyList());
+            given(teamMemberRepository.existsByMemberId(1L)).willReturn(false);
 
             // when
             memberService.withdraw(1L);
@@ -211,6 +208,7 @@ class MemberServiceTest {
             assertThat(member.getProviderId()).isEqualTo("WITHDRAWN_1");
             assertThat(member.getHandle()).isNull();
             assertThat(member.isVerified()).isFalse();
+            verify(memberRepository).save(member);
         }
 
         @Test
@@ -229,9 +227,8 @@ class MemberServiceTest {
         @DisplayName("실패 - 팀에 소속된 회원")
         void fail_memberHasTeam() {
             // given
-            TeamMember teamMember = mock(TeamMember.class);
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
-            given(teamMemberRepository.findByMemberId(1L)).willReturn(List.of(teamMember));
+            given(teamMemberRepository.existsByMemberId(1L)).willReturn(true);
 
             // when & then
             assertThatThrownBy(() -> memberService.withdraw(1L))
@@ -240,6 +237,7 @@ class MemberServiceTest {
 
             // 탈퇴 처리되지 않았는지 확인
             assertThat(member.isDeleted()).isFalse();
+            verify(memberRepository, never()).save(any());
         }
     }
 }
