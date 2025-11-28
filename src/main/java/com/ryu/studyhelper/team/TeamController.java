@@ -90,7 +90,7 @@ public class TeamController {
 
     @Operation(
             summary = "팀 추천 설정 조회",
-            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다. 팀 멤버만 조회 가능합니다."
+            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다."
     )
     @GetMapping("/{teamId}/recommendation-settings")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> getRecommendationSettings(
