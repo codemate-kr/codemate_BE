@@ -9,6 +9,7 @@ import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
+import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
@@ -30,6 +31,21 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+
+    @Operation(
+            summary = "모든 공개 팀 목록 조회",
+            description = """
+                    팀 찾기 화면에서 사용되는 API입니다.
+                    모든 공개 팀의 목록을 조회합니다. 비로그인 사용자도 조회 가능합니다.
+                    팀 이름, ID, 멤버 수, 추천 활성화 요일, 난이도 설정 정보를 포함합니다.
+                    """
+    )
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<List<PublicTeamResponse>>> getPublicTeams() {
+
+        List<PublicTeamResponse> response = teamService.getPublicTeams();
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
 
     @Operation(
             summary = "내가 속한 팀 목록 조회",

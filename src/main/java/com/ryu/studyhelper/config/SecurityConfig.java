@@ -57,8 +57,9 @@ public class SecurityConfig {
                 // 헬스체크 (인증 불필요)
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
-//                // 공개 API (필요시 사용)
-//                .requestMatchers("/api/public/**").permitAll()
+                // 공개 팀 API (비로그인 허용)
+                .requestMatchers("/api/teams/public").permitAll()
+                .requestMatchers("/api/teams/{teamId:\\d+}").permitAll()
 
                 // Swagger 테스트용 - 모든 API 개방
 //                .requestMatchers("/api/**").permitAll()
