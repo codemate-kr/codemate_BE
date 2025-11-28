@@ -2,7 +2,7 @@ package com.ryu.studyhelper.auth;
 
 import com.ryu.studyhelper.auth.dto.OAuthInfo;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
-import com.ryu.studyhelper.member.MemberRepository;
+import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

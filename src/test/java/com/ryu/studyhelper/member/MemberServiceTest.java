@@ -4,6 +4,8 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
+import com.ryu.studyhelper.member.repository.MemberRepository;
+import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;

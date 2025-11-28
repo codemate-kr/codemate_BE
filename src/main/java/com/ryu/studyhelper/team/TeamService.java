@@ -2,12 +2,11 @@ package com.ryu.studyhelper.team;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.member.MemberRepository;
+import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
-import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.dto.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.InviteMemberRequest;

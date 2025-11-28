@@ -1,6 +1,6 @@
 package com.ryu.studyhelper.config.security;
 
-import com.ryu.studyhelper.member.MemberRepository;
+import com.ryu.studyhelper.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
