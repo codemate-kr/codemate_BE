@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto;
+package com.ryu.studyhelper.team.dto.request;
 
 import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.domain.ProblemDifficultyPreset;

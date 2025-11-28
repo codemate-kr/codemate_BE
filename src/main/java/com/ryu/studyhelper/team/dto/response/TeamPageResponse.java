@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto;
+package com.ryu.studyhelper.team.dto.response;
 
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import io.swagger.v3.oas.annotations.media.Schema;

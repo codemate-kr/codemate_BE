@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto;
+package com.ryu.studyhelper.team.dto.response;
 
 import com.ryu.studyhelper.member.domain.Member;
 import jakarta.validation.constraints.NotBlank;
