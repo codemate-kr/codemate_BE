@@ -59,7 +59,7 @@ public class SecurityConfig {
 
                 // 공개 팀 API (비로그인 허용)
                 .requestMatchers("/api/teams/public").permitAll()
-                .requestMatchers("/api/teams/{teamId}").permitAll()
+                .requestMatchers("/api/teams/{teamId:\\d+}").permitAll()
 
                 // Swagger 테스트용 - 모든 API 개방
 //                .requestMatchers("/api/**").permitAll()
