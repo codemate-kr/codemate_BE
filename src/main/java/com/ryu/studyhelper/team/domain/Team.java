@@ -26,6 +26,11 @@ public class Team extends BaseEntity {
     // 팀 설명
     private String description;
 
+    // 팀 공개/비공개 설정 (false: 공개, true: 비공개)
+    @Column(name = "is_private", nullable = false)
+    @Builder.Default
+    private Boolean isPrivate = false;
+
     // 추천 상태 (ACTIVE: 활성화, INACTIVE: 비활성화)
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -62,11 +67,15 @@ public class Team extends BaseEntity {
 
     /**
      * 팀 생성을 위한 팩토리 메서드 (최초 생성시 추천 비활성화)
+     * @param name 팀 이름
+     * @param description 팀 설명
+     * @param isPrivate 비공개 팀 여부 (true: 비공개, false: 공개)
      */
-    public static Team create(String name, String description) {
+    public static Team create(String name, String description, Boolean isPrivate) {
         return Team.builder()
                 .name(name)
                 .description(description)
+                .isPrivate(isPrivate != null ? isPrivate : false)
                 .recommendationStatus(RecommendationStatus.INACTIVE) // 기본값은 INACTIVE로 설정
                 .recommendationDays(RecommendationDayOfWeek.INACTIVE) // 기본값: 추천 비활성화
                 .build();
