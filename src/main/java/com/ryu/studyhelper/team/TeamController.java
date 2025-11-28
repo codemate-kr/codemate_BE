@@ -9,6 +9,7 @@ import com.ryu.studyhelper.team.dto.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.TeamMemberResponse;
+import com.ryu.studyhelper.team.dto.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,25 @@ public class TeamController {
             @Valid @RequestBody CreateTeamRequest req,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
         CreateTeamResponse response = teamService.create(req, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "팀 페이지 통합 조회",
+            description = """
+                    팀 페이지에 필요한 모든 정보를 한번에 조회합니다.
+                    - 팀 기본 정보, 멤버 목록, 추천 설정, 오늘의 문제 포함
+                    - 비공개 팀인 경우 팀원만 접근 가능합니다.
+                    """
+    )
+    @GetMapping("/{teamId}")
+    public ResponseEntity<ApiResponse<TeamPageResponse>> getTeamPageDetail(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
+        TeamPageResponse response = teamService.getTeamPageDetail(teamId, memberId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
