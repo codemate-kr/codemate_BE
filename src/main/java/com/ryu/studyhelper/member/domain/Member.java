@@ -3,6 +3,7 @@ package com.ryu.studyhelper.member.domain;
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@SQLRestriction("deleted_at IS NULL")
 public class Member extends BaseEntity {
 
     @Id
@@ -70,5 +72,20 @@ public class Member extends BaseEntity {
 
     public void updateLastLoginAt(LocalDateTime loginTime) {
         this.lastLoginAt = loginTime;
+    }
+
+    /**
+     * 회원 탈퇴 처리
+     * 민감정보를 마스킹하고 소프트 딜리트 수행
+     */
+    public void withdraw() {
+        // 민감정보 마스킹 (UNIQUE 제약 충돌 방지를 위해 ID 기반 더미값 사용)
+        this.email = "WITHDRAWN_" + this.id + "@deleted.local";
+        this.providerId = "WITHDRAWN_" + this.id;
+        this.handle = null;
+        this.isVerified = false;
+
+        // 소프트 딜리트
+        softDelete();
     }
 }

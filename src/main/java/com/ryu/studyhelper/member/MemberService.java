@@ -12,6 +12,7 @@ import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
+import com.ryu.studyhelper.team.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final ProblemRepository problemRepository;
     private final MemberSolvedProblemRepository memberSolvedProblemRepository;
+    private final TeamMemberRepository teamMemberRepository;
     private final SolvedAcService solvedacService;
     private final JwtUtil jwtUtil;
     private final MailSendService mailSendService;
@@ -203,6 +205,25 @@ public class MemberService {
         } catch (Exception e) {
             log.warn("마지막 접속 시간 업데이트 실패: memberId={}", memberId, e);
         }
+    }
+
+    /**
+     * 회원 탈퇴
+     * - 모든 팀에서 탈퇴한 상태여야 함
+     * - 민감정보(이메일, 핸들, providerId) 마스킹 후 소프트 딜리트
+     * @param memberId 회원 ID
+     */
+    public void withdraw(Long memberId) {
+        Member member = getById(memberId);
+
+        // 팀 소속 여부 확인
+        boolean hasTeam = !teamMemberRepository.findByMemberId(memberId).isEmpty();
+        if (hasTeam) {
+            throw new CustomException(CustomResponseStatus.MEMBER_HAS_TEAM);
+        }
+
+        // 민감정보 마스킹 + 소프트 딜리트
+        member.withdraw();
     }
 
 }
