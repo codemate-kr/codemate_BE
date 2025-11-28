@@ -34,6 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 추천 시스템 비즈니스 로직을 담당하는 서비스
@@ -136,26 +137,31 @@ public class RecommendationService {
      * 특정 팀의 오늘 추천 조회 (사용자별 해결 여부 포함)
      * @param teamId 팀 ID
      * @param memberId 회원 ID (nullable - 비로그인 시 null)
+     * @throws CustomException 추천이 없는 경우 RECOMMENDATION_NOT_FOUND
      */
     @Transactional(readOnly = true)
     public TodayProblemResponse getTodayRecommendation(Long teamId, Long memberId) {
-        Recommendation recommendation = findTodayRecommendation(teamId);
-
-        List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
-                .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
-
-        return TodayProblemResponse.from(recommendation, problemsWithStatus);
+        return findTodayRecommendation(teamId, memberId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND));
     }
 
     /**
-     * 특정 팀의 현재 미션 추천 조회
-     * 현재 미션 사이클(오늘 06:00 ~ 내일 06:00) 내의 추천만 반환
+     * 특정 팀의 오늘 추천 조회 (Optional 반환)
+     * @param teamId 팀 ID
+     * @param memberId 회원 ID (nullable - 비로그인 시 null)
+     * @return 추천이 있으면 Optional.of(response), 없으면 Optional.empty()
      */
-    private Recommendation findTodayRecommendation(Long teamId) {
+    @Transactional(readOnly = true)
+    public Optional<TodayProblemResponse> findTodayRecommendation(Long teamId, Long memberId) {
         LocalDateTime missionCycleStart = getMissionCycleStart();
+
         return recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)
                 .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND));
+                .map(recommendation -> {
+                    List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
+                            .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
+                    return TodayProblemResponse.from(recommendation, problemsWithStatus);
+                });
     }
 
 
