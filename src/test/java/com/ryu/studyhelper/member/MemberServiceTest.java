@@ -7,6 +7,8 @@ import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
+import com.ryu.studyhelper.team.TeamMemberRepository;
+import com.ryu.studyhelper.team.domain.TeamMember;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +18,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +43,9 @@ class MemberServiceTest {
 
     @Mock
     private MemberSolvedProblemRepository memberSolvedProblemRepository;
+
+    @Mock
+    private TeamMemberRepository teamMemberRepository;
 
     @Mock
     private SolvedAcService solvedAcService;
@@ -179,6 +186,58 @@ class MemberServiceTest {
             assertThatThrownBy(() -> memberService.verifyProblemSolved(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("withdraw 메서드")
+    class WithdrawTest {
+
+        @Test
+        @DisplayName("성공 - 팀 미소속 회원 탈퇴")
+        void success() {
+            // given
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(teamMemberRepository.findByMemberId(1L)).willReturn(Collections.emptyList());
+
+            // when
+            memberService.withdraw(1L);
+
+            // then
+            assertThat(member.isDeleted()).isTrue();
+            assertThat(member.getEmail()).isEqualTo("WITHDRAWN_1@deleted.local");
+            assertThat(member.getProviderId()).isEqualTo("WITHDRAWN_1");
+            assertThat(member.getHandle()).isNull();
+            assertThat(member.isVerified()).isFalse();
+        }
+
+        @Test
+        @DisplayName("실패 - 회원을 찾을 수 없음")
+        void fail_memberNotFound() {
+            // given
+            given(memberRepository.findById(1L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> memberService.withdraw(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.MEMBER_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 팀에 소속된 회원")
+        void fail_memberHasTeam() {
+            // given
+            TeamMember teamMember = mock(TeamMember.class);
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(teamMemberRepository.findByMemberId(1L)).willReturn(List.of(teamMember));
+
+            // when & then
+            assertThatThrownBy(() -> memberService.withdraw(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.MEMBER_HAS_TEAM);
+
+            // 탈퇴 처리되지 않았는지 확인
+            assertThat(member.isDeleted()).isFalse();
         }
     }
 }
