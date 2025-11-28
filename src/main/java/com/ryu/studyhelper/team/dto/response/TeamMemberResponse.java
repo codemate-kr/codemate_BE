@@ -14,9 +14,26 @@ public record TeamMemberResponse(
         return new TeamMemberResponse(
                 teamMember.getMember().getId(),
                 teamMember.getMember().getHandle(),
-                teamMember.getMember().getEmail(),
+                maskEmail(teamMember.getMember().getEmail()),
                 teamMember.getRole(),
                 teamMember.getMember().getId().equals(currentMemberId)
         );
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return email;
+        }
+
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domain = parts[1];
+
+        if (localPart.length() <= 4) {
+            return "****@" + domain;
+        }
+
+        String visiblePart = localPart.substring(0, localPart.length() - 4);
+        return visiblePart + "****@" + domain;
     }
 }
