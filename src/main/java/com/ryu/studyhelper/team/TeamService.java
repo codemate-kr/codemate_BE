@@ -15,6 +15,7 @@ import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
+import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
@@ -173,6 +174,20 @@ public class TeamService {
 
         return teamMembers.stream()
                 .map(MyTeamResponse::from)
+                .toList();
+    }
+
+    /**
+     * 모든 공개 팀 목록 조회
+     * - 비로그인 사용자도 조회 가능
+     * @return 공개 팀 목록
+     */
+    @Transactional(readOnly = true)
+    public List<PublicTeamResponse> getPublicTeams() {
+        List<Team> publicTeams = teamRepository.findByIsPrivateFalse();
+
+        return publicTeams.stream()
+                .map(PublicTeamResponse::from)
                 .toList();
     }
 
