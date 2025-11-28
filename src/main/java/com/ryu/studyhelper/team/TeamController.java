@@ -3,14 +3,15 @@ package com.ryu.studyhelper.team;
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
-import com.ryu.studyhelper.team.dto.CreateTeamRequest;
-import com.ryu.studyhelper.team.dto.CreateTeamResponse;
-import com.ryu.studyhelper.team.dto.InviteMemberRequest;
-import com.ryu.studyhelper.team.dto.InviteMemberResponse;
-import com.ryu.studyhelper.team.dto.MyTeamResponse;
-import com.ryu.studyhelper.team.dto.TeamMemberResponse;
-import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsRequest;
-import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsResponse;
+import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
+import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
+import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
+import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
+import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
+import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
+import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
+import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,6 +56,25 @@ public class TeamController {
     }
 
     @Operation(
+            summary = "팀 페이지 통합 조회",
+            description = """
+                    팀 페이지에 필요한 모든 정보를 한번에 조회합니다.
+                    - 팀 기본 정보, 멤버 목록, 추천 설정, 오늘의 문제 포함
+                    - 비공개 팀인 경우 팀원만 접근 가능합니다.
+                    """
+    )
+    @GetMapping("/{teamId}")
+    public ResponseEntity<ApiResponse<TeamPageResponse>> getTeamPageDetail(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
+        TeamPageResponse response = teamService.getTeamPageDetail(teamId, memberId);
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
             summary = "팀 멤버 목록 조회",
             description = "특정 팀의 멤버 목록을 조회합니다."
     )
@@ -70,7 +90,7 @@ public class TeamController {
 
     @Operation(
             summary = "팀 추천 설정 조회",
-            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다. 팀 멤버만 조회 가능합니다."
+            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다."
     )
     @GetMapping("/{teamId}/recommendation-settings")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> getRecommendationSettings(

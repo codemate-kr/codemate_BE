@@ -17,14 +17,14 @@ class TeamTest {
 
     @BeforeEach
     void setUp() {
-        team = Team.create("테스트팀", "알고리즘 스터디");
+        team = Team.create("테스트팀", "알고리즘 스터디", false);
     }
 
     @Test
     @DisplayName("팀 생성 시 추천 상태는 INACTIVE이고 요일은 비어있다")
     void create_initialState() {
         // when
-        Team newTeam = Team.create("새 팀", "설명");
+        Team newTeam = Team.create("새 팀", "설명", false);
 
         // then
         assertThat(newTeam.isRecommendationActive()).isFalse();

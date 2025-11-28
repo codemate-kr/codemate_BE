@@ -7,14 +7,17 @@ import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
-import com.ryu.studyhelper.team.dto.CreateTeamRequest;
-import com.ryu.studyhelper.team.dto.CreateTeamResponse;
-import com.ryu.studyhelper.team.dto.InviteMemberRequest;
-import com.ryu.studyhelper.team.dto.InviteMemberResponse;
-import com.ryu.studyhelper.team.dto.MyTeamResponse;
-import com.ryu.studyhelper.team.dto.TeamMemberResponse;
-import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsRequest;
-import com.ryu.studyhelper.team.dto.TeamRecommendationSettingsResponse;
+import com.ryu.studyhelper.recommendation.RecommendationService;
+import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
+import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
+import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
+import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
+import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
+import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
+import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
+import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
+import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final MemberRepository memberRepository;
+    private final RecommendationService recommendationService;
     // TODO: 알림 시스템 구현 후 주입
     // private final NotificationService notificationService;
 
@@ -46,7 +50,7 @@ public class TeamService {
         // 팀 생성 제한 검증 (LEADER 역할 최대 3개)
         validateTeamCreationLimit(memberId);
 
-        Team team = Team.create(req.name(), req.description());
+        Team team = Team.create(req.name(), req.description(), req.isPrivate());
         Team saved = teamRepository.save(team);
 
         // 현재 로그인한 사용자를 TeamMember로 자동 합류(LEADER)
@@ -60,7 +64,8 @@ public class TeamService {
     }
 
     /**
-     * 팀 가입
+     * 팀 가입 (공개 팀만 가능)
+     * - 비공개 팀은 초대를 통해서만 가입 가능
      * @param teamId 팀 ID
      * @param memberId 회원 ID
      */
@@ -69,6 +74,11 @@ public class TeamService {
         // 팀 조회
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        // 비공개 팀은 직접 가입 불가 (초대만 가능)
+        if (team.getIsPrivate()) {
+            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
+        }
 
         // 회원 조회
         Member member = memberRepository.findById(memberId)
@@ -177,6 +187,67 @@ public class TeamService {
         return team.getTeamMembers().stream()
                 .map(teamMember -> TeamMemberResponse.from(teamMember, currentMemberId))
                 .toList();
+    }
+
+    /**
+     * 팀 페이지 통합 조회 (비공개 팀 권한 체크 포함)
+     * - 팀 기본 정보, 멤버 목록, 추천 설정, 오늘의 문제를 한번에 조회
+     * - 비공개 팀인 경우 팀원만 접근 가능
+     * @param teamId 팀 ID
+     * @param memberId 현재 로그인한 멤버 ID (비로그인 시 null)
+     */
+    @Transactional(readOnly = true)
+    public TeamPageResponse getTeamPageDetail(Long teamId, Long memberId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        // 비공개 팀 접근 권한 검증
+        validatePrivateTeamAccess(team, memberId);
+
+        // 팀 기본 정보
+        TeamPageResponse.TeamInfo teamInfo = new TeamPageResponse.TeamInfo(
+                team.getId(),
+                team.getName(),
+                team.getDescription(),
+                team.getIsPrivate(),
+                team.getTeamMembers().size()
+        );
+
+        // 팀 멤버 목록
+        List<TeamMemberResponse> members = team.getTeamMembers().stream()
+                .map(teamMember -> TeamMemberResponse.from(teamMember, memberId))
+                .toList();
+
+        // 추천 설정
+        TeamRecommendationSettingsResponse recommendationSettings = TeamRecommendationSettingsResponse.from(team);
+
+        // 오늘의 문제 (없으면 null)
+        TodayProblemResponse todayProblem = recommendationService
+                .findTodayRecommendation(teamId, memberId)
+                .orElse(null);
+
+        return new TeamPageResponse(teamInfo, members, recommendationSettings, todayProblem);
+    }
+
+    /**
+     * 비공개 팀 접근 권한 검증
+     * - 공개 팀: 누구나 접근 가능
+     * - 비공개 팀: 팀원만 접근 가능
+     */
+    private void validatePrivateTeamAccess(Team team, Long memberId) {
+        if (!team.getIsPrivate()) {
+            return; // 공개 팀은 누구나 접근 가능
+        }
+
+        // 비공개 팀: 로그인하지 않았거나 팀원이 아니면 접근 불가
+        if (memberId == null) {
+            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
+        }
+
+        boolean isMember = teamMemberRepository.existsByTeamIdAndMemberId(team.getId(), memberId);
+        if (!isMember) {
+            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
+        }
     }
 
     /**

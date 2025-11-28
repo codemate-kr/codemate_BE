@@ -51,7 +51,7 @@ class TeamServiceTests {
     @BeforeEach
     void setUp() {
         // 팀 생성
-        team = Team.create("테스트 팀", "알고리즘 스터디");
+        team = Team.create("테스트 팀", "알고리즘 스터디", false);
 
         // 멤버 생성
         leader = Member.builder()
@@ -219,7 +219,7 @@ class TeamServiceTests {
     void createTeam_lessThanLimit_success() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.CreateTeamRequest("새로운 팀", "설명");
+        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(2);
@@ -243,7 +243,7 @@ class TeamServiceTests {
     void createTeam_exceedsLimit_throwsException() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.CreateTeamRequest("새로운 팀", "설명");
+        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(3);
@@ -263,7 +263,7 @@ class TeamServiceTests {
     void createTeam_exactlyThreeTeams_throwsException() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.CreateTeamRequest("네 번째 팀", "설명");
+        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("네 번째 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(3);
@@ -279,7 +279,7 @@ class TeamServiceTests {
     void createTeam_memberNotFound_throwsException() {
         // given
         Long memberId = 999L;
-        var request = new com.ryu.studyhelper.team.dto.CreateTeamRequest("새로운 팀", "설명");
+        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.empty());
 

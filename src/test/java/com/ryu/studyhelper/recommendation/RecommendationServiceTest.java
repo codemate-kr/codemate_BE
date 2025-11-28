@@ -114,7 +114,7 @@ class RecommendationServiceTest {
             Clock clock = fixedClock(dateTime);
             setupServiceWithClock(clock);
 
-            Team team = Team.create("테스트팀", "설명");
+            Team team = Team.create("테스트팀", "설명", false);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
             // when & then
@@ -165,7 +165,7 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team = Team.create("테스트팀", "설명");
+            Team team = Team.create("테스트팀", "설명", false);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
             Recommendation existingRecommendation = createRecommendationWithCreatedAt(
@@ -218,7 +218,7 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T03:30:00");
             setupServiceWithClock(clock);
 
-            Team team = Team.create("테스트팀", "설명");
+            Team team = Team.create("테스트팀", "설명", false);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
             // 2025-01-14 07:00에 생성된 추천 (현재 사이클)
@@ -245,7 +245,7 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team = Team.create("테스트팀", "설명");
+            Team team = Team.create("테스트팀", "설명", false);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
             // 정확히 오늘 06:00:00에 생성된 추천
@@ -404,7 +404,7 @@ class RecommendationServiceTest {
      * - getActiveTeams() 필터를 통과하려면 teamMembers가 비어있지 않아야 함
      */
     private Team createTeamWithIdAndRecommendationDay(Long id, DayOfWeek dayOfWeek) {
-        Team team = Team.create("테스트팀", "설명");
+        Team team = Team.create("테스트팀", "설명", false);
         try {
             java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
             idField.setAccessible(true);
@@ -431,7 +431,7 @@ class RecommendationServiceTest {
      * ID가 설정된 Team 생성 (테스트용)
      */
     private Team createTeamWithId(Long id) {
-        Team team = Team.create("테스트팀", "설명");
+        Team team = Team.create("테스트팀", "설명", false);
         try {
             java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
             idField.setAccessible(true);

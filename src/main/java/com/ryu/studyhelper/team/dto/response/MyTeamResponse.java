@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto;
+package com.ryu.studyhelper.team.dto.response;
 
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
@@ -27,6 +27,9 @@ public record MyTeamResponse(
         @Schema(description = "추천 활성화 여부", example = "true")
         boolean isRecommendationActive,
 
+        @Schema(description = "비공개 팀 여부", example = "false")
+        boolean isPrivate,
+
         @Schema(description = "팀 생성일시")
         LocalDateTime createdAt
 ) {
@@ -39,6 +42,7 @@ public record MyTeamResponse(
                 teamMember.getRole(),
                 team.getTeamMembers().size(),
                 team.isRecommendationActive(),
+                team.getIsPrivate(),
                 team.getCreatedAt()
         );
     }

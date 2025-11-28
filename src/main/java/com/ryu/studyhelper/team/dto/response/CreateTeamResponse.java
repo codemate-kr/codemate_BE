@@ -1,10 +1,7 @@
-package com.ryu.studyhelper.team.dto;
-
-import com.ryu.studyhelper.member.domain.Member;
-import jakarta.validation.constraints.NotBlank;
+package com.ryu.studyhelper.team.dto.response;
 
 public record CreateTeamResponse(
-        @NotBlank String name,
+        String name,
         String description
 ) {
 

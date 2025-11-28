@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto;
+package com.ryu.studyhelper.team.dto.response;
 
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
