@@ -2,7 +2,7 @@ package com.ryu.studyhelper.member.verification;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.member.MemberRepository;
+import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.verification.dto.GenerateHashResponse;
 import com.ryu.studyhelper.member.verification.dto.VerifyBojResponse;
 import com.ryu.studyhelper.member.domain.Member;

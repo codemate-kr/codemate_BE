@@ -34,6 +34,7 @@ public enum CustomResponseStatus {
     TEAM_CREATION_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN.value(), "3010", "최대 3개 팀까지만 생성할 수 있습니다."),
     ALREADY_SOLVED(HttpStatus.CONFLICT.value(), "3011", "이미 해결된 문제입니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN.value(), "3012", "권한이 없습니다."),
+    MEMBER_HAS_TEAM(HttpStatus.CONFLICT.value(), "3013", "팀에 소속된 상태에서는 탈퇴할 수 없습니다. 먼저 모든 팀에서 탈퇴해주세요."),
 
     /***
      * 4000: NOT_FOUND

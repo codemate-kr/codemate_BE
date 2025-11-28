@@ -45,6 +45,11 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<TeamMember> findByMemberId(Long memberId);
 
     /**
+     * 특정 멤버가 어떤 팀에라도 속해있는지 확인
+     */
+    boolean existsByMemberId(Long memberId);
+
+    /**
      * 특정 팀에서 특정 멤버의 팀 멤버십 조회
      */
     Optional<TeamMember> findByTeamIdAndMemberId(Long teamId, Long memberId);

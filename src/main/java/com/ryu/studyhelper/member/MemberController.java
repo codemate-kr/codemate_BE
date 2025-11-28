@@ -141,4 +141,16 @@ public class MemberController {
         memberService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
+
+    @Operation(
+            summary = "회원 탈퇴",
+            description = "회원 탈퇴를 진행합니다. 모든 팀에서 탈퇴한 상태여야 합니다. 민감정보(이메일, 핸들, providerId)는 마스킹 처리됩니다."
+    )
+    @PostMapping("/me/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        memberService.withdraw(principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
 }
