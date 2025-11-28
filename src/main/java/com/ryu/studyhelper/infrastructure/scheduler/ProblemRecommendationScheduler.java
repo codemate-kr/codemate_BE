@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 매일 새벽 2시에 팀별 문제 추천을 준비하는 스케줄러
+ * 매일 오전 6시에 팀별 문제 추천을 준비하는 스케줄러
  * solved.ac API 호출 및 DB 저장만 수행 (이메일 발송 X)
  */
 @Component
@@ -18,10 +18,10 @@ public class ProblemRecommendationScheduler {
     private final RecommendationService recommendationService;
 
     /**
-     * 매일 새벽 2시에 문제 추천 준비
-     * Cron 표현식: "0 0 2 * * *" = 매일 2시 0분 0초
+     * 매일 오전 6시에 문제 추천 준비
+     * Cron 표현식: "0 0 6 * * *" = 매일 6시 0분 0초
      */
-    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 6 * * *", zone = "Asia/Seoul")
     public void prepareDailyRecommendations() {
         log.info("=== 문제 추천 배치 작업 시작 ===");
 
