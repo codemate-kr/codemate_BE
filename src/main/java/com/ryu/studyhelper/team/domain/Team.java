@@ -165,4 +165,12 @@ public class Team extends BaseEntity {
     public boolean isRecommendationActive() {
         return this.recommendationStatus == RecommendationStatus.ACTIVE;
     }
+
+    /**
+     * 팀 공개/비공개 설정 변경
+     * @param isPrivate true: 비공개, false: 공개
+     */
+    public void updateVisibility(Boolean isPrivate) {
+        this.isPrivate = isPrivate != null ? isPrivate : false;
+    }
 }

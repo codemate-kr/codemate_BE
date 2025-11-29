@@ -6,6 +6,7 @@ import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
@@ -191,6 +192,21 @@ public class TeamController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         teamService.deleteTeam(teamId, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "팀 공개/비공개 설정 변경",
+            description = "팀의 공개/비공개 설정을 변경합니다. 팀장만 변경 가능합니다."
+    )
+    @PatchMapping("/{teamId}/visibility")
+    public ResponseEntity<ApiResponse<Void>> updateVisibility(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @Valid @RequestBody UpdateTeamVisibilityRequest request,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        teamService.updateVisibility(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 }
