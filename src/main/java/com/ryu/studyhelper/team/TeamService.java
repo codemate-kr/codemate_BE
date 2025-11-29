@@ -12,6 +12,7 @@ import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
@@ -367,6 +368,22 @@ public class TeamService {
 
         // 팀 삭제 (cascade로 연관된 TeamMember, TeamRecommendation 등도 함께 삭제됨)
         teamRepository.delete(team);
+    }
+
+    /**
+     * 팀 공개/비공개 설정 변경 (팀장만 가능)
+     * @param teamId 팀 ID
+     * @param request 공개/비공개 설정 요청
+     * @param memberId 현재 로그인한 멤버 ID (팀장)
+     */
+    @Transactional
+    public void updateVisibility(Long teamId, UpdateTeamVisibilityRequest request, Long memberId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        validateTeamLeaderAccess(teamId, memberId);
+
+        team.updateVisibility(request.isPrivate());
     }
 
     // TODO: 알림 시스템 구현 후 활성화

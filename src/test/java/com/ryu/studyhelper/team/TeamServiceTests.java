@@ -291,4 +291,63 @@ class TeamServiceTests {
         verify(teamMemberRepository, never()).countByMemberIdAndRole(any(), any());
         verify(teamRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("팀장은 팀 공개/비공개 설정을 변경할 수 있다")
+    void updateVisibility_leader_success() {
+        // given
+        Long teamId = 1L;
+        Long leaderId = leader.getId();
+        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
+        given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER))
+                .willReturn(true);
+
+        // when
+        teamService.updateVisibility(teamId, request, leaderId);
+
+        // then
+        assertThat(team.getIsPrivate()).isTrue();
+        verify(teamRepository).findById(teamId);
+        verify(teamMemberRepository).existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER);
+    }
+
+    @Test
+    @DisplayName("일반 멤버는 팀 공개/비공개 설정을 변경할 수 없다")
+    void updateVisibility_normalMember_throwsException() {
+        // given
+        Long teamId = 1L;
+        Long memberId = normalMember.getId();
+        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
+        given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, memberId, TeamRole.LEADER))
+                .willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> teamService.updateVisibility(teamId, request, memberId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("status", CustomResponseStatus.TEAM_ACCESS_DENIED);
+
+        assertThat(team.getIsPrivate()).isFalse();  // 변경되지 않음
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 팀의 공개/비공개 설정 변경 시도 시 예외 발생")
+    void updateVisibility_teamNotFound_throwsException() {
+        // given
+        Long teamId = 999L;
+        Long leaderId = leader.getId();
+        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> teamService.updateVisibility(teamId, request, leaderId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("status", CustomResponseStatus.TEAM_NOT_FOUND);
+
+        verify(teamMemberRepository, never()).existsByTeamIdAndMemberIdAndRole(any(), any(), any());
+    }
 }
