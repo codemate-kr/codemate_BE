@@ -258,7 +258,7 @@ public class MemberService {
         LocalDateTime endDateTime = today.plusDays(1).atTime(LocalTime.of(6, 0));
 
         List<MemberSolvedProblem> solvedProblems = memberSolvedProblemRepository
-                .findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(memberId, startDateTime, endDateTime);
+                .findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(memberId, startDateTime, endDateTime);
 
         // 날짜별로 그룹핑 (오전 6시 기준)
         Map<LocalDate, List<DailySolvedResponse.SolvedProblem>> groupedByDate = new LinkedHashMap<>();

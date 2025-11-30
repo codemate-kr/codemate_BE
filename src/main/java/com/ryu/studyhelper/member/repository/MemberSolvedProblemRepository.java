@@ -18,6 +18,6 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
 
     long countByMemberId(Long memberId);
 
-    List<MemberSolvedProblem> findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(
+    List<MemberSolvedProblem> findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(
             Long memberId, LocalDateTime start, LocalDateTime end);
 }
