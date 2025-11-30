@@ -7,7 +7,13 @@ import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.dto.request.*;
-import com.ryu.studyhelper.member.dto.response.*;
+import com.ryu.studyhelper.member.dto.response.CheckEmailResponse;
+import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
+import com.ryu.studyhelper.member.dto.response.EmailChangeResponse;
+import com.ryu.studyhelper.member.dto.response.HandleVerificationResponse;
+import com.ryu.studyhelper.member.dto.response.MemberPublicResponse;
+import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
+import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -152,5 +158,19 @@ public class MemberController {
     ) {
         memberService.withdraw(principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "일별 문제 풀이 현황 조회",
+            description = "최근 N일간 일별 문제 풀이 현황을 조회합니다. 날짜 기준은 오전 6시입니다."
+    )
+    @GetMapping("/me/daily-solved")
+    public ResponseEntity<ApiResponse<DailySolvedResponse>> getDailySolved(
+            @Parameter(description = "조회할 일수 (기본 7일)", example = "7")
+            @RequestParam(defaultValue = "7") int days,
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        DailySolvedResponse response = memberService.getDailySolved(principalDetails.getMemberId(), days);
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }
