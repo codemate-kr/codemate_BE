@@ -19,7 +19,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
+
+import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -238,6 +245,157 @@ class MemberServiceTest {
             // 탈퇴 처리되지 않았는지 확인
             assertThat(member.isDeleted()).isFalse();
             verify(memberRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getDailySolved 메서드")
+    class GetDailySolvedTest {
+
+        @Mock
+        private Clock clock;
+
+        private MemberService memberServiceWithClock;
+
+        @BeforeEach
+        void setUp() {
+            // 2024-11-28 14:00 (오후 2시)으로 고정
+            ZonedDateTime fixedTime = ZonedDateTime.of(2024, 11, 28, 14, 0, 0, 0, ZoneId.systemDefault());
+            given(clock.instant()).willReturn(fixedTime.toInstant());
+            given(clock.getZone()).willReturn(ZoneId.systemDefault());
+
+            memberServiceWithClock = new MemberService(
+                    memberRepository,
+                    problemRepository,
+                    memberSolvedProblemRepository,
+                    teamMemberRepository,
+                    solvedAcService,
+                    null, // jwtUtil
+                    null, // mailSendService
+                    clock
+            );
+        }
+
+        @Test
+        @DisplayName("성공 - 7일간 일별 풀이 현황 조회")
+        void success_getDailySolved() {
+            // given
+            Problem problem1 = Problem.builder().id(1000L).title("A+B").titleKo("A+B").level(1).build();
+            Problem problem2 = Problem.builder().id(7576L).title("토마토").titleKo("토마토").level(11).build();
+
+            MemberSolvedProblem solved1 = mock(MemberSolvedProblem.class);
+            given(solved1.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 10, 0)); // 11/28 10:00
+            given(solved1.getProblem()).willReturn(problem1);
+
+            MemberSolvedProblem solved2 = mock(MemberSolvedProblem.class);
+            given(solved2.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 15, 0)); // 11/28 15:00
+            given(solved2.getProblem()).willReturn(problem2);
+
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+                    .willReturn(List.of(solved1, solved2));
+
+            // when
+            DailySolvedResponse response = memberServiceWithClock.getDailySolved(1L, 7);
+
+            // then
+            assertThat(response.totalCount()).isEqualTo(2);
+            assertThat(response.dailySolved()).hasSize(7);
+
+            // 11/28에 2문제
+            DailySolvedResponse.DailySolved nov28 = response.dailySolved().stream()
+                    .filter(d -> d.date().equals("2024-11-28"))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(nov28.count()).isEqualTo(2);
+            assertThat(nov28.problems()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("성공 - 오전 6시 이전은 전날로 계산")
+        void success_before6am_countAsPreviousDay() {
+            // given
+            Problem problem1 = Problem.builder().id(1000L).title("A+B").titleKo("A+B").level(1).build();
+
+            MemberSolvedProblem solved = mock(MemberSolvedProblem.class);
+            // 11/28 05:30 → 11/27로 계산되어야 함
+            given(solved.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 5, 30));
+            given(solved.getProblem()).willReturn(problem1);
+
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+                    .willReturn(List.of(solved));
+
+            // when
+            DailySolvedResponse response = memberServiceWithClock.getDailySolved(1L, 7);
+
+            // then
+            // 11/27에 1문제
+            DailySolvedResponse.DailySolved nov27 = response.dailySolved().stream()
+                    .filter(d -> d.date().equals("2024-11-27"))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(nov27.count()).isEqualTo(1);
+
+            // 11/28에 0문제
+            DailySolvedResponse.DailySolved nov28 = response.dailySolved().stream()
+                    .filter(d -> d.date().equals("2024-11-28"))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(nov28.count()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("성공 - 풀이가 없는 경우 빈 리스트")
+        void success_noSolved() {
+            // given
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+                    .willReturn(List.of());
+
+            // when
+            DailySolvedResponse response = memberServiceWithClock.getDailySolved(1L, 7);
+
+            // then
+            assertThat(response.totalCount()).isEqualTo(0);
+            assertThat(response.dailySolved()).hasSize(7);
+            response.dailySolved().forEach(daily -> {
+                assertThat(daily.count()).isEqualTo(0);
+                assertThat(daily.problems()).isEmpty();
+            });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("getDailySolved 메서드 - 범위 검증")
+    class GetDailySolvedRangeValidationTest {
+
+        @Test
+        @DisplayName("실패 - days가 1 미만일 때 예외 발생")
+        void fail_daysLessThanOne() {
+            // given
+            MemberService service = new MemberService(
+                    memberRepository, problemRepository, memberSolvedProblemRepository,
+                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+            );
+
+            // when & then
+            assertThatThrownBy(() -> service.getDailySolved(1L, 0))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.INVALID_DAYS_RANGE);
+        }
+
+        @Test
+        @DisplayName("실패 - days가 730 초과일 때 예외 발생")
+        void fail_daysGreaterThan730() {
+            // given
+            MemberService service = new MemberService(
+                    memberRepository, problemRepository, memberSolvedProblemRepository,
+                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+            );
+
+            // when & then
+            assertThatThrownBy(() -> service.getDailySolved(1L, 731))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.INVALID_DAYS_RANGE);
         }
     }
 }
