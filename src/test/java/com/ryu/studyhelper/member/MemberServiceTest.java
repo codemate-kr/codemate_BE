@@ -291,7 +291,7 @@ class MemberServiceTest {
             given(solved2.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 15, 0)); // 11/28 15:00
             given(solved2.getProblem()).willReturn(problem2);
 
-            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
                     .willReturn(List.of(solved1, solved2));
 
             // when
@@ -321,7 +321,7 @@ class MemberServiceTest {
             given(solved.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 5, 30));
             given(solved.getProblem()).willReturn(problem1);
 
-            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
                     .willReturn(List.of(solved));
 
             // when
@@ -347,7 +347,7 @@ class MemberServiceTest {
         @DisplayName("성공 - 풀이가 없는 경우 빈 리스트")
         void success_noSolved() {
             // given
-            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtBetween(any(), any(), any()))
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
                     .willReturn(List.of());
 
             // when
@@ -396,6 +396,42 @@ class MemberServiceTest {
             assertThatThrownBy(() -> service.getDailySolved(1L, 731))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.INVALID_DAYS_RANGE);
+        }
+
+        @Test
+        @DisplayName("성공 - 최소 경계값 days=1")
+        void success_minBoundary() {
+            // given
+            MemberService service = new MemberService(
+                    memberRepository, problemRepository, memberSolvedProblemRepository,
+                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+            );
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
+                    .willReturn(List.of());
+
+            // when
+            DailySolvedResponse response = service.getDailySolved(1L, 1);
+
+            // then
+            assertThat(response.dailySolved()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("성공 - 최대 경계값 days=730")
+        void success_maxBoundary() {
+            // given
+            MemberService service = new MemberService(
+                    memberRepository, problemRepository, memberSolvedProblemRepository,
+                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+            );
+            given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
+                    .willReturn(List.of());
+
+            // when
+            DailySolvedResponse response = service.getDailySolved(1L, 730);
+
+            // then
+            assertThat(response.dailySolved()).hasSize(730);
         }
     }
 }

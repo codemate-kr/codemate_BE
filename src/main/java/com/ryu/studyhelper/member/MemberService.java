@@ -253,12 +253,12 @@ public class MemberService {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDate today = getAdjustedDate(now);
 
-        // 조회 범위: (days-1)일 전 06:00 ~ 오늘 기준 내일 05:59:59
+        // 조회 범위: (days-1)일 전 06:00 <= solvedAt < 내일 06:00
         LocalDateTime startDateTime = today.minusDays(days - 1).atTime(LocalTime.of(6, 0));
-        LocalDateTime endDateTime = today.plusDays(1).atTime(LocalTime.of(5, 59, 59));
+        LocalDateTime endDateTime = today.plusDays(1).atTime(LocalTime.of(6, 0));
 
         List<MemberSolvedProblem> solvedProblems = memberSolvedProblemRepository
-                .findByMemberIdAndSolvedAtBetween(memberId, startDateTime, endDateTime);
+                .findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(memberId, startDateTime, endDateTime);
 
         // 날짜별로 그룹핑 (오전 6시 기준)
         Map<LocalDate, List<DailySolvedResponse.SolvedProblem>> groupedByDate = new LinkedHashMap<>();
