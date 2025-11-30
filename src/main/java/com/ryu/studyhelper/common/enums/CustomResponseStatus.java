@@ -74,6 +74,7 @@ public enum CustomResponseStatus {
     RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS.value(), "5007", "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요."),
     RECOMMENDATION_ALREADY_EXISTS_TODAY(HttpStatus.CONFLICT.value(), "5008", "오늘 이미 추천이 발행되었습니다. 내일 다시 시도해주세요."),
     RECOMMENDATION_BLOCKED_TIME(HttpStatus.CONFLICT.value(), "5009", "오전 5시~7시 사이에는 추천을 생성할 수 없습니다. 오전 7시 이후에 다시 시도해주세요."),
+    INVALID_DAYS_RANGE(HttpStatus.BAD_REQUEST.value(), "5010", "조회 일수는 1~730일 사이여야 합니다."),
 
 
     /***

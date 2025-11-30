@@ -7,6 +7,7 @@ import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
+import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
 import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
 import com.ryu.studyhelper.member.repository.MemberRepository;
@@ -22,8 +23,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -227,6 +233,82 @@ public class MemberService {
         // 민감정보 마스킹 + 소프트 딜리트
         member.withdraw();
         memberRepository.save(member);
+    }
+
+    private static final int MAX_DAILY_SOLVED_DAYS = 730;
+
+    /**
+     * 최근 N일간 일별 문제 풀이 현황 조회
+     * - 날짜 기준: 오전 6시 (06:00 ~ 다음날 05:59를 하루로 계산)
+     * @param memberId 회원 ID
+     * @param days 조회할 일수 (1~730일)
+     * @return 일별 풀이 현황
+     */
+    @Transactional(readOnly = true)
+    public DailySolvedResponse getDailySolved(Long memberId, int days) {
+        if (days < 1 || days > MAX_DAILY_SOLVED_DAYS) {
+            throw new CustomException(CustomResponseStatus.INVALID_DAYS_RANGE);
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDate today = getAdjustedDate(now);
+
+        // 조회 범위: (days-1)일 전 06:00 ~ 오늘 기준 내일 05:59:59
+        LocalDateTime startDateTime = today.minusDays(days - 1).atTime(LocalTime.of(6, 0));
+        LocalDateTime endDateTime = today.plusDays(1).atTime(LocalTime.of(5, 59, 59));
+
+        List<MemberSolvedProblem> solvedProblems = memberSolvedProblemRepository
+                .findByMemberIdAndSolvedAtBetween(memberId, startDateTime, endDateTime);
+
+        // 날짜별로 그룹핑 (오전 6시 기준)
+        Map<LocalDate, List<DailySolvedResponse.SolvedProblem>> groupedByDate = new LinkedHashMap<>();
+
+        // 먼저 모든 날짜를 빈 리스트로 초기화 (과거 → 현재 순서)
+        for (int i = days - 1; i >= 0; i--) {
+            groupedByDate.put(today.minusDays(i), new ArrayList<>());
+        }
+
+        // 풀이 데이터를 날짜별로 분류
+        for (MemberSolvedProblem solved : solvedProblems) {
+            LocalDate adjustedDate = getAdjustedDate(solved.getSolvedAt());
+            Problem problem = solved.getProblem();
+
+            DailySolvedResponse.SolvedProblem solvedProblem = new DailySolvedResponse.SolvedProblem(
+                    problem.getId(),
+                    problem.getTitleKo() != null ? problem.getTitleKo() : problem.getTitle(),
+                    problem.getLevel()
+            );
+
+            if (groupedByDate.containsKey(adjustedDate)) {
+                groupedByDate.get(adjustedDate).add(solvedProblem);
+            }
+        }
+
+        // 응답 생성
+        List<DailySolvedResponse.DailySolved> dailySolvedList = groupedByDate.entrySet().stream()
+                .map(entry -> new DailySolvedResponse.DailySolved(
+                        entry.getKey().toString(),
+                        entry.getValue().size(),
+                        entry.getValue()
+                ))
+                .toList();
+
+        int totalCount = dailySolvedList.stream()
+                .mapToInt(DailySolvedResponse.DailySolved::count)
+                .sum();
+
+        return new DailySolvedResponse(dailySolvedList, totalCount);
+    }
+
+    /**
+     * 오전 6시 기준으로 날짜 계산
+     * - 06:00 이전이면 전날로 처리
+     */
+    private LocalDate getAdjustedDate(LocalDateTime dateTime) {
+        if (dateTime.getHour() < 6) {
+            return dateTime.toLocalDate().minusDays(1);
+        }
+        return dateTime.toLocalDate();
     }
 
 }

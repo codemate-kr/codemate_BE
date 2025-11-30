@@ -4,6 +4,7 @@ import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -16,4 +17,7 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
     List<MemberSolvedProblem> findByMemberIdAndProblemIdIn(Long memberId, List<Long> problemIds);
 
     long countByMemberId(Long memberId);
+
+    List<MemberSolvedProblem> findByMemberIdAndSolvedAtBetween(
+            Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime);
 }
