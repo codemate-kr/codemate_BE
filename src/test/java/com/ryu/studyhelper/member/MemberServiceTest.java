@@ -368,16 +368,19 @@ class MemberServiceTest {
     @DisplayName("getDailySolved 메서드 - 범위 검증")
     class GetDailySolvedRangeValidationTest {
 
-        @Test
-        @DisplayName("실패 - days가 1 미만일 때 예외 발생")
-        void fail_daysLessThanOne() {
-            // given
-            MemberService service = new MemberService(
+        private MemberService service;
+
+        @BeforeEach
+        void setUp() {
+            service = new MemberService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
                     teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
             );
+        }
 
-            // when & then
+        @Test
+        @DisplayName("실패 - days가 1 미만일 때 예외 발생")
+        void fail_daysLessThanOne() {
             assertThatThrownBy(() -> service.getDailySolved(1L, 0))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.INVALID_DAYS_RANGE);
@@ -386,13 +389,6 @@ class MemberServiceTest {
         @Test
         @DisplayName("실패 - days가 730 초과일 때 예외 발생")
         void fail_daysGreaterThan730() {
-            // given
-            MemberService service = new MemberService(
-                    memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
-            );
-
-            // when & then
             assertThatThrownBy(() -> service.getDailySolved(1L, 731))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.INVALID_DAYS_RANGE);
@@ -402,10 +398,6 @@ class MemberServiceTest {
         @DisplayName("성공 - 최소 경계값 days=1")
         void success_minBoundary() {
             // given
-            MemberService service = new MemberService(
-                    memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
-            );
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
                     .willReturn(List.of());
 
@@ -420,10 +412,6 @@ class MemberServiceTest {
         @DisplayName("성공 - 최대 경계값 days=730")
         void success_maxBoundary() {
             // given
-            MemberService service = new MemberService(
-                    memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
-            );
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThan(any(), any(), any()))
                     .willReturn(List.of());
 
