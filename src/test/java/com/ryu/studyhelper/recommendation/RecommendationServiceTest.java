@@ -313,13 +313,17 @@ class RecommendationServiceTest {
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.empty());
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
+                    .thenReturn(List.of("handle1"));
+            when(problemService.recommend(any(), eq(5), any(), any()))
+                    .thenReturn(List.of());
+            when(teamMemberRepository.findMembersByTeamId(TEAM_ID))
                     .thenReturn(List.of());
 
-            // when & then: count=null로 호출 시 팀 설정값(5) 사용 시도
-            // 핸들 없어서 실패하지만, problemCount 로직은 통과
-            assertThatThrownBy(() -> recommendationService.createManualRecommendation(TEAM_ID, null))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("인증된 핸들이 없습니다");
+            // when
+            recommendationService.createManualRecommendation(TEAM_ID, null);
+
+            // then: 팀 설정값 5개의 문제가 요청되었는지 검증
+            verify(problemService).recommend(any(), eq(5), any(), any());
         }
 
         @Test
@@ -335,12 +339,17 @@ class RecommendationServiceTest {
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.empty());
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
+                    .thenReturn(List.of("handle1"));
+            when(problemService.recommend(any(), eq(7), any(), any()))
+                    .thenReturn(List.of());
+            when(teamMemberRepository.findMembersByTeamId(TEAM_ID))
                     .thenReturn(List.of());
 
-            // when & then: count=7로 호출 시 7개 요청 (팀 설정값 5 무시)
-            assertThatThrownBy(() -> recommendationService.createManualRecommendation(TEAM_ID, 7))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("인증된 핸들이 없습니다");
+            // when
+            recommendationService.createManualRecommendation(TEAM_ID, 7);
+
+            // then: 지정된 값 7개의 문제가 요청되었는지 검증 (팀 설정값 5 무시)
+            verify(problemService).recommend(any(), eq(7), any(), any());
         }
     }
 
