@@ -10,11 +10,14 @@ import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/recommendation")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 @Tag(name = "Recommendation", description = "문제 추천 API")
 public class RecommendationController {
@@ -44,8 +48,8 @@ public class RecommendationController {
     public ResponseEntity<ApiResponse<TeamRecommendationDetailResponse>> createManualRecommendation(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,
-            @Parameter(description = "추천 문제 개수 (미지정 시 팀 설정값 사용)", example = "3")
-            @RequestParam(required = false) Integer count,
+            @Parameter(description = "추천 문제 개수 (1~10, 미지정 시 팀 설정값 사용)", example = "3")
+            @RequestParam(required = false) @Min(1) @Max(10) Integer count,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         log.info("팀장 {}가 팀 {}에 수동 추천 생성 (count={})", principalDetails.getMemberId(), teamId, count);
