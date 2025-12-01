@@ -254,4 +254,60 @@ class TeamTest {
         // then
         assertThat(effectiveMax).isEqualTo(18);
     }
+
+    @Test
+    @DisplayName("팀 생성 시 problemCount 기본값은 3이다")
+    void create_defaultProblemCount() {
+        // when
+        Team newTeam = Team.create("새 팀", "설명", false);
+
+        // then
+        assertThat(newTeam.getProblemCount()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("updateProblemCount로 문제 개수를 변경할 수 있다")
+    void updateProblemCount_validValue() {
+        // when
+        team.updateProblemCount(5);
+
+        // then
+        assertThat(team.getProblemCount()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("updateProblemCount는 1~10 범위 내의 값만 허용한다")
+    void updateProblemCount_boundaryValues() {
+        // given
+        Team team1 = Team.create("팀1", "설명", false);
+        Team team2 = Team.create("팀2", "설명", false);
+        Team team3 = Team.create("팀3", "설명", false);
+        Team team4 = Team.create("팀4", "설명", false);
+
+        // when: 경계값 테스트
+        team1.updateProblemCount(1);   // 최소값
+        team2.updateProblemCount(10);  // 최대값
+        team3.updateProblemCount(0);   // 범위 밖 (최소 미만)
+        team4.updateProblemCount(11);  // 범위 밖 (최대 초과)
+
+        // then
+        assertThat(team1.getProblemCount()).isEqualTo(1);
+        assertThat(team2.getProblemCount()).isEqualTo(10);
+        assertThat(team3.getProblemCount()).isEqualTo(3);  // 기본값 유지
+        assertThat(team4.getProblemCount()).isEqualTo(3);  // 기본값 유지
+    }
+
+    @Test
+    @DisplayName("updateProblemCount에 null을 전달하면 기존 값이 유지된다")
+    void updateProblemCount_nullValue() {
+        // given
+        team.updateProblemCount(7);
+        assertThat(team.getProblemCount()).isEqualTo(7);
+
+        // when
+        team.updateProblemCount(null);
+
+        // then
+        assertThat(team.getProblemCount()).isEqualTo(7);
+    }
 }

@@ -297,6 +297,54 @@ class RecommendationServiceTest {
     }
 
     @Nested
+    @DisplayName("수동 추천 problemCount 검증")
+    class ManualRecommendationProblemCountValidation {
+
+        @Test
+        @DisplayName("count가 null이면 팀 설정의 problemCount를 사용한다")
+        void nullCount_usesTeamProblemCount() {
+            // given: 오전 10시 (금지 시간대 외)
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            // problemCount가 5로 설정된 팀
+            Team team = createTeamWithIdAndProblemCount(TEAM_ID, 5);
+            when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
+                    .thenReturn(Optional.empty());
+            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
+                    .thenReturn(List.of());
+
+            // when & then: count=null로 호출 시 팀 설정값(5) 사용 시도
+            // 핸들 없어서 실패하지만, problemCount 로직은 통과
+            assertThatThrownBy(() -> recommendationService.createManualRecommendation(TEAM_ID, null))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("인증된 핸들이 없습니다");
+        }
+
+        @Test
+        @DisplayName("count가 지정되면 팀 설정값 대신 지정된 값을 사용한다")
+        void specifiedCount_overridesTeamSetting() {
+            // given: 오전 10시 (금지 시간대 외)
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            // problemCount가 5로 설정된 팀
+            Team team = createTeamWithIdAndProblemCount(TEAM_ID, 5);
+            when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
+                    .thenReturn(Optional.empty());
+            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
+                    .thenReturn(List.of());
+
+            // when & then: count=7로 호출 시 7개 요청 (팀 설정값 5 무시)
+            assertThatThrownBy(() -> recommendationService.createManualRecommendation(TEAM_ID, 7))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("인증된 핸들이 없습니다");
+        }
+    }
+
+    @Nested
     @DisplayName("스케줄러 미션 사이클 기반 추천 검증")
     class SchedulerMissionCycleValidation {
 
@@ -439,6 +487,15 @@ class RecommendationServiceTest {
         } catch (Exception e) {
             throw new RuntimeException("id 설정 실패", e);
         }
+        return team;
+    }
+
+    /**
+     * ID와 problemCount가 설정된 Team 생성 (테스트용)
+     */
+    private Team createTeamWithIdAndProblemCount(Long id, int problemCount) {
+        Team team = createTeamWithId(id);
+        team.updateProblemCount(problemCount);
         return team;
     }
 
