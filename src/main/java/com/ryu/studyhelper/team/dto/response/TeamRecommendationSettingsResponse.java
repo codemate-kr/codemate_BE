@@ -16,7 +16,8 @@ public record TeamRecommendationSettingsResponse(
         List<RecommendationDayOfWeek> recommendationDays, // 월요일부터 일요일까지 순서대로
         ProblemDifficultyPreset problemDifficultyPreset,
         Integer minProblemLevel, // 커스텀 모드일 때만 값 있음
-        Integer maxProblemLevel // 커스텀 모드일 때만 값 있음
+        Integer maxProblemLevel, // 커스텀 모드일 때만 값 있음
+        Integer problemCount // 추천 문제 개수 (1~10, 기본값 3)
 ) {
     public static TeamRecommendationSettingsResponse from(Team team) {
         List<RecommendationDayOfWeek> days = team.getRecommendationDaysList();
@@ -28,7 +29,8 @@ public record TeamRecommendationSettingsResponse(
                 days,
                 team.getProblemDifficultyPreset(),
                 team.getEffectiveMinProblemLevel(),
-                team.getEffectiveMaxProblemLevel()
+                team.getEffectiveMaxProblemLevel(),
+                team.getProblemCount()
         );
     }
 }

@@ -35,6 +35,11 @@ public record TeamRecommendationSettingsRequest(
         @Min(value = 1, message = "최대 난이도는 1 이상이어야 합니다.")
         @Max(value = 30, message = "최대 난이도는 30 이하여야 합니다.")
         @Schema(description = "커스텀 모드일 때 최대 난이도 (1~30)", example = "30")
-        Integer maxProblemLevel
+        Integer maxProblemLevel,
+
+        @Min(value = 1, message = "추천 문제 개수는 1 이상이어야 합니다.")
+        @Max(value = 10, message = "추천 문제 개수는 10 이하여야 합니다.")
+        @Schema(description = "추천 문제 개수 (1~10, 기본값 3)", example = "3")
+        Integer problemCount
 
 ) {}

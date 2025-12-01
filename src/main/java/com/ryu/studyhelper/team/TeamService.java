@@ -147,6 +147,9 @@ public class TeamService {
                 request.maxProblemLevel()
         );
 
+        // 추천 문제 개수 업데이트
+        team.updateProblemCount(request.problemCount());
+
         return TeamRecommendationSettingsResponse.from(team);
     }
 

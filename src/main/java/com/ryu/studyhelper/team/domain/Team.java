@@ -56,6 +56,11 @@ public class Team extends BaseEntity {
     @Column(name = "max_problem_level")
     private Integer maxProblemLevel;
 
+    // 추천 문제 개수 (1~10, 기본값 3)
+    @Column(name = "problem_count", nullable = false)
+    @Builder.Default
+    private Integer problemCount = 3;
+
     // 팀원 목록 (일대다 관계)
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -172,5 +177,15 @@ public class Team extends BaseEntity {
      */
     public void updateVisibility(Boolean isPrivate) {
         this.isPrivate = isPrivate != null ? isPrivate : false;
+    }
+
+    /**
+     * 추천 문제 개수 업데이트
+     * @param count 추천 문제 개수 (1~10)
+     */
+    public void updateProblemCount(Integer count) {
+        if (count != null && count >= 1 && count <= 10) {
+            this.problemCount = count;
+        }
     }
 }

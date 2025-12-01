@@ -72,20 +72,26 @@ public class RecommendationService {
      * 다음 2가지 경우에만 추천 가능:
      * 1. 첫 팀 생성 후 아직 추천받은 적이 없는 경우
      * 2. 오늘 날짜 기준 추천이 발행되지 않은 경우
+     *
+     * @param teamId 팀 ID
+     * @param count 추천 문제 개수 (null이면 팀 설정값 사용)
      */
-    public TeamRecommendationDetailResponse createManualRecommendation(Long teamId, int count) {
+    public TeamRecommendationDetailResponse createManualRecommendation(Long teamId, Integer count) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
 
         // 오늘 이미 추천이 존재하는지 검증 (SCHEDULED, MANUAL 모두 포함)
         validateNoRecommendationToday(teamId);
 
+        // count가 null이면 팀 설정값 사용
+        int problemCount = (count != null) ? count : team.getProblemCount();
+
         // 1. Recommendation 생성 (MANUAL 타입)
         Recommendation recommendation = Recommendation.createManualRecommendation(teamId);
         recommendationRepository.save(recommendation);
 
         // 2. 문제 추천 및 RecommendationProblem 추가
-        List<Problem> recommendedProblems = recommendProblemsForTeam(team, count);
+        List<Problem> recommendedProblems = recommendProblemsForTeam(team, problemCount);
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
@@ -212,7 +218,7 @@ public class RecommendationService {
         recommendationRepository.save(recommendation);
 
         // 2. 문제 추천 및 RecommendationProblem 추가
-        List<Problem> recommendedProblems = recommendProblemsForTeam(team, 3);
+        List<Problem> recommendedProblems = recommendProblemsForTeam(team, team.getProblemCount());
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);

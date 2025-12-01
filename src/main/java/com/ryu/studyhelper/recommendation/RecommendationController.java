@@ -35,6 +35,7 @@ public class RecommendationController {
             description = """
                     팀장이 수동으로 문제 추천을 생성합니다.
                     추천 생성 즉시 팀원들에게 이메일이 발송됩니다.
+                    count 파라미터가 없으면 팀 추천 설정의 problemCount 값을 사용합니다.
                     """
     )
     @RateLimit(type = RateLimitType.SOLVED_AC)
@@ -43,11 +44,11 @@ public class RecommendationController {
     public ResponseEntity<ApiResponse<TeamRecommendationDetailResponse>> createManualRecommendation(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,
-            @Parameter(description = "추천 문제 개수", example = "3")
-            @RequestParam(defaultValue = "3") int count,
+            @Parameter(description = "추천 문제 개수 (미지정 시 팀 설정값 사용)", example = "3")
+            @RequestParam(required = false) Integer count,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        log.info("팀장 {}가 팀 {}에 수동 추천 생성 ({}개)", principalDetails.getMemberId(), teamId, count);
+        log.info("팀장 {}가 팀 {}에 수동 추천 생성 (count={})", principalDetails.getMemberId(), teamId, count);
 
         TeamRecommendationDetailResponse response =
                 recommendationService.createManualRecommendation(teamId, count);
