@@ -79,8 +79,10 @@ logging:
     name: /var/log/app/application.log
   logback:
     rollingpolicy:
+      file-name-pattern: ${logging.file.name}.%d{yyyy-MM-dd}.%i.gz
       max-file-size: 100MB
       max-history: 30
+      total-size-cap: 3GB
 
 # 액추에이터 프로덕션 설정
 management:
