@@ -56,6 +56,9 @@ jobs:
             # 최신 이미지 pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/codemate:latest
 
+            # 로그 디렉토리 생성 (없으면)
+            mkdir -p ~/logs
+
             # 새 컨테이너 실행 (docker-compose가 생성한 네트워크명: 디렉토리명_네트워크명)
             docker run -d \
               --name codemate \
@@ -65,6 +68,7 @@ jobs:
               -p 9090:9090 \
               -v /etc/localtime:/etc/localtime:ro \
               -v /etc/timezone:/etc/timezone:ro \
+              -v ~/logs:/var/log/app \
               -e SPRING_PROFILES_ACTIVE=prod \
               --env-file ~/.env \
               ${{ secrets.DOCKER_USERNAME }}/codemate:latest
