@@ -11,9 +11,11 @@ import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
+import com.ryu.studyhelper.team.dto.response.TeamActivityResponse;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
+import com.ryu.studyhelper.team.service.TeamActivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +34,7 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    private final TeamActivityService teamActivityService;
 
     @Operation(
             summary = "모든 공개 팀 목록 조회",
@@ -208,5 +211,29 @@ public class TeamController {
 
         teamService.updateVisibility(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "팀 활동 현황 조회",
+            description = """
+                    팀의 활동 현황을 조회합니다.
+                    - 공개 팀: 비로그인 사용자도 조회 가능
+                    - 비공개 팀: 팀원만 조회 가능
+                    - days 파라미터로 조회 기간 설정 (기본: 30일, 최대: 30일)
+                    - 리더보드: 기간 내 풀이 수 기준 순위
+                    - 일별 활동: 추천된 문제와 멤버별 풀이 현황
+                    """
+    )
+    @GetMapping("/{teamId}/activity")
+    public ResponseEntity<ApiResponse<TeamActivityResponse>> getTeamActivity(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @Parameter(description = "조회 일수 (기본: 30, 최대: 30)", example = "30")
+            @RequestParam(required = false, defaultValue = "30") Integer days,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
+        TeamActivityResponse response = teamActivityService.getTeamActivity(teamId, memberId, days);
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }

@@ -80,4 +80,28 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     );
+
+    /**
+     * 특정 팀의 기간 내 모든 추천 조회 (문제 정보 포함, 최신순)
+     * 팀 활동 현황 조회 시 사용
+     *
+     * @param teamId 팀 ID
+     * @param start 시작 시간
+     * @param end 종료 시간
+     * @return 추천 목록 (문제 정보 Fetch Join)
+     */
+    @Query("""
+            SELECT DISTINCT r FROM Recommendation r
+            LEFT JOIN FETCH r.problems rp
+            LEFT JOIN FETCH rp.problem
+            WHERE r.teamId = :teamId
+              AND r.createdAt >= :start
+              AND r.createdAt < :end
+            ORDER BY r.createdAt DESC
+            """)
+    List<Recommendation> findByTeamIdAndCreatedAtBetweenWithProblems(
+            @Param("teamId") Long teamId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
