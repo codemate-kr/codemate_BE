@@ -1,7 +1,6 @@
-package com.ryu.studyhelper.team;
+package com.ryu.studyhelper.team.repository;
 
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
 import org.springframework.data.jpa.repository.JpaRepository;

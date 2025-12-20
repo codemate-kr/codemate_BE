@@ -16,6 +16,7 @@ import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.service.TeamActivityService;
+import com.ryu.studyhelper.team.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

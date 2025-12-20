@@ -1,9 +1,11 @@
-package com.ryu.studyhelper.team;
+package com.ryu.studyhelper.team.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
+import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
