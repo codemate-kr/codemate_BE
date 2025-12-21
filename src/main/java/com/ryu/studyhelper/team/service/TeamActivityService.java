@@ -54,9 +54,9 @@ public class TeamActivityService {
         validatePrivateTeamAccess(team, currentMemberId);
 
         QueryPeriod period = calculateQueryPeriod(days);
-        List<Long> memberIds = findTeamMemberIds(teamId);
+        List<Member> members = teamMemberRepository.findMembersByTeamId(teamId);
 
-        if (memberIds.isEmpty()) {
+        if (members.isEmpty()) {
             return buildEmptyResponse(currentMemberId, period);
         }
 
@@ -67,8 +67,8 @@ public class TeamActivityService {
 
         Set<Long> recommendedProblemIds = extractAllProblemIds(recommendations);
 
-        List<TeamActivityResponse.MemberRank> memberRanks = buildMemberRanks(memberIds, recommendedProblemIds);
-        List<TeamActivityResponse.DailyActivity> dailyActivities = buildDailyActivities(recommendations, memberIds, recommendedProblemIds);
+        List<TeamActivityResponse.MemberRank> memberRanks = buildMemberRanks(members, recommendedProblemIds);
+        List<TeamActivityResponse.DailyActivity> dailyActivities = buildDailyActivities(recommendations, members, recommendedProblemIds);
 
         return TeamActivityResponse.of(
                 currentMemberId,
@@ -78,18 +78,11 @@ public class TeamActivityService {
         );
     }
 
-    // ========== 팀 및 멤버 조회 ==========
+    // ========== 팀 조회 ==========
 
     private Team findTeamOrThrow(Long teamId) {
         return teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-    }
-
-    private List<Long> findTeamMemberIds(Long teamId) {
-        return teamMemberRepository.findMembersByTeamId(teamId)
-                .stream()
-                .map(Member::getId)
-                .toList();
     }
 
     // ========== 권한 검증 ==========
@@ -138,14 +131,16 @@ public class TeamActivityService {
     /**
      * 리더보드 구성 (팀 추천 문제 기준)
      */
-    private List<TeamActivityResponse.MemberRank> buildMemberRanks(List<Long> memberIds, Set<Long> recommendedProblemIds) {
+    private List<TeamActivityResponse.MemberRank> buildMemberRanks(List<Member> members, Set<Long> recommendedProblemIds) {
         if (recommendedProblemIds.isEmpty()) {
-            // 추천 문제가 없으면 모든 멤버 0문제로 처리 (동률 1위)
-            return memberIds.stream()
-                    .map(memberId -> new TeamActivityResponse.MemberRank(memberId, null, 1, 0))
+            // 추천 문제가 없으면 모든 멤버 0문제로 처리 (동률 1위, 핸들순 정렬)
+            return members.stream()
+                    .sorted(Comparator.comparing(Member::getHandle, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .map(m -> new TeamActivityResponse.MemberRank(m.getId(), m.getHandle(), 1, 0))
                     .toList();
         }
 
+        List<Long> memberIds = members.stream().map(Member::getId).toList();
         List<MemberSolvedSummaryProjection> summaries =
                 memberSolvedProblemRepository.countSolvedByMemberIdsAndProblemIds(
                         memberIds, new ArrayList<>(recommendedProblemIds));
@@ -189,13 +184,14 @@ public class TeamActivityService {
 
     private List<TeamActivityResponse.DailyActivity> buildDailyActivities(
             List<Recommendation> recommendations,
-            List<Long> memberIds,
+            List<Member> members,
             Set<Long> recommendedProblemIds) {
 
         if (recommendations.isEmpty() || recommendedProblemIds.isEmpty()) {
             return List.of();
         }
 
+        List<Long> memberIds = members.stream().map(Member::getId).toList();
         List<MemberSolvedStatus> memberSolvedStatuses = loadMemberSolvedStatuses(memberIds, recommendedProblemIds);
 
         return recommendations.stream()

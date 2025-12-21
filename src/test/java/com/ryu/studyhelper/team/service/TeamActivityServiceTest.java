@@ -269,6 +269,57 @@ class TeamActivityServiceTest {
             });
             assertThat(response.dailyActivities()).isEmpty();
         }
+
+        @Test
+        @DisplayName("추천이 없어도 멤버의 handle이 반환된다")
+        void noRecommendations_membersHaveHandles() {
+            // given
+            given(teamRepository.findById(TEAM_ID)).willReturn(Optional.of(publicTeam));
+            given(teamMemberRepository.findMembersByTeamId(TEAM_ID))
+                    .willReturn(List.of(member1, member2));
+            given(recommendationRepository.findByTeamIdAndCreatedAtBetweenWithProblems(eq(TEAM_ID), any(), any()))
+                    .willReturn(List.of());
+
+            // when
+            TeamActivityResponse response = teamActivityService.getTeamActivity(TEAM_ID, null, 30);
+
+            // then
+            assertThat(response.members()).hasSize(2);
+            assertThat(response.members())
+                    .extracting(TeamActivityResponse.MemberRank::handle)
+                    .containsExactlyInAnyOrder("handle1", "handle2");
+        }
+
+        @Test
+        @DisplayName("추천이 없을 때 handle이 null인 멤버도 정상 처리된다")
+        void noRecommendations_nullHandleMemberIncluded() {
+            // given
+            Member memberWithNullHandle = Member.builder()
+                    .id(3L)
+                    .email("nohandle@test.com")
+                    .handle(null)  // BOJ 인증 안 함
+                    .provider("google")
+                    .providerId("provider3")
+                    .role(Role.ROLE_USER)
+                    .isVerified(false)
+                    .build();
+
+            given(teamRepository.findById(TEAM_ID)).willReturn(Optional.of(publicTeam));
+            given(teamMemberRepository.findMembersByTeamId(TEAM_ID))
+                    .willReturn(List.of(member1, memberWithNullHandle));
+            given(recommendationRepository.findByTeamIdAndCreatedAtBetweenWithProblems(eq(TEAM_ID), any(), any()))
+                    .willReturn(List.of());
+
+            // when
+            TeamActivityResponse response = teamActivityService.getTeamActivity(TEAM_ID, null, 30);
+
+            // then
+            assertThat(response.members()).hasSize(2);
+            // handle 기준 정렬: handle1이 먼저, null은 마지막
+            assertThat(response.members().get(0).handle()).isEqualTo("handle1");
+            assertThat(response.members().get(1).handle()).isNull();
+            assertThat(response.members().get(1).memberId()).isEqualTo(3L);
+        }
     }
 
     @Nested
