@@ -9,7 +9,7 @@ import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
-import com.ryu.studyhelper.team.TeamMemberRepository;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

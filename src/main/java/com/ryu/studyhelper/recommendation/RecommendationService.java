@@ -20,8 +20,8 @@ import com.ryu.studyhelper.recommendation.repository.MemberRecommendationReposit
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
-import com.ryu.studyhelper.team.TeamMemberRepository;
-import com.ryu.studyhelper.team.TeamRepository;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
+import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

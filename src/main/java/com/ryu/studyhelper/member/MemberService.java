@@ -15,7 +15,7 @@ import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.problem.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
-import com.ryu.studyhelper.team.TeamMemberRepository;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
