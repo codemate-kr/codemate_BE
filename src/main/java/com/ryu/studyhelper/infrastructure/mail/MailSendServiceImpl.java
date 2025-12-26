@@ -33,6 +33,7 @@ import java.util.List;
 public class MailSendServiceImpl implements MailSendService {
     private static final String SENDER_NAME = "CodeMate";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd");
+    private static final String CODEMATE_BASE_URL = "https://codemate.kr";
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
@@ -237,6 +238,10 @@ public class MailSendServiceImpl implements MailSendService {
         context.setVariable("recommendationDate",
                 memberRecommendation.getRecommendation().getCreatedAt().format(DATE_FORMATTER));
 
+        // 팀 페이지 URL 생성 (코드메이트 웹 유도)
+        String teamPageUrl = buildTeamPageUrl(memberRecommendation.getTeamId());
+        context.setVariable("teamPageUrl", teamPageUrl);
+
         // Prepare problem view models for template
         List<ProblemView> problems = memberRecommendation.getRecommendation().getProblems().stream()
                 .map(rp -> {
@@ -263,8 +268,15 @@ public class MailSendServiceImpl implements MailSendService {
             context.setVariable("logoImage", null);
         }
 
-        String htmlContent = templateEngine.process("recommendation-email-v2", context);
+        String htmlContent = templateEngine.process("recommendation-email-v3", context);
         return cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
+    }
+
+    /**
+     * 팀 페이지 URL 생성
+     */
+    private String buildTeamPageUrl(Long teamId) {
+        return CODEMATE_BASE_URL + "/teams/" + teamId;
     }
 
     /**
