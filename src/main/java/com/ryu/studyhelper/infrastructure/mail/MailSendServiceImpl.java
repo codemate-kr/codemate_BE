@@ -33,7 +33,6 @@ import java.util.List;
 public class MailSendServiceImpl implements MailSendService {
     private static final String SENDER_NAME = "CodeMate";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd");
-    private static final String CODEMATE_BASE_URL = "https://codemate.kr";
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
@@ -41,6 +40,9 @@ public class MailSendServiceImpl implements MailSendService {
 
     @Value("${spring.mail.username}")
     private String emailSender;
+
+    @Value("${FRONTEND_URL:https://codemate.kr}")
+    private String frontendUrl;
 
     public MailSendServiceImpl(JavaMailSender mailSender, TemplateEngine templateEngine, CssInlinerService cssInlinerService) {
         this.mailSender = mailSender;
@@ -276,7 +278,10 @@ public class MailSendServiceImpl implements MailSendService {
      * 팀 페이지 URL 생성
      */
     private String buildTeamPageUrl(Long teamId) {
-        return CODEMATE_BASE_URL + "/teams/" + teamId;
+        if (teamId == null) {
+            throw new IllegalArgumentException("팀 ID는 null일 수 없습니다");
+        }
+        return frontendUrl + "/teams/" + teamId;
     }
 
     /**
