@@ -147,6 +147,17 @@ body {
     text-align: center;
 }
 
+/* ===== 서브 링크 (백준 직접 이동) ===== */
+.sub-link-wrapper {
+    padding-top: 12px;
+}
+
+.sub-link {
+    color: #64748b;
+    font-size: 13px;
+    text-decoration: underline;
+}
+
 /* ===== 문제 번호 ===== */
 .problem-id {
     font-family: 'Courier New', monospace;

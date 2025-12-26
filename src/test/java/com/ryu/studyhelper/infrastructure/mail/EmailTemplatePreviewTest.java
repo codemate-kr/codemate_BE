@@ -51,8 +51,11 @@ public class EmailTemplatePreviewTest {
         );
         context.setVariable("problems", problems);
 
+        // 팀 페이지 URL (v3 템플릿용)
+        context.setVariable("teamPageUrl", "https://codemate.kr/teams/1");
+
         // Thymeleaf 템플릿 렌더링
-        String htmlContent = templateEngine.process("recommendation-email-v2", context);
+        String htmlContent = templateEngine.process("recommendation-email-v3", context);
 
         // CSS 인라인 변환
         String inlinedHtml = cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
