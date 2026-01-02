@@ -1,14 +1,13 @@
 package com.ryu.studyhelper.problem.domain;
 
 import com.ryu.studyhelper.common.util.ProblemUrlUtils;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Problem {
 
@@ -27,36 +26,27 @@ public class Problem {
 
     private Double averageTries;
 
-    /**
-     * 기존 팩토리 메서드 (하위 호환성 유지)
-     */
-    public static Problem of(Long id, String title, Integer level, Integer acceptedUserCount) {
+    public static Problem create(Long id, String title, Integer level,
+                                 Integer acceptedUserCount, Double averageTries) {
         return Problem.builder()
                 .id(id)
                 .title(title)
-                .titleKo(title) // 기본값으로 title 사용
+                .titleKo(title)
                 .level(level)
                 .acceptedUserCount(acceptedUserCount)
+                .averageTries(averageTries)
                 .build();
     }
 
-    /**
-     * ProblemInfo로부터 Problem 엔티티 생성
-     */
-    public static Problem from(ProblemInfo problemInfo) {
-        return Problem.builder()
-                .id(problemInfo.problemId())
-                .title(problemInfo.titleKo()) // ProblemInfo에는 title이 없으므로 titleKo 사용
-                .titleKo(problemInfo.titleKo())
-                .level(problemInfo.level())
-                .acceptedUserCount(problemInfo.acceptedUserCount())
-                .averageTries(problemInfo.averageTries())
-                .build();
+    public void updateMetadata(String title, Integer level,
+                               Integer acceptedUserCount, Double averageTries) {
+        this.title = title;
+        this.titleKo = title;
+        this.level = level;
+        this.acceptedUserCount = acceptedUserCount;
+        this.averageTries = averageTries;
     }
 
-    /**
-     * 백준 문제 URL 생성
-     */
     public String getUrl() {
         return ProblemUrlUtils.generateProblemUrl(id);
     }

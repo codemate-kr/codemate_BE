@@ -289,11 +289,28 @@ public class RecommendationService {
 
     /**
      * ProblemInfo로부터 Problem 엔티티 찾기 또는 생성
+     * - 기존 문제가 있으면 메타데이터 갱신 (solved.ac 최신 정보 반영)
+     * - 새 문제면 생성
      */
     private Problem findOrCreateProblem(ProblemInfo problemInfo) {
         return problemRepository.findById(problemInfo.problemId())
+                .map(existingProblem -> {
+                    existingProblem.updateMetadata(
+                            problemInfo.titleKo(),
+                            problemInfo.level(),
+                            problemInfo.acceptedUserCount(),
+                            problemInfo.averageTries()
+                    );
+                    return problemRepository.save(existingProblem);
+                })
                 .orElseGet(() -> {
-                    Problem problem = Problem.from(problemInfo);
+                    Problem problem = Problem.create(
+                            problemInfo.problemId(),
+                            problemInfo.titleKo(),
+                            problemInfo.level(),
+                            problemInfo.acceptedUserCount(),
+                            problemInfo.averageTries()
+                    );
                     return problemRepository.save(problem);
                 });
     }
