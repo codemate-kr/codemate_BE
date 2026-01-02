@@ -11,6 +11,9 @@ import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.service.TeamService;
+import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -222,7 +225,7 @@ class TeamServiceTests {
     void createTeam_lessThanLimit_success() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
+        var request = new CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(2);
@@ -246,7 +249,7 @@ class TeamServiceTests {
     void createTeam_exceedsLimit_throwsException() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
+        var request = new CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(3);
@@ -266,7 +269,7 @@ class TeamServiceTests {
     void createTeam_exactlyThreeTeams_throwsException() {
         // given
         Long memberId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("네 번째 팀", "설명", false);
+        var request = new CreateTeamRequest("네 번째 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.of(leader));
         given(teamMemberRepository.countByMemberIdAndRole(memberId, TeamRole.LEADER)).willReturn(3);
@@ -282,7 +285,7 @@ class TeamServiceTests {
     void createTeam_memberNotFound_throwsException() {
         // given
         Long memberId = 999L;
-        var request = new com.ryu.studyhelper.team.dto.request.CreateTeamRequest("새로운 팀", "설명", false);
+        var request = new CreateTeamRequest("새로운 팀", "설명", false);
 
         given(memberRepository.findById(memberId)).willReturn(Optional.empty());
 
@@ -301,7 +304,7 @@ class TeamServiceTests {
         // given
         Long teamId = 1L;
         Long leaderId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+        var request = new UpdateTeamVisibilityRequest(true);
 
         given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
         given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER))
@@ -322,7 +325,7 @@ class TeamServiceTests {
         // given
         Long teamId = 1L;
         Long memberId = normalMember.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+        var request = new UpdateTeamVisibilityRequest(true);
 
         given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
         given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, memberId, TeamRole.LEADER))
@@ -342,12 +345,95 @@ class TeamServiceTests {
         // given
         Long teamId = 999L;
         Long leaderId = leader.getId();
-        var request = new com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest(true);
+        var request = new UpdateTeamVisibilityRequest(true);
 
         given(teamRepository.findById(teamId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> teamService.updateVisibility(teamId, request, leaderId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("status", CustomResponseStatus.TEAM_NOT_FOUND);
+
+        verify(teamMemberRepository, never()).existsByTeamIdAndMemberIdAndRole(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("팀장은 팀 정보를 수정할 수 있다")
+    void updateTeamInfo_leader_success() {
+        // given
+        Long teamId = 1L;
+        Long leaderId = leader.getId();
+        var request = new UpdateTeamInfoRequest("수정된 팀 이름", "수정된 설명", true);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
+        given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER))
+                .willReturn(true);
+
+        // when
+        teamService.updateTeamInfo(teamId, request, leaderId);
+
+        // then
+        assertThat(team.getName()).isEqualTo("수정된 팀 이름");
+        assertThat(team.getDescription()).isEqualTo("수정된 설명");
+        assertThat(team.getIsPrivate()).isTrue();
+        verify(teamRepository).findById(teamId);
+        verify(teamMemberRepository).existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER);
+    }
+
+    @Test
+    @DisplayName("isPrivate가 null이면 기존 공개/비공개 설정이 유지된다")
+    void updateTeamInfo_nullIsPrivate_keepsOriginalValue() {
+        // given
+        Long teamId = 1L;
+        Long leaderId = leader.getId();
+        var request = new UpdateTeamInfoRequest("수정된 팀 이름", "수정된 설명", null);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
+        given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, leaderId, TeamRole.LEADER))
+                .willReturn(true);
+
+        assertThat(team.getIsPrivate()).isFalse();  // 초기값
+
+        // when
+        teamService.updateTeamInfo(teamId, request, leaderId);
+
+        // then
+        assertThat(team.getName()).isEqualTo("수정된 팀 이름");
+        assertThat(team.getIsPrivate()).isFalse();  // 기존 값 유지
+    }
+
+    @Test
+    @DisplayName("일반 멤버는 팀 정보를 수정할 수 없다")
+    void updateTeamInfo_normalMember_throwsException() {
+        // given
+        Long teamId = 1L;
+        Long memberId = normalMember.getId();
+        var request = new UpdateTeamInfoRequest("수정된 팀 이름", "수정된 설명", null);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
+        given(teamMemberRepository.existsByTeamIdAndMemberIdAndRole(teamId, memberId, TeamRole.LEADER))
+                .willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> teamService.updateTeamInfo(teamId, request, memberId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("status", CustomResponseStatus.TEAM_ACCESS_DENIED);
+
+        assertThat(team.getName()).isEqualTo("테스트 팀");  // 변경되지 않음
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 팀의 정보 수정 시도 시 예외 발생")
+    void updateTeamInfo_teamNotFound_throwsException() {
+        // given
+        Long teamId = 999L;
+        Long leaderId = leader.getId();
+        var request = new UpdateTeamInfoRequest("수정된 팀 이름", "수정된 설명", null);
+
+        given(teamRepository.findById(teamId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> teamService.updateTeamInfo(teamId, request, leaderId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("status", CustomResponseStatus.TEAM_NOT_FOUND);
 

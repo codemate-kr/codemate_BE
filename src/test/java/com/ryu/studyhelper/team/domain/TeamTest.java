@@ -310,4 +310,45 @@ class TeamTest {
         // then
         assertThat(team.getProblemCount()).isEqualTo(7);
     }
+
+    @Test
+    @DisplayName("updateInfo로 팀 이름, 설명, 공개/비공개를 수정할 수 있다")
+    void updateInfo_changesNameDescriptionAndVisibility() {
+        // given
+        assertThat(team.getIsPrivate()).isFalse();  // 초기값: 공개
+
+        // when
+        team.updateInfo("새로운 팀 이름", "새로운 설명", true);
+
+        // then
+        assertThat(team.getName()).isEqualTo("새로운 팀 이름");
+        assertThat(team.getDescription()).isEqualTo("새로운 설명");
+        assertThat(team.getIsPrivate()).isTrue();
+    }
+
+    @Test
+    @DisplayName("updateInfo에서 isPrivate가 null이면 기존 값이 유지된다")
+    void updateInfo_nullIsPrivate_keepsOriginalValue() {
+        // given
+        team.updateInfo("팀", "설명", true);  // 비공개로 설정
+        assertThat(team.getIsPrivate()).isTrue();
+
+        // when
+        team.updateInfo("수정된 팀", "수정된 설명", null);
+
+        // then
+        assertThat(team.getName()).isEqualTo("수정된 팀");
+        assertThat(team.getIsPrivate()).isTrue();  // 기존 값 유지
+    }
+
+    @Test
+    @DisplayName("updateInfo로 설명을 null로 설정할 수 있다")
+    void updateInfo_nullDescription() {
+        // when
+        team.updateInfo("팀 이름", null, false);
+
+        // then
+        assertThat(team.getName()).isEqualTo("팀 이름");
+        assertThat(team.getDescription()).isNull();
+    }
 }

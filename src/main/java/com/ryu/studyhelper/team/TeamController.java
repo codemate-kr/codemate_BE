@@ -6,6 +6,7 @@ import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
@@ -201,8 +202,10 @@ public class TeamController {
 
     @Operation(
             summary = "팀 공개/비공개 설정 변경",
-            description = "팀의 공개/비공개 설정을 변경합니다. 팀장만 변경 가능합니다."
+            description = "팀의 공개/비공개 설정을 변경합니다. 팀장만 변경 가능합니다.",
+            deprecated = true
     )
+    @Deprecated(since = "2025-01", forRemoval = true)
     @PatchMapping("/{teamId}/visibility")
     public ResponseEntity<ApiResponse<Void>> updateVisibility(
             @Parameter(description = "팀 ID", example = "1")
@@ -211,6 +214,22 @@ public class TeamController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         teamService.updateVisibility(teamId, request, principalDetails.getMemberId());
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "팀 정보 수정",
+            description = "팀의 이름, 설명, 공개/비공개 설정을 수정합니다. 팀장만 수정 가능합니다."
+    )
+    @PostMapping("/{teamId}/updateInfo")
+    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
+    public ResponseEntity<ApiResponse<Void>> updateTeamInfo(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @Valid @RequestBody UpdateTeamInfoRequest request,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        teamService.updateTeamInfo(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 

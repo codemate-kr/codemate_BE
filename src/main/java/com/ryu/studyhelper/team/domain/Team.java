@@ -180,6 +180,20 @@ public class Team extends BaseEntity {
     }
 
     /**
+     * 팀 기본 정보 수정
+     * @param name 팀 이름
+     * @param description 팀 설명
+     * @param isPrivate 비공개 여부 (null이면 기존 값 유지)
+     */
+    public void updateInfo(String name, String description, Boolean isPrivate) {
+        this.name = name;
+        this.description = description;
+        if (isPrivate != null) {
+            this.isPrivate = isPrivate;
+        }
+    }
+
+    /**
      * 추천 문제 개수 업데이트
      * @param count 추천 문제 개수 (1~10)
      */
