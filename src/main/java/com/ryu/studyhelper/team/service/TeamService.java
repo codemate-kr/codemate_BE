@@ -14,6 +14,7 @@ import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
+import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
@@ -389,6 +390,22 @@ public class TeamService {
         validateTeamLeaderAccess(teamId, memberId);
 
         team.updateVisibility(request.isPrivate());
+    }
+
+    /**
+     * 팀 정보 수정 (팀장만 가능)
+     * @param teamId 팀 ID
+     * @param request 팀 정보 수정 요청 (이름, 설명, 공개/비공개)
+     * @param memberId 현재 로그인한 멤버 ID (팀장)
+     */
+    @Transactional
+    public void updateTeamInfo(Long teamId, UpdateTeamInfoRequest request, Long memberId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+
+        validateTeamLeaderAccess(teamId, memberId);
+
+        team.updateInfo(request.name(), request.description(), request.isPrivate());
     }
 
     // TODO: 알림 시스템 구현 후 활성화
