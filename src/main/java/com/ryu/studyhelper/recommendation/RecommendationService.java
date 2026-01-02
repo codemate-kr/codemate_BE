@@ -301,7 +301,7 @@ public class RecommendationService {
                             problemInfo.acceptedUserCount(),
                             problemInfo.averageTries()
                     );
-                    return existingProblem;
+                    return problemRepository.save(existingProblem);
                 })
                 .orElseGet(() -> {
                     Problem problem = Problem.create(
