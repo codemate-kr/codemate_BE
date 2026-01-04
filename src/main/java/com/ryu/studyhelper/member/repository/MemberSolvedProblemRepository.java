@@ -56,4 +56,25 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
             @Param("memberIds") List<Long> memberIds,
             @Param("problemIds") List<Long> problemIds
     );
+
+    /**
+     * 전체 랭킹 조회 (상위 N명)
+     * @param limit 조회할 상위 인원 수
+     * @return 핸들이 있는 멤버 중 풀이 수 기준 상위 N명 (풀이 수 내림차순, 핸들 오름차순)
+     */
+    @Query("""
+            SELECT m.handle AS handle, COUNT(msp.id) AS totalSolved
+            FROM Member m
+            LEFT JOIN MemberSolvedProblem msp ON msp.member.id = m.id
+            WHERE m.handle IS NOT NULL
+            GROUP BY m.id, m.handle
+            ORDER BY COUNT(msp.id) DESC, m.handle ASC
+            LIMIT :limit
+            """)
+    List<GlobalRankingProjection> findGlobalRanking(@Param("limit") int limit);
+
+    interface GlobalRankingProjection {
+        String getHandle();
+        Long getTotalSolved();
+    }
 }
