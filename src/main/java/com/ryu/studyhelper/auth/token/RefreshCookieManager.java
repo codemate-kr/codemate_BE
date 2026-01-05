@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static com.ryu.studyhelper.config.jwt.util.JwtUtil.REFRESH_TOKEN_VALID_MS;
+import static com.ryu.studyhelper.config.security.jwt.JwtUtil.REFRESH_TOKEN_VALID_MS;
 
 @Component
 public class RefreshCookieManager {

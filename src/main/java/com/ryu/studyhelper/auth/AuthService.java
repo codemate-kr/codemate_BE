@@ -3,7 +3,7 @@ package com.ryu.studyhelper.auth;
 import com.ryu.studyhelper.auth.dto.AccessToken;
 import com.ryu.studyhelper.auth.token.RefreshCookieManager;
 import com.ryu.studyhelper.auth.token.RefreshTokenService;
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
+import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.MemberService;

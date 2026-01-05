@@ -2,7 +2,7 @@ package com.ryu.studyhelper.member;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
+import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.member.domain.Member;

@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.config.jwt;
+package com.ryu.studyhelper.config.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryu.studyhelper.common.dto.ApiResponse;
@@ -49,11 +49,11 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             default                  -> CustomResponseStatus.BAD_JWT;     // 401 (알 수 없는 태그는 401로 처리)
         };
 
-        // 토큰 없음(tag: null)은 정상 동작이므로 DEBUG, 유효하지 않은 토큰은 WARN
+        // 토큰 만료/미인증은 정상적인 사용자 흐름이므로 DEBUG 레벨로 로깅
         if (tag == null) {
             log.debug("Unauthenticated request to protected resource: {}", request.getRequestURI());
         } else {
-            log.warn("JWT Authentication failed: {} | tag: {} | uri: {}", authException.getMessage(), tag, request.getRequestURI());
+            log.debug("JWT Authentication failed: {} | tag: {} | uri: {}", authException.getMessage(), tag, request.getRequestURI());
         }
 
         response.setStatus(status.getHttpStatusCode());

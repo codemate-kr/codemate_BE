@@ -1,13 +1,8 @@
-package com.ryu.studyhelper.config.jwt.filter;
+package com.ryu.studyhelper.config.security.jwt;
 
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetailsService;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,9 +72,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } else {
                 request.setAttribute("exception", "UNKNOWN_ERROR");
             }
-            log.error("JWT 도메인 예외 발생: {} ({})", s.getMessage(), s.getCode());
         } catch (Exception e) {
-            log.error("JWT 토큰 처리 중 예상치 못한 오류가 발생했습니다: {}", e.getMessage());
+            log.error("JWT 토큰 처리 중 예상치 못한 오류: {}", e.getMessage());
             request.setAttribute("exception", "UNKNOWN_ERROR");
         }
 
