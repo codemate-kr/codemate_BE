@@ -1,13 +1,8 @@
-package com.ryu.studyhelper.config.jwt.filter;
+package com.ryu.studyhelper.config.security.jwt;
 
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetailsService;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

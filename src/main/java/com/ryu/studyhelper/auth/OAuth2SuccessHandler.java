@@ -3,7 +3,7 @@ package com.ryu.studyhelper.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryu.studyhelper.auth.token.RefreshCookieManager;
 import com.ryu.studyhelper.auth.token.RefreshTokenService;
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
+import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.member.MemberService;
 import com.ryu.studyhelper.member.domain.Member;

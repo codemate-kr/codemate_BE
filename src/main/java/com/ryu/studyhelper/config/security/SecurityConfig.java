@@ -1,12 +1,11 @@
-package com.ryu.studyhelper.config;
+package com.ryu.studyhelper.config.security;
 
 import com.ryu.studyhelper.auth.GoogleOAuth2UserService;
 import com.ryu.studyhelper.auth.OAuth2SuccessHandler;
-import com.ryu.studyhelper.config.jwt.JwtAccessDeniedHandler;
-import com.ryu.studyhelper.config.jwt.JwtAuthenticationEntryPoint;
-import com.ryu.studyhelper.config.jwt.filter.JwtAuthenticationFilter;
-import com.ryu.studyhelper.config.jwt.util.JwtUtil;
-import com.ryu.studyhelper.config.security.PrincipalDetailsService;
+import com.ryu.studyhelper.config.security.jwt.JwtAccessDeniedHandler;
+import com.ryu.studyhelper.config.security.jwt.JwtAuthenticationEntryPoint;
+import com.ryu.studyhelper.config.security.jwt.JwtAuthenticationFilter;
+import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

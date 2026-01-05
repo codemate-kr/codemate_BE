@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.config.jwt.util;
+package com.ryu.studyhelper.config.security.jwt;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;

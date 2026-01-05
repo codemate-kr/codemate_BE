@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.config.jwt;
+package com.ryu.studyhelper.config.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
