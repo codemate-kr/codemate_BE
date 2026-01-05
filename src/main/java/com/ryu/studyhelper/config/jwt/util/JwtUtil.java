@@ -123,16 +123,12 @@ public class JwtUtil {
                     .build()
                     .parseClaimsJws(token);
         } catch (SecurityException | MalformedJwtException e) {
-            log.error("잘못된 JWT 서명입니다.");
             throw new CustomException(CustomResponseStatus.BAD_JWT);
         } catch (ExpiredJwtException e) {
-            log.error("만료된 JWT 토큰입니다.");
             throw new CustomException(CustomResponseStatus.EXPIRED_JWT);
         } catch (UnsupportedJwtException e) {
-            log.error("지원되지 않는 JWT 토큰입니다.");
             throw new CustomException(CustomResponseStatus.BAD_JWT);
         } catch (IllegalArgumentException e) {
-            log.error("JWT 토큰이 잘못되었습니다.");
             throw new CustomException(CustomResponseStatus.BAD_JWT);
         }
     }

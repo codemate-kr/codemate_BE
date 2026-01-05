@@ -77,9 +77,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } else {
                 request.setAttribute("exception", "UNKNOWN_ERROR");
             }
-            log.error("JWT 도메인 예외 발생: {} ({})", s.getMessage(), s.getCode());
         } catch (Exception e) {
-            log.error("JWT 토큰 처리 중 예상치 못한 오류가 발생했습니다: {}", e.getMessage());
+            log.error("JWT 토큰 처리 중 예상치 못한 오류: {}", e.getMessage());
             request.setAttribute("exception", "UNKNOWN_ERROR");
         }
 
