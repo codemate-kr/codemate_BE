@@ -42,52 +42,28 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/codemate:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/codemate:latest
 
-      - name: EC2 배포
+      - name: EC2 무중단 배포 (Blue-Green)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKER_USERNAME,DOCKER_PASSWORD
           script: |
-            # 기존 컨테이너 중지 및 제거
-            docker stop codemate || true
-            docker rm codemate || true
+            # Docker Hub 로그인 (토큰 만료 시 GitHub Secrets만 업데이트하면 됨)
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 
-            # 최신 이미지 pull
-            docker pull ${{ secrets.DOCKER_USERNAME }}/codemate:latest
+            # 배포 스크립트 최신화
+            mkdir -p ~/scripts
+            curl -fsSL -o ~/scripts/deploy-blue-green.sh \
+              https://raw.githubusercontent.com/codemate-kr/halp_BE/main/scripts/deploy-blue-green.sh
+            chmod +x ~/scripts/deploy-blue-green.sh
 
-            # 로그 디렉토리 생성 (없으면)
-            mkdir -p ~/logs
-
-            # 새 컨테이너 실행 (docker-compose가 생성한 네트워크명: 디렉토리명_네트워크명)
-            docker run -d \
-              --name codemate \
-              --restart unless-stopped \
-              --network ec2-user_codemate-network \
-              -p 8080:8080 \
-              -p 9090:9090 \
-              -v /etc/localtime:/etc/localtime:ro \
-              -v /etc/timezone:/etc/timezone:ro \
-              -v ~/logs:/var/log/app \
-              -e SPRING_PROFILES_ACTIVE=prod \
-              --env-file ~/.env \
-              ${{ secrets.DOCKER_USERNAME }}/codemate:latest
-
-            # 스프링 서버 헬스체크 (3초 단위, 최대 2분)
-            echo "스프링 서버 시작 대기 중..."
-            for i in {1..40}; do
-              if curl -f http://localhost:9090/actuator/health > /dev/null 2>&1; then
-                echo "✅ 스프링 서버가 정상적으로 시작되었습니다!"
-                break
-              fi
-              if [ $i -eq 40 ]; then
-                echo "❌ 스프링 서버 시작 실패 (타임아웃 2분)"
-                docker logs codemate --tail 100
-                exit 1
-              fi
-              echo "대기 중... ($i/40)"
-              sleep 3
-            done
+            # Blue-Green 무중단 배포 실행
+            ~/scripts/deploy-blue-green.sh latest
 
             # 사용하지 않는 이미지 정리
             docker image prune -af
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
