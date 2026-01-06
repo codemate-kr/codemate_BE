@@ -1,6 +1,7 @@
 # 프로덕션 환경 설정
 server:
   port: 8080
+  shutdown: graceful  # 무중단 배포를 위한 Graceful Shutdown
   tomcat:
     # 프로덕션 액세스 로그 설정
     accesslog:
@@ -17,6 +18,10 @@ server:
     max-connections: 8192
 
 spring:
+  # Graceful Shutdown 타임아웃 설정
+  lifecycle:
+    timeout-per-shutdown-phase: 30s  # 종료 시 진행 중인 요청 완료 대기 시간
+
   # 프로덕션 DB 설정
   datasource:
     url: ${DB_URL}
