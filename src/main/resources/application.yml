@@ -31,13 +31,11 @@ spring:
           google:
             issuer-uri: https://accounts.google.com
 
-# AWS SES 설정
+# AWS SES 설정 (자격 증명은 DefaultCredentialsProvider가 환경에서 자동 로드)
 aws:
   ses:
-    access-key: ${AWS_SES_ACCESS_KEY}
-    secret-key: ${AWS_SES_SECRET_KEY}
-    region: ${AWS_SES_REGION}
-    from-email: ${AWS_SES_FROM_EMAIL}
+    region: ${AWS_SES_REGION:ap-northeast-2}
+    from-email: ${AWS_SES_FROM_EMAIL:noreply@example.com}
     configuration-set: ${AWS_SES_CONFIGURATION_SET:}
 
 # JWT 공통 설정

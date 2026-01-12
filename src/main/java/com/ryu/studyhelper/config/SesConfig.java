@@ -3,6 +3,7 @@ package com.ryu.studyhelper.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.services.ses.SesClient;
  * 3. EC2/ECS IAM 역할 (프로덕션 환경)
  */
 @Configuration
+@Profile("!test")
 public class SesConfig {
 
     @Value("${aws.ses.region}")
