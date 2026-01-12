@@ -36,7 +36,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf' // HTML 템플릿 렌더링
 
     // AWS SES for email sending
-    implementation 'software.amazon.awssdk:ses:2.25.16'
+    implementation 'software.amazon.awssdk:ses:2.41.5'
 
     //OAuth - security
     implementation 'org.springframework.boot:spring-boot-starter-security'
