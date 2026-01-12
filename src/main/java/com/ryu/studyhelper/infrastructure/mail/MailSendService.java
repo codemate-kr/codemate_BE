@@ -3,10 +3,7 @@ package com.ryu.studyhelper.infrastructure.mail;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
-import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * https://github.com/adjh54ir/blog-codes/tree/main/spring-boot-mail
@@ -19,12 +16,7 @@ public interface MailSendService {
     void sendHtmlEmail(MailHtmlSendDto mailHtmlSendDto);
 
     /**
-     * 팀 추천 이메일 발송 (레거시)
-     */
-    void sendRecommendationEmail(TeamRecommendation recommendation, List<String> memberEmails);
-
-    /**
-     * 개인 추천 이메일 발송 (신규 스키마)
+     * 개인 추천 이메일 발송
      */
     void sendMemberRecommendationEmail(MemberRecommendation memberRecommendation);
 }

@@ -1,27 +1,21 @@
 package com.ryu.studyhelper.infrastructure.mail;
 
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
-import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
-import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Value;                 // <-- 여기!
+import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;                           // <-- 여기!
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,23 +23,31 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
 
+/**
+ * AWS SES 기반 이메일 발송 서비스
+ * Gmail SMTP에서 AWS SES로 전환하여 일일 발송 한도 문제 해결
+ */
 @Service
+@Slf4j
 public class MailSendServiceImpl implements MailSendService {
     private static final String SENDER_NAME = "CodeMate";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd");
 
-    private final JavaMailSender mailSender;
+    private final SesClient sesClient;
     private final TemplateEngine templateEngine;
     private final CssInlinerService cssInlinerService;
 
-    @Value("${spring.mail.username}")
-    private String emailSender;
+    @Value("${aws.ses.from-email}")
+    private String fromEmail;
+
+    @Value("${aws.ses.configuration-set:#{null}}")
+    private String configurationSetName;
 
     @Value("${FRONTEND_URL:https://codemate.kr}")
     private String frontendUrl;
 
-    public MailSendServiceImpl(JavaMailSender mailSender, TemplateEngine templateEngine, CssInlinerService cssInlinerService) {
-        this.mailSender = mailSender;
+    public MailSendServiceImpl(SesClient sesClient, TemplateEngine templateEngine, CssInlinerService cssInlinerService) {
+        this.sesClient = sesClient;
         this.templateEngine = templateEngine;
         this.cssInlinerService = cssInlinerService;
     }
@@ -54,15 +56,7 @@ public class MailSendServiceImpl implements MailSendService {
      * 발신자 이메일 주소 포맷팅
      */
     private String getFromAddress() {
-        return SENDER_NAME + " <" + emailSender + ">";
-    }
-
-    /**
-     * MimeMessageHelper 생성 (multipart 지원)
-     */
-    private MimeMessageHelper createMimeMessageHelper() throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        return new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+        return SENDER_NAME + " <" + fromEmail + ">";
     }
 
     /**
@@ -70,15 +64,30 @@ public class MailSendServiceImpl implements MailSendService {
      */
     @Override
     public void sendTxtEmail(MailTxtSendDto mailTxtSendDto) {
-        SimpleMailMessage smm = new SimpleMailMessage();
-        smm.setTo(mailTxtSendDto.getEmailAddr());
-        smm.setFrom(getFromAddress());
-        smm.setSubject(mailTxtSendDto.getSubject());
-        smm.setText(mailTxtSendDto.getContent());
-
         try {
-            mailSender.send(smm);
-        } catch (MailException e) {
+            SendEmailRequest request = SendEmailRequest.builder()
+                    .source(getFromAddress())
+                    .destination(Destination.builder()
+                            .toAddresses(mailTxtSendDto.getEmailAddr())
+                            .build())
+                    .message(Message.builder()
+                            .subject(Content.builder()
+                                    .data(mailTxtSendDto.getSubject())
+                                    .charset(StandardCharsets.UTF_8.name())
+                                    .build())
+                            .body(Body.builder()
+                                    .text(Content.builder()
+                                            .data(mailTxtSendDto.getContent())
+                                            .charset(StandardCharsets.UTF_8.name())
+                                            .build())
+                                    .build())
+                            .build())
+                    .build();
+
+            sesClient.sendEmail(request);
+            log.debug("텍스트 이메일 발송 완료: {}", mailTxtSendDto.getEmailAddr());
+        } catch (SesException e) {
+            log.error("텍스트 메일 전송 실패: {}", e.awsErrorDetails().errorMessage());
             throw new RuntimeException("텍스트 메일 전송 실패: " + e.getMessage(), e);
         }
     }
@@ -89,8 +98,6 @@ public class MailSendServiceImpl implements MailSendService {
     @Override
     public void sendHtmlEmail(MailHtmlSendDto mailHtmlSendDto) {
         try {
-            MimeMessageHelper helper = createMimeMessageHelper();
-
             // Thymeleaf 템플릿 컨텍스트 구성
             Context context = new Context();
             context.setVariable("subject", mailHtmlSendDto.getSubject());
@@ -104,109 +111,35 @@ public class MailSendServiceImpl implements MailSendService {
                     : mailHtmlSendDto.getTemplateName();
             String htmlContent = templateEngine.process(templateName, context);
 
-            helper.setFrom(getFromAddress());
-            helper.setTo(mailHtmlSendDto.getEmailAddr());
-            helper.setSubject(mailHtmlSendDto.getSubject());
-            helper.setText(htmlContent, true);
+            SendEmailRequest request = SendEmailRequest.builder()
+                    .source(getFromAddress())
+                    .destination(Destination.builder()
+                            .toAddresses(mailHtmlSendDto.getEmailAddr())
+                            .build())
+                    .message(Message.builder()
+                            .subject(Content.builder()
+                                    .data(mailHtmlSendDto.getSubject())
+                                    .charset(StandardCharsets.UTF_8.name())
+                                    .build())
+                            .body(Body.builder()
+                                    .html(Content.builder()
+                                            .data(htmlContent)
+                                            .charset(StandardCharsets.UTF_8.name())
+                                            .build())
+                                    .build())
+                            .build())
+                    .build();
 
-            mailSender.send(helper.getMimeMessage());
-        } catch (MessagingException e) {
+            sesClient.sendEmail(request);
+            log.debug("HTML 이메일 발송 완료: {}", mailHtmlSendDto.getEmailAddr());
+        } catch (SesException e) {
+            log.error("HTML 메일 전송 실패: {}", e.awsErrorDetails().errorMessage());
             throw new RuntimeException("HTML 메일 전송 실패: " + e.getMessage(), e);
         }
     }
 
     /**
-     * 팀 추천 이메일 발송
-     */
-    @Override
-    public void sendRecommendationEmail(TeamRecommendation recommendation, List<String> memberEmails) {
-        String subject = buildRecommendationSubject(recommendation);
-        String htmlContent = buildRecommendationHtml(recommendation, subject);
-        String plainText = buildRecommendationContent(recommendation);
-
-        try {
-            for (String email : memberEmails) {
-                MimeMessageHelper helper = createMimeMessageHelper();
-                helper.setFrom(getFromAddress());
-                helper.setTo(email);
-                helper.setSubject(subject);
-                helper.setText(plainText, htmlContent);
-                mailSender.send(helper.getMimeMessage());
-            }
-        } catch (MessagingException e) {
-            throw new RuntimeException("추천 HTML 메일 전송 실패: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 추천 이메일 HTML 내용 생성
-     */
-    private String buildRecommendationHtml(TeamRecommendation recommendation, String subject) {
-        Context context = new Context();
-        context.setVariable("subject", subject);
-        context.setVariable("recommendationDate", recommendation.getRecommendationDate().format(DATE_FORMATTER));
-
-        // Prepare problem view models for template
-        List<ProblemView> problems = recommendation.getProblems().stream()
-                .map(trp -> {
-                    Problem p = trp.getProblem();
-                    return new ProblemView(
-                            trp.getRecommendationOrder(),
-                            p.getTitleKo(),
-                            p.getLevel(),
-                            p.getUrl(),
-                            p.getId(),
-                            p.getAcceptedUserCount(),
-                            p.getAverageTries(),
-                            false  // TODO: 완료 여부 확인 로직 필요
-                    );
-                })
-                .toList();
-        context.setVariable("problems", problems);
-
-        // 로고 이미지 추가
-        try {
-            String base64Image = getBase64EncodedImage("static/images/logo.png");
-            context.setVariable("logoImage", base64Image);
-        } catch (IOException e) {
-            context.setVariable("logoImage", null);
-        }
-
-        String htmlContent = templateEngine.process("recommendation-email-v2", context);
-        return cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
-    }
-
-    /**
-     * 추천 이메일 제목 생성
-     */
-    private String buildRecommendationSubject(TeamRecommendation recommendation) {
-        return String.format("[CodeMate] 오늘의 미션 문제 (%s)",
-                recommendation.getRecommendationDate().format(DATE_FORMATTER)
-        );
-    }
-
-    /**
-     * 추천 이메일 내용 생성
-     */
-    private String buildRecommendationContent(TeamRecommendation recommendation) {
-        StringBuilder content = new StringBuilder();
-        content.append(String.format("안녕하세요! %s팀의 오늘 추천 문제입니다.\n\n", 
-                recommendation.getTeam().getName()));
-
-        for (TeamRecommendationProblem trp : recommendation.getProblems()) {
-            Problem problem = trp.getProblem();
-            content.append(String.format("%d. %s\n", 
-                    trp.getRecommendationOrder(), problem.getTitleKo()));
-            content.append(String.format("   레벨: %d | URL: %s\n\n", 
-                    problem.getLevel(), problem.getUrl()));
-        }
-
-        content.append("오늘도 화이팅하세요! 💪\n");
-        return content.toString();
-    }
-
-    /**
-     * 개인 추천 이메일 발송 (신규 스키마)
+     * 개인 추천 이메일 발송
      */
     @Override
     public void sendMemberRecommendationEmail(MemberRecommendation memberRecommendation) {
@@ -220,13 +153,37 @@ public class MailSendServiceImpl implements MailSendService {
         String plainText = buildMemberRecommendationContent(memberRecommendation);
 
         try {
-            MimeMessageHelper helper = createMimeMessageHelper();
-            helper.setFrom(getFromAddress());
-            helper.setTo(memberEmail);
-            helper.setSubject(subject);
-            helper.setText(plainText, htmlContent);
-            mailSender.send(helper.getMimeMessage());
-        } catch (MessagingException e) {
+            SendEmailRequest.Builder requestBuilder = SendEmailRequest.builder()
+                    .source(getFromAddress())
+                    .destination(Destination.builder()
+                            .toAddresses(memberEmail)
+                            .build())
+                    .message(Message.builder()
+                            .subject(Content.builder()
+                                    .data(subject)
+                                    .charset(StandardCharsets.UTF_8.name())
+                                    .build())
+                            .body(Body.builder()
+                                    .html(Content.builder()
+                                            .data(htmlContent)
+                                            .charset(StandardCharsets.UTF_8.name())
+                                            .build())
+                                    .text(Content.builder()
+                                            .data(plainText)
+                                            .charset(StandardCharsets.UTF_8.name())
+                                            .build())
+                                    .build())
+                            .build());
+
+            // Configuration Set이 설정되어 있으면 클릭/오픈 추적 활성화
+            if (configurationSetName != null && !configurationSetName.isBlank()) {
+                requestBuilder.configurationSetName(configurationSetName);
+            }
+
+            sesClient.sendEmail(requestBuilder.build());
+            log.debug("개인 추천 이메일 발송 완료: {}", memberEmail);
+        } catch (SesException e) {
+            log.error("개인 추천 메일 전송 실패 ({}): {}", memberEmail, e.awsErrorDetails().errorMessage());
             throw new RuntimeException("개인 추천 HTML 메일 전송 실패: " + e.getMessage(), e);
         }
     }
@@ -256,7 +213,7 @@ public class MailSendServiceImpl implements MailSendService {
                             p.getId(),
                             p.getAcceptedUserCount(),
                             p.getAverageTries(),
-                            false  // TODO: 완료 여부 확인 로직 필요
+                            false
                     );
                 })
                 .toList();
@@ -314,7 +271,7 @@ public class MailSendServiceImpl implements MailSendService {
                     problem.getLevel(), problem.getUrl()));
         }
 
-        content.append("오늘도 화이팅하세요! 💪\n");
+        content.append("오늘도 화이팅하세요!\n");
         return content.toString();
     }
 
