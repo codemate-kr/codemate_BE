@@ -31,18 +31,12 @@ spring:
           google:
             issuer-uri: https://accounts.google.com
 
-  # 메일 공통 설정
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+# AWS SES 설정 (자격 증명은 DefaultCredentialsProvider가 환경에서 자동 로드)
+aws:
+  ses:
+    region: ${AWS_SES_REGION:ap-northeast-2}
+    from-email: ${AWS_SES_FROM_EMAIL:noreply@example.com}
+    configuration-set: ${AWS_SES_CONFIGURATION_SET:}
 
 # JWT 공통 설정
 jwt:
