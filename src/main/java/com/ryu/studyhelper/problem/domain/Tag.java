@@ -15,10 +15,10 @@ public class Tag {
     @Column(name = "tag_key", length = 64)
     private String key;  // solved.ac 태그 키 (예: "dp", "greedy")
 
-    @Column(name = "name_ko")
+    @Column(name = "name_ko", nullable = false)
     private String nameKo;
 
-    @Column(name = "name_en")
+    @Column(name = "name_en", nullable = false)
     private String nameEn;
 
     public static Tag create(String key, String nameKo, String nameEn) {
