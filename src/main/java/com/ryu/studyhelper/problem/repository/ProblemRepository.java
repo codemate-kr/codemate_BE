@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.problem;
+package com.ryu.studyhelper.problem.repository;
 
 import com.ryu.studyhelper.problem.domain.Problem;
 import org.springframework.data.jpa.repository.JpaRepository;
