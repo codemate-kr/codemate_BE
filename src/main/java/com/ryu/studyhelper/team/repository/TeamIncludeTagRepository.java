@@ -19,7 +19,7 @@ public interface TeamIncludeTagRepository extends JpaRepository<TeamIncludeTag, 
     @Query("SELECT tit.tag.key FROM TeamIncludeTag tit WHERE tit.team.id = :teamId")
     List<String> findTagKeysByTeamId(@Param("teamId") Long teamId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM TeamIncludeTag tit WHERE tit.team.id = :teamId")
     void deleteAllByTeamId(@Param("teamId") Long teamId);
 
