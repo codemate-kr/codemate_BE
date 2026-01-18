@@ -17,9 +17,20 @@ public record TeamRecommendationSettingsResponse(
         ProblemDifficultyPreset problemDifficultyPreset,
         Integer minProblemLevel, // 커스텀 모드일 때만 값 있음
         Integer maxProblemLevel, // 커스텀 모드일 때만 값 있음
-        Integer problemCount // 추천 문제 개수 (1~10, 기본값 3)
+        Integer problemCount, // 추천 문제 개수 (1~10, 기본값 3)
+        List<String> includeTags // 포함할 알고리즘 태그 키 목록
 ) {
+    /**
+     * 태그 정보 없이 응답 생성 (기존 API 호환용)
+     */
     public static TeamRecommendationSettingsResponse from(Team team) {
+        return from(team, List.of());
+    }
+
+    /**
+     * 태그 정보 포함하여 응답 생성
+     */
+    public static TeamRecommendationSettingsResponse from(Team team, List<String> includeTags) {
         List<RecommendationDayOfWeek> days = team.getRecommendationDaysList();
 
         return new TeamRecommendationSettingsResponse(
@@ -30,7 +41,8 @@ public record TeamRecommendationSettingsResponse(
                 team.getProblemDifficultyPreset(),
                 team.getEffectiveMinProblemLevel(),
                 team.getEffectiveMaxProblemLevel(),
-                team.getProblemCount()
+                team.getProblemCount(),
+                includeTags != null ? includeTags : List.of()
         );
     }
 }
