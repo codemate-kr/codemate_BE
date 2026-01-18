@@ -23,5 +23,7 @@ public interface TeamIncludeTagRepository extends JpaRepository<TeamIncludeTag, 
     @Query("DELETE FROM TeamIncludeTag tit WHERE tit.team.id = :teamId")
     void deleteAllByTeamId(@Param("teamId") Long teamId);
 
-    boolean existsByTeamIdAndTagKey(Long teamId, String tagKey);
+    @Query("SELECT CASE WHEN COUNT(tit) > 0 THEN true ELSE false END " +
+           "FROM TeamIncludeTag tit WHERE tit.team.id = :teamId AND tit.tag.key = :tagKey")
+    boolean existsByTeamIdAndTagKey(@Param("teamId") Long teamId, @Param("tagKey") String tagKey);
 }
