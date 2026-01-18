@@ -55,14 +55,41 @@ public class SolvedAcService {
      * @return 추천된 문제 목록
      */
     public List<ProblemInfo> recommendUnsolvedProblems(List<String> handles, int count, Integer minLevel, Integer maxLevel) {
+        return recommendUnsolvedProblems(handles, count, minLevel, maxLevel, null);
+    }
+
+    /**
+     * 주어진 사용자 핸들, 난이도 범위, 태그 필터에 대해 풀지 않은 문제를 추천합니다.
+     * @param handles 추천할 사용자 핸들 목록
+     * @param count 추천할 문제 개수
+     * @param minLevel 최소 난이도 (1~30, null이면 기본값 적용)
+     * @param maxLevel 최대 난이도 (1~30, null이면 기본값 적용)
+     * @param tagKeys 포함할 태그 키 목록 (null 또는 빈 목록이면 필터 없음)
+     * @return 추천된 문제 목록
+     */
+    public List<ProblemInfo> recommendUnsolvedProblems(List<String> handles, int count, Integer minLevel, Integer maxLevel, List<String> tagKeys) {
         // 난이도 범위 설정 (기본값: 골드 5 ~ 골드 1)
         String levelRange = buildLevelRange(minLevel, maxLevel);
 
-        String query = Stream.concat(
-                        Stream.of(levelRange, "s#1000..", "lang:ko"),
-                        handles.stream().map(h -> "!s@" + h))
-                .collect(Collectors.joining("+"));
+        // 태그 필터 생성 (예: "(tag:dp|tag:greedy)")
+        String tagFilter = buildTagFilter(tagKeys);
 
+        // 쿼리 조합
+        Stream<String> baseQuery = Stream.of(levelRange, "s#1000..", "lang:ko");
+        Stream<String> userExclusions = handles.stream().map(h -> "!s@" + h);
+
+        String query;
+        if (tagFilter != null) {
+            query = Stream.concat(
+                    Stream.concat(baseQuery, Stream.of(tagFilter)),
+                    userExclusions
+            ).collect(Collectors.joining("+"));
+        } else {
+            query = Stream.concat(baseQuery, userExclusions)
+                    .collect(Collectors.joining("+"));
+        }
+
+        log.debug("solved.ac 추천 쿼리: {}", query);
         ProblemSearchResponse response = solvedAcClient.searchProblems(query, count);
         return response.items().stream()
                 .map(ProblemInfo::withUrl)
@@ -84,6 +111,24 @@ public class SolvedAcService {
         }
 
         return String.format("*%d..%d", min, max);
+    }
+
+    /**
+     * 태그 필터 쿼리 문자열 생성
+     * 예: ["dp", "greedy"] → "(tag:dp|tag:greedy)"
+     * @param tagKeys 태그 키 목록
+     * @return 태그 필터 문자열 (빈 목록이면 null)
+     */
+    private String buildTagFilter(List<String> tagKeys) {
+        if (tagKeys == null || tagKeys.isEmpty()) {
+            return null;
+        }
+
+        String tagConditions = tagKeys.stream()
+                .map(key -> "tag:" + key)
+                .collect(Collectors.joining("|"));
+
+        return "(" + tagConditions + ")";
     }
 
     public List<ProblemInfo> fetchSolvedProblems(String handle) {

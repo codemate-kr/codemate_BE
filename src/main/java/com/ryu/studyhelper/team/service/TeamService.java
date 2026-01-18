@@ -4,9 +4,13 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.problem.repository.TagRepository;
+import com.ryu.studyhelper.problem.domain.Tag;
+import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;
+import com.ryu.studyhelper.team.domain.TeamIncludeTag;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.recommendation.RecommendationService;
@@ -25,19 +29,25 @@ import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TeamService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final MemberRepository memberRepository;
     private final RecommendationService recommendationService;
+    private final TeamIncludeTagRepository teamIncludeTagRepository;
+    private final TagRepository tagRepository;
     // TODO: 알림 시스템 구현 후 주입
     // private final NotificationService notificationService;
 
@@ -112,8 +122,9 @@ public class TeamService {
     public TeamRecommendationSettingsResponse getRecommendationSettings(Long teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-        
-        return TeamRecommendationSettingsResponse.from(team);
+
+        List<String> includeTags = teamIncludeTagRepository.findTagKeysByTeamId(teamId);
+        return TeamRecommendationSettingsResponse.from(team, includeTags);
     }
 
     /**
@@ -153,7 +164,10 @@ public class TeamService {
         // 추천 문제 개수 업데이트
         team.updateProblemCount(request.problemCount());
 
-        return TeamRecommendationSettingsResponse.from(team);
+        // 포함 태그 설정 업데이트
+        List<String> updatedTags = updateIncludeTags(team, request.includeTags());
+
+        return TeamRecommendationSettingsResponse.from(team, updatedTags);
     }
 
     /**
@@ -240,8 +254,9 @@ public class TeamService {
                 .map(teamMember -> TeamMemberResponse.from(teamMember, memberId))
                 .toList();
 
-        // 추천 설정
-        TeamRecommendationSettingsResponse recommendationSettings = TeamRecommendationSettingsResponse.from(team);
+        // 추천 설정 (태그 포함)
+        List<String> includeTags = teamIncludeTagRepository.findTagKeysByTeamId(teamId);
+        TeamRecommendationSettingsResponse recommendationSettings = TeamRecommendationSettingsResponse.from(team, includeTags);
 
         // 오늘의 문제 (없으면 null)
         TodayProblemResponse todayProblem = recommendationService
@@ -406,6 +421,55 @@ public class TeamService {
         validateTeamLeaderAccess(teamId, memberId);
 
         team.updateInfo(request.name(), request.description(), request.isPrivate());
+    }
+
+    /**
+     * 팀의 포함 태그 설정 업데이트
+     * - 기존 태그 전체 삭제 후 새 태그 추가 (Replace All 전략)
+     * @param team 팀 엔티티
+     * @param tagKeys 설정할 태그 키 목록 (null이면 빈 목록으로 처리)
+     * @return 업데이트된 태그 키 목록
+     */
+    private List<String> updateIncludeTags(Team team, List<String> tagKeys) {
+        // null이면 빈 목록으로 처리
+        List<String> keys = tagKeys != null ? tagKeys : List.of();
+
+        // 기존 태그 전체 삭제
+        teamIncludeTagRepository.deleteAllByTeamId(team.getId());
+
+        // 새 태그가 없으면 빈 목록 반환
+        if (keys.isEmpty()) {
+            return List.of();
+        }
+
+        // 유효한 태그만 필터링 (존재하지 않는 태그 키는 무시)
+        List<Tag> validTags = tagRepository.findByKeyIn(keys);
+
+        // 무효한 태그 키가 있으면 경고 로그
+        if (validTags.size() != keys.size()) {
+            Set<String> validKeys = validTags.stream()
+                    .map(Tag::getKey)
+                    .collect(Collectors.toSet());
+            List<String> invalidKeys = keys.stream()
+                    .filter(k -> !validKeys.contains(k))
+                    .toList();
+            log.warn("팀 {} 태그 설정 시 무효한 태그 키 무시됨: {}", team.getId(), invalidKeys);
+        }
+
+        // TeamIncludeTag 엔티티 생성 및 저장
+        List<TeamIncludeTag> teamIncludeTags = validTags.stream()
+                .map(tag -> TeamIncludeTag.builder()
+                        .team(team)
+                        .tag(tag)
+                        .build())
+                .toList();
+
+        teamIncludeTagRepository.saveAll(teamIncludeTags);
+
+        // 저장된 태그 키 목록 반환
+        return validTags.stream()
+                .map(Tag::getKey)
+                .toList();
     }
 
     // TODO: 알림 시스템 구현 후 활성화

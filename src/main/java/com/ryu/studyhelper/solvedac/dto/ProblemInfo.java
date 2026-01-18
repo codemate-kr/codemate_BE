@@ -3,6 +3,8 @@ package com.ryu.studyhelper.solvedac.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ryu.studyhelper.common.util.ProblemUrlUtils;
 
+import java.util.List;
+
 public record ProblemInfo(
         @JsonProperty("problemId")
         Long problemId,
@@ -19,10 +21,10 @@ public record ProblemInfo(
         @JsonProperty("averageTries")
         double averageTries,
 
-        String url // 직접 가공
+        String url, // 직접 가공
 
-//        @JsonProperty("tags")
-//        List<Tag> tags,
+        @JsonProperty("tags")
+        List<SolvedAcTagInfo> tags
 
 ) {
     public ProblemInfo withUrl() {
@@ -32,7 +34,8 @@ public record ProblemInfo(
                 level,
                 acceptedUserCount,
                 averageTries,
-                ProblemUrlUtils.generateProblemUrl(problemId)
+                ProblemUrlUtils.generateProblemUrl(problemId),
+                tags
         );
     }
 }

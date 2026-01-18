@@ -3,10 +3,10 @@ package com.ryu.studyhelper.team.dto.request;
 import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.domain.ProblemDifficultyPreset;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -40,6 +40,11 @@ public record TeamRecommendationSettingsRequest(
         @Min(value = 1, message = "추천 문제 개수는 1 이상이어야 합니다.")
         @Max(value = 10, message = "추천 문제 개수는 10 이하여야 합니다.")
         @Schema(description = "추천 문제 개수 (1~10, 기본값 3)", example = "3")
-        Integer problemCount
+        Integer problemCount,
+
+        @Size(max = 10, message = "포함 태그는 최대 10개까지 설정 가능합니다.")
+        @Schema(description = "포함할 알고리즘 태그 키 목록 (비어있으면 태그 필터 없음)",
+                example = "[\"dp\", \"greedy\", \"bfs\"]")
+        List<String> includeTags
 
 ) {}

@@ -3,9 +3,11 @@ package com.ryu.studyhelper.recommendation;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
-import com.ryu.studyhelper.problem.ProblemRepository;
-import com.ryu.studyhelper.problem.ProblemService;
+import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
+import com.ryu.studyhelper.problem.service.ProblemService;
+import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
@@ -52,10 +54,16 @@ class RecommendationServiceTest {
     private TeamMemberRepository teamMemberRepository;
 
     @Mock
-    private ProblemRepository problemRepository;
+    private TeamIncludeTagRepository teamIncludeTagRepository;
+
+    @Mock
+    private ProblemTagRepository problemTagRepository;
 
     @Mock
     private ProblemService problemService;
+
+    @Mock
+    private ProblemSyncService problemSyncService;
 
     @Mock
     private MailSendService mailSendService;
@@ -88,8 +96,10 @@ class RecommendationServiceTest {
                 clock,
                 teamRepository,
                 teamMemberRepository,
-                problemRepository,
+                teamIncludeTagRepository,
+                problemTagRepository,
                 problemService,
+                problemSyncService,
                 mailSendService,
                 recommendationRepository,
                 recommendationProblemRepository,
@@ -300,8 +310,8 @@ class RecommendationServiceTest {
     class ManualRecommendationProblemCountValidation {
 
         @Test
-        @DisplayName("count가 null이면 팀 설정의 problemCount를 사용한다")
-        void nullCount_usesTeamProblemCount() {
+        @DisplayName("항상 팀 설정의 problemCount를 사용한다 (count 파라미터 무시)")
+        void alwaysUsesTeamProblemCount() {
             // given: 오전 10시 (금지 시간대 외)
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
@@ -313,42 +323,20 @@ class RecommendationServiceTest {
                     .thenReturn(Optional.empty());
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
                     .thenReturn(List.of("handle1"));
-            when(problemService.recommend(any(), eq(5), any(), any()))
+            when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID))
+                    .thenReturn(List.of());
+            when(problemService.recommend(any(), eq(5), any(), any(), any()))
+                    .thenReturn(List.of());
+            when(problemSyncService.syncProblems(any()))
                     .thenReturn(List.of());
             when(teamMemberRepository.findMembersByTeamId(TEAM_ID))
                     .thenReturn(List.of());
 
-            // when
-            recommendationService.createManualRecommendation(TEAM_ID, null);
-
-            // then: 팀 설정값 5개의 문제가 요청되었는지 검증
-            verify(problemService).recommend(any(), eq(5), any(), any());
-        }
-
-        @Test
-        @DisplayName("count가 지정되면 팀 설정값 대신 지정된 값을 사용한다")
-        void specifiedCount_overridesTeamSetting() {
-            // given: 오전 10시 (금지 시간대 외)
-            Clock clock = fixedClock("2025-01-15T10:00:00");
-            setupServiceWithClock(clock);
-
-            // problemCount가 5로 설정된 팀
-            Team team = createTeamWithIdAndProblemCount(TEAM_ID, 5);
-            when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
-                    .thenReturn(Optional.empty());
-            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID))
-                    .thenReturn(List.of("handle1"));
-            when(problemService.recommend(any(), eq(7), any(), any()))
-                    .thenReturn(List.of());
-            when(teamMemberRepository.findMembersByTeamId(TEAM_ID))
-                    .thenReturn(List.of());
-
-            // when
+            // when: count 파라미터로 7을 전달해도 팀 설정값 5가 사용됨
             recommendationService.createManualRecommendation(TEAM_ID, 7);
 
-            // then: 지정된 값 7개의 문제가 요청되었는지 검증 (팀 설정값 5 무시)
-            verify(problemService).recommend(any(), eq(7), any(), any());
+            // then: 팀 설정값 5개의 문제가 요청되었는지 검증 (count 파라미터 무시)
+            verify(problemService).recommend(any(), eq(5), any(), any(), any());
         }
     }
 

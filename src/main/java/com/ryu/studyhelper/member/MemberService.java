@@ -12,7 +12,7 @@ import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
 import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
-import com.ryu.studyhelper.problem.ProblemRepository;
+import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.solvedac.SolvedAcService;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;

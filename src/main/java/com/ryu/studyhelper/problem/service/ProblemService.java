@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.problem;
+package com.ryu.studyhelper.problem.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
@@ -38,6 +38,13 @@ public class ProblemService {
      */
     public List<ProblemInfo> recommend(List<String> handles, int count, Integer minLevel, Integer maxLevel) {
         return solvedAcService.recommendUnsolvedProblems(handles, count, minLevel, maxLevel);
+    }
+
+    /**
+     * 핸들 목록, 난이도 범위, 태그 필터를 기반으로 문제 추천
+     */
+    public List<ProblemInfo> recommend(List<String> handles, int count, Integer minLevel, Integer maxLevel, List<String> tagKeys) {
+        return solvedAcService.recommendUnsolvedProblems(handles, count, minLevel, maxLevel, tagKeys);
     }
 
 

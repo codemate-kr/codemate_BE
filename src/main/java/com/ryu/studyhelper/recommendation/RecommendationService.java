@@ -4,9 +4,12 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.problem.ProblemRepository;
-import com.ryu.studyhelper.problem.ProblemService;
 import com.ryu.studyhelper.problem.domain.Problem;
+import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;
+import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
+import com.ryu.studyhelper.problem.service.ProblemService;
+import com.ryu.studyhelper.problem.service.ProblemSyncService;
+import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
@@ -55,8 +58,10 @@ public class RecommendationService {
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
-    private final ProblemRepository problemRepository;
+    private final TeamIncludeTagRepository teamIncludeTagRepository;
+    private final ProblemTagRepository problemTagRepository;
     private final ProblemService problemService;
+    private final ProblemSyncService problemSyncService;
     private final MailSendService mailSendService;
 
     // 신규 추천 시스템
@@ -74,7 +79,7 @@ public class RecommendationService {
      * 2. 오늘 날짜 기준 추천이 발행되지 않은 경우
      *
      * @param teamId 팀 ID
-     * @param count 추천 문제 개수 (null이면 팀 설정값 사용)
+     * @param count (미사용) 팀 설정값 사용, API 호환성을 위해 유지
      */
     public TeamRecommendationDetailResponse createManualRecommendation(Long teamId, Integer count) {
         Team team = teamRepository.findById(teamId)
@@ -83,15 +88,12 @@ public class RecommendationService {
         // 오늘 이미 추천이 존재하는지 검증 (SCHEDULED, MANUAL 모두 포함)
         validateNoRecommendationToday(teamId);
 
-        // count가 null이면 팀 설정값 사용
-        int problemCount = (count != null) ? count : team.getProblemCount();
-
         // 1. Recommendation 생성 (MANUAL 타입)
         Recommendation recommendation = Recommendation.createManualRecommendation(teamId);
         recommendationRepository.save(recommendation);
 
         // 2. 문제 추천 및 RecommendationProblem 추가
-        List<Problem> recommendedProblems = recommendProblemsForTeam(team, problemCount);
+        List<Problem> recommendedProblems = recommendProblemsForTeam(team);
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
@@ -164,9 +166,19 @@ public class RecommendationService {
         return recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)
                 .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
                 .map(recommendation -> {
+                    // 문제 + 해결 상태 조회
                     List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
                             .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
-                    return TodayProblemResponse.from(recommendation, problemsWithStatus);
+
+                    // 문제별 태그 조회
+                    List<Long> problemIds = problemsWithStatus.stream()
+                            .map(ProblemWithSolvedStatusProjection::getProblemId)
+                            .toList();
+                    List<ProblemTagProjection> tagProjections = problemIds.isEmpty()
+                            ? List.of()
+                            : problemTagRepository.findTagsByProblemIds(problemIds);
+
+                    return TodayProblemResponse.from(recommendation, problemsWithStatus, tagProjections);
                 });
     }
 
@@ -218,7 +230,7 @@ public class RecommendationService {
         recommendationRepository.save(recommendation);
 
         // 2. 문제 추천 및 RecommendationProblem 추가
-        List<Problem> recommendedProblems = recommendProblemsForTeam(team, team.getProblemCount());
+        List<Problem> recommendedProblems = recommendProblemsForTeam(team);
         for (Problem problem : recommendedProblems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
@@ -288,52 +300,31 @@ public class RecommendationService {
     }
 
     /**
-     * ProblemInfo로부터 Problem 엔티티 찾기 또는 생성
-     * - 기존 문제가 있으면 메타데이터 갱신 (solved.ac 최신 정보 반영)
-     * - 새 문제면 생성
-     */
-    private Problem findOrCreateProblem(ProblemInfo problemInfo) {
-        return problemRepository.findById(problemInfo.problemId())
-                .map(existingProblem -> {
-                    existingProblem.updateMetadata(
-                            problemInfo.titleKo(),
-                            problemInfo.level(),
-                            problemInfo.acceptedUserCount(),
-                            problemInfo.averageTries()
-                    );
-                    return problemRepository.save(existingProblem);
-                })
-                .orElseGet(() -> {
-                    Problem problem = Problem.create(
-                            problemInfo.problemId(),
-                            problemInfo.titleKo(),
-                            problemInfo.level(),
-                            problemInfo.acceptedUserCount(),
-                            problemInfo.averageTries()
-                    );
-                    return problemRepository.save(problem);
-                });
-    }
-
-    /**
      * 팀에 문제 추천 (신규 스키마용)
+     * - 팀 설정(난이도, 문제 수, 포함 태그)을 기반으로 추천
+     * - 추천된 문제의 메타데이터와 태그를 DB에 동기화
      */
-    private List<Problem> recommendProblemsForTeam(Team team, int count) {
+    private List<Problem> recommendProblemsForTeam(Team team) {
         List<String> handles = teamMemberRepository.findHandlesByTeamId(team.getId());
         if (handles.isEmpty()) {
             log.warn("팀 '{}'에 인증된 핸들이 없습니다", team.getName());
             throw new IllegalStateException("인증된 핸들이 없습니다");
         }
 
+        // 팀의 포함 태그 목록 조회
+        List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(team.getId());
+
+        // solved.ac API로 문제 추천 (태그 필터 포함)
         List<ProblemInfo> problemInfos = problemService.recommend(
-                handles, count,
+                handles,
+                team.getProblemCount(),
                 team.getEffectiveMinProblemLevel(),
-                team.getEffectiveMaxProblemLevel()
+                team.getEffectiveMaxProblemLevel(),
+                tagKeys
         );
 
-        return problemInfos.stream()
-                .map(this::findOrCreateProblem)
-                .toList();
+        // 문제 메타데이터 + 태그 동기화 후 반환
+        return problemSyncService.syncProblems(problemInfos);
     }
 
     /**
