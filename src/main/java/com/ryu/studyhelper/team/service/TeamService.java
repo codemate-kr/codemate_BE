@@ -29,13 +29,17 @@ import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TeamService {
 
     private final TeamRepository teamRepository;
@@ -440,6 +444,17 @@ public class TeamService {
 
         // 유효한 태그만 필터링 (존재하지 않는 태그 키는 무시)
         List<Tag> validTags = tagRepository.findByKeyIn(keys);
+
+        // 무효한 태그 키가 있으면 경고 로그
+        if (validTags.size() != keys.size()) {
+            Set<String> validKeys = validTags.stream()
+                    .map(Tag::getKey)
+                    .collect(Collectors.toSet());
+            List<String> invalidKeys = keys.stream()
+                    .filter(k -> !validKeys.contains(k))
+                    .toList();
+            log.warn("팀 {} 태그 설정 시 무효한 태그 키 무시됨: {}", team.getId(), invalidKeys);
+        }
 
         // TeamIncludeTag 엔티티 생성 및 저장
         List<TeamIncludeTag> teamIncludeTags = validTags.stream()
