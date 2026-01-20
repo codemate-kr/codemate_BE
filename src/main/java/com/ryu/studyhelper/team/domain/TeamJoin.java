@@ -30,7 +30,7 @@ public class TeamJoin extends BaseEntity {
     private Team team;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, columnDefinition = "VARCHAR(16)")
     private TeamJoinType type;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -42,7 +42,7 @@ public class TeamJoin extends BaseEntity {
     private Member targetMember;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(nullable = false, columnDefinition = "VARCHAR(16)")
     @Builder.Default
     private TeamJoinStatus status = TeamJoinStatus.PENDING;
 
