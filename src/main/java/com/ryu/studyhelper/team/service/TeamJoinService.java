@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -103,18 +104,18 @@ public class TeamJoinService {
 
     @Transactional(readOnly = true)
     public List<TeamJoinResponse> getReceivedList(Long memberId) {
-        return teamJoinRepository.findByTargetMemberIdAndStatus(memberId, TeamJoinStatus.PENDING)
+        return teamJoinRepository.findByTargetMemberIdAndStatusAndExpiresAtAfter(
+                        memberId, TeamJoinStatus.PENDING, LocalDateTime.now())
                 .stream()
-                .filter(tj -> !tj.isExpired())
                 .map(TeamJoinResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<TeamJoinResponse> getSentList(Long memberId) {
-        return teamJoinRepository.findByRequesterIdAndStatus(memberId, TeamJoinStatus.PENDING)
+        return teamJoinRepository.findByRequesterIdAndStatusAndExpiresAtAfter(
+                        memberId, TeamJoinStatus.PENDING, LocalDateTime.now())
                 .stream()
-                .filter(tj -> !tj.isExpired())
                 .map(TeamJoinResponse::from)
                 .toList();
     }

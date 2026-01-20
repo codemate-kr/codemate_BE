@@ -309,8 +309,9 @@ class TeamJoinServiceTest {
                     .build();
             ReflectionTestUtils.setField(expired, "id", 2L);
 
-            given(teamJoinRepository.findByTargetMemberIdAndStatus(2L, TeamJoinStatus.PENDING))
-                    .willReturn(List.of(valid, expired));
+            given(teamJoinRepository.findByTargetMemberIdAndStatusAndExpiresAtAfter(
+                    eq(2L), eq(TeamJoinStatus.PENDING), any(LocalDateTime.class)))
+                    .willReturn(List.of(valid));
 
             List<TeamJoinResponse> result = teamJoinService.getReceivedList(2L);
 
