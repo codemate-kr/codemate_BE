@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 @Builder
 public class TeamJoin extends BaseEntity {
 
+    private static final long INVITATION_EXPIRE_DAYS = 7;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -57,7 +59,7 @@ public class TeamJoin extends BaseEntity {
                 .requester(requester)
                 .targetMember(targetMember)
                 .status(TeamJoinStatus.PENDING)
-                .expiresAt(LocalDateTime.now().plusDays(7))
+                .expiresAt(LocalDateTime.now().plusDays(INVITATION_EXPIRE_DAYS))
                 .build();
     }
 
