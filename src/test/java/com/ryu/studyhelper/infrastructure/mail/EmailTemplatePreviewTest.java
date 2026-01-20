@@ -72,4 +72,25 @@ public class EmailTemplatePreviewTest {
         System.out.println("브라우저로 열어서 확인하세요.");
         System.out.println("====================================");
     }
+
+    @Test
+    public void generateTeamInvitationEmailPreview() throws IOException {
+        Context context = new Context();
+        context.setVariable("teamName", "알고리즘 스터디");
+        context.setVariable("inviterHandle", "leader123");
+        context.setVariable("expiresAt", "2026-01-27 12:00");
+        context.setVariable("dashboardUrl", "https://codemate.kr/dashboard");
+
+        String htmlContent = templateEngine.process("team-invitation-email", context);
+
+        String outputPath = "build/team-invitation-preview.html";
+        try (FileWriter writer = new FileWriter(outputPath)) {
+            writer.write(htmlContent);
+        }
+
+        System.out.println("====================================");
+        System.out.println("팀 초대 이메일 미리보기 생성 완료!");
+        System.out.println("파일 위치: " + outputPath);
+        System.out.println("====================================");
+    }
 }

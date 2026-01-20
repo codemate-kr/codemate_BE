@@ -6,6 +6,7 @@ import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.team.domain.TeamJoin;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -84,6 +85,42 @@ public class MailSendServiceImpl implements MailSendService {
         String plainText = buildMemberRecommendationPlainText(memberRecommendation);
 
         sendEmail(memberEmail, subject, htmlContent, plainText);
+    }
+
+    @Override
+    public void sendTeamInvitationEmail(TeamJoin teamJoin) {
+        String targetEmail = teamJoin.getTargetMember().getEmail();
+        if (targetEmail == null || targetEmail.isBlank()) {
+            throw new IllegalArgumentException("초대 대상 이메일이 없습니다");
+        }
+
+        String teamName = teamJoin.getTeam().getName();
+        String subject = String.format("[Codemate] '%s' 팀에 초대되었습니다", teamName);
+
+        Context context = new Context();
+        context.setVariable("teamName", teamName);
+        context.setVariable("inviterHandle", teamJoin.getRequester().getHandle());
+        context.setVariable("expiresAt", teamJoin.getExpiresAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        context.setVariable("dashboardUrl", frontendUrl + "/dashboard");
+
+        String htmlContent = templateEngine.process("team-invitation-email", context);
+        String plainText = buildTeamInvitationPlainText(teamJoin);
+
+        sendEmail(targetEmail, subject, htmlContent, plainText);
+    }
+
+    private String buildTeamInvitationPlainText(TeamJoin teamJoin) {
+        return String.format("""
+                %s님이 '%s' 팀에 초대했습니다.
+
+                만료일: %s
+
+                대시보드에서 수락/거절할 수 있습니다: %s/dashboard
+                """,
+                teamJoin.getRequester().getHandle(),
+                teamJoin.getTeam().getName(),
+                teamJoin.getExpiresAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                frontendUrl);
     }
 
     // ==================== 공통 발송 로직 ====================
