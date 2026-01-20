@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; padding: 40px;">
+                    <tr>
+                        <td style="text-align: center;">
+                            <h2 style="margin: 0 0 30px 0; color: #333;"><span style="color: #3b82f6;" th:text="${teamName}">팀이름</span>팀에 초대되었습니다.</h2>
+                            <p style="margin: 0 0 10px 0; color: #666;">초대자: <strong th:text="'@' + ${inviterHandle}">@handle</strong></p>
+                            <p style="margin: 0 0 30px 0; color: #999; font-size: 14px;">만료일: <span th:text="${expiresAt}">2024-01-01</span> (7일 후 만료)</p>
+                            <a th:href="${dashboardUrl}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px;">수락/거절하기</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

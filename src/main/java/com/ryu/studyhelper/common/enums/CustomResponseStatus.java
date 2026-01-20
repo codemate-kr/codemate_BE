@@ -35,6 +35,10 @@ public enum CustomResponseStatus {
     ALREADY_SOLVED(HttpStatus.CONFLICT.value(), "3011", "이미 해결된 문제입니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN.value(), "3012", "권한이 없습니다."),
     MEMBER_HAS_TEAM(HttpStatus.CONFLICT.value(), "3013", "팀에 소속된 상태에서는 탈퇴할 수 없습니다. 먼저 모든 팀에서 탈퇴해주세요."),
+    TEAM_JOIN_ALREADY_EXISTS(HttpStatus.CONFLICT.value(), "3014", "이미 대기 중인 요청이 있습니다."),
+    TEAM_JOIN_ALREADY_PROCESSED(HttpStatus.CONFLICT.value(), "3015", "이미 처리된 요청입니다."),
+    TEAM_JOIN_ALREADY_MEMBER(HttpStatus.CONFLICT.value(), "3016", "이미 팀 멤버입니다."),
+    TEAM_JOIN_NO_PERMISSION(HttpStatus.FORBIDDEN.value(), "3017", "해당 요청에 대한 권한이 없습니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -56,6 +60,7 @@ public enum CustomResponseStatus {
     VERIFICATION_HASH_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4013", "인증 해시를 찾을 수 없습니다. 먼저 해시를 생성해주세요."),
     SOLVED_AC_USER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4014", "solved.ac에서 해당 핸들을 찾을 수 없습니다."),
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4015", "문제를 찾을 수 없습니다."),
+    TEAM_JOIN_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4016", "해당 요청을 찾을 수 없습니다."),
     //    MAP_VALUE_NOT_EXIST(HttpStatus.NOT_FOUND.value(), "4005", "채팅이 존재하지 않습니다. 채팅을 새롭게 시작해주세요."),
     //    EVALUATION_SERVER_NOT_ANSWER(HttpStatus.NOT_FOUND.value(), "4006", "평가서버가 응답하지 않습니다."),
     //    CS_CHAT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4007", "해당 CS 채팅이 존재하지 않습니다."),
@@ -75,7 +80,8 @@ public enum CustomResponseStatus {
     RECOMMENDATION_ALREADY_EXISTS_TODAY(HttpStatus.CONFLICT.value(), "5008", "오늘 이미 추천이 발행되었습니다. 내일 다시 시도해주세요."),
     RECOMMENDATION_BLOCKED_TIME(HttpStatus.CONFLICT.value(), "5009", "오전 5시~7시 사이에는 추천을 생성할 수 없습니다. 오전 7시 이후에 다시 시도해주세요."),
     INVALID_DAYS_RANGE(HttpStatus.BAD_REQUEST.value(), "5010", "조회 일수는 1~730일 사이여야 합니다."),
-
+    TEAM_JOIN_EXPIRED(HttpStatus.BAD_REQUEST.value(), "5011", "만료된 요청입니다."),
+    CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST.value(), "5012", "자기 자신을 초대할 수 없습니다."),
 
     /***
      * 6000: Server_Error

@@ -3,6 +3,7 @@ package com.ryu.studyhelper.infrastructure.mail;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.team.domain.TeamJoin;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,4 +20,9 @@ public interface MailSendService {
      * 개인 추천 이메일 발송
      */
     void sendMemberRecommendationEmail(MemberRecommendation memberRecommendation);
+
+    /**
+     * 팀 초대 이메일 발송
+     */
+    void sendTeamInvitationEmail(TeamJoin teamJoin);
 }
