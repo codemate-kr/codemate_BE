@@ -24,6 +24,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
+import com.ryu.studyhelper.team.domain.TeamMember;
+import com.ryu.studyhelper.team.domain.TeamRole;
+
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -36,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -520,6 +526,193 @@ class RecommendationServiceTest {
             createdAtField.set(recommendation, createdAt);
         } catch (Exception e) {
             throw new RuntimeException("createdAt 설정 실패", e);
+        }
+    }
+
+    @Nested
+    @DisplayName("내 오늘의 문제 전체 조회 (getMyTodayProblems)")
+    class GetMyTodayProblemsValidation {
+
+        private static final Long MEMBER_ID = 100L;
+        private static final Long TEAM_ID_1 = 1L;
+        private static final Long TEAM_ID_2 = 2L;
+
+        @Test
+        @DisplayName("팀에 속하지 않은 유저는 빈 목록을 반환한다")
+        void noTeams_returnsEmptyList() {
+            // given
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of());
+
+            // when
+            MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(MEMBER_ID);
+
+            // then
+            assertThat(response.teams()).isEmpty();
+            assertThat(response.totalProblemCount()).isZero();
+            assertThat(response.solvedCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("팀에 속해있지만 오늘 추천이 없으면 빈 목록을 반환한다")
+        void teamsWithNoRecommendation_returnsEmptyList() {
+            // given
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithId(TEAM_ID_1);
+            TeamMember teamMember = createTeamMember(team, MEMBER_ID);
+
+            when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+                    .thenReturn(Optional.empty());
+
+            // when
+            MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(MEMBER_ID);
+
+            // then
+            assertThat(response.teams()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("팀에 오늘 추천이 있으면 해당 팀의 문제를 반환한다")
+        void teamWithRecommendation_returnsProblems() {
+            // given
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithIdAndName(TEAM_ID_1, "알고리즘 스터디");
+            TeamMember teamMember = createTeamMember(team, MEMBER_ID);
+
+            Recommendation recommendation = createRecommendationWithCreatedAt(
+                    TEAM_ID_1,
+                    LocalDateTime.parse("2025-01-15T06:00:00")
+            );
+            setRecommendationId(recommendation, 42L);
+
+            when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+                    .thenReturn(Optional.of(recommendation));
+            lenient().when(recommendationProblemRepository.findProblemsWithSolvedStatus(42L, MEMBER_ID))
+                    .thenReturn(List.of());
+            lenient().when(problemTagRepository.findTagsByProblemIds(any())).thenReturn(List.of());
+
+            // when
+            MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(MEMBER_ID);
+
+            // then
+            assertThat(response.teams()).hasSize(1);
+            assertThat(response.teams().get(0).teamId()).isEqualTo(TEAM_ID_1);
+            assertThat(response.teams().get(0).teamName()).isEqualTo("알고리즘 스터디");
+            assertThat(response.teams().get(0).recommendationId()).isEqualTo(42L);
+        }
+
+        @Test
+        @DisplayName("여러 팀에 속한 유저는 모든 팀의 오늘 문제를 반환한다")
+        void multipleTeams_returnsAllTeamsProblems() {
+            // given
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            Team team1 = createTeamWithIdAndName(TEAM_ID_1, "팀1");
+            Team team2 = createTeamWithIdAndName(TEAM_ID_2, "팀2");
+            TeamMember teamMember1 = createTeamMember(team1, MEMBER_ID);
+            TeamMember teamMember2 = createTeamMember(team2, MEMBER_ID);
+
+            Recommendation recommendation1 = createRecommendationWithCreatedAt(
+                    TEAM_ID_1, LocalDateTime.parse("2025-01-15T06:00:00"));
+            setRecommendationId(recommendation1, 42L);
+
+            Recommendation recommendation2 = createRecommendationWithCreatedAt(
+                    TEAM_ID_2, LocalDateTime.parse("2025-01-15T06:00:00"));
+            setRecommendationId(recommendation2, 43L);
+
+            when(teamMemberRepository.findByMemberId(MEMBER_ID))
+                    .thenReturn(List.of(teamMember1, teamMember2));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+                    .thenReturn(Optional.of(recommendation1));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_2))
+                    .thenReturn(Optional.of(recommendation2));
+            lenient().when(recommendationProblemRepository.findProblemsWithSolvedStatus(any(), eq(MEMBER_ID)))
+                    .thenReturn(List.of());
+            lenient().when(problemTagRepository.findTagsByProblemIds(any())).thenReturn(List.of());
+
+            // when
+            MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(MEMBER_ID);
+
+            // then
+            assertThat(response.teams()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("이전 미션 사이클의 추천은 오늘 문제에 포함되지 않는다")
+        void previousCycleRecommendation_notIncluded() {
+            // given: 오전 10시
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithId(TEAM_ID_1);
+            TeamMember teamMember = createTeamMember(team, MEMBER_ID);
+
+            // 어제 추천 (이전 미션 사이클)
+            Recommendation oldRecommendation = createRecommendationWithCreatedAt(
+                    TEAM_ID_1, LocalDateTime.parse("2025-01-14T10:00:00"));
+
+            when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+                    .thenReturn(Optional.of(oldRecommendation));
+
+            // when
+            MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(MEMBER_ID);
+
+            // then: 이전 사이클 추천은 필터링됨
+            assertThat(response.teams()).isEmpty();
+        }
+
+        private TeamMember createTeamMember(Team team, Long memberId) {
+            Member member = createMemberWithId(memberId);
+            return TeamMember.create(team, member, TeamRole.MEMBER);
+        }
+
+        private Member createMemberWithId(Long id) {
+            try {
+                Member member = Member.builder()
+                        .email("test@test.com")
+                        .provider("google")
+                        .providerId("test-provider-id")
+                        .isVerified(false)
+                        .build();
+                java.lang.reflect.Field idField = member.getClass().getDeclaredField("id");
+                idField.setAccessible(true);
+                idField.set(member, id);
+                return member;
+            } catch (Exception e) {
+                throw new RuntimeException("Member 생성 실패", e);
+            }
+        }
+
+        private Team createTeamWithIdAndName(Long id, String name) {
+            Team team = Team.create(name, "설명", false);
+            try {
+                java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
+                idField.setAccessible(true);
+                idField.set(team, id);
+            } catch (Exception e) {
+                throw new RuntimeException("id 설정 실패", e);
+            }
+            return team;
+        }
+
+        private void setRecommendationId(Recommendation recommendation, Long id) {
+            try {
+                java.lang.reflect.Field idField = recommendation.getClass().getDeclaredField("id");
+                idField.setAccessible(true);
+                idField.set(recommendation, id);
+            } catch (Exception e) {
+                throw new RuntimeException("id 설정 실패", e);
+            }
         }
     }
 }
