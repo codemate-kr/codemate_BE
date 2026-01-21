@@ -17,8 +17,10 @@ import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendationProblem;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
+import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
+import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
@@ -182,6 +184,33 @@ public class RecommendationService {
                 });
     }
 
+    /**
+     * 로그인한 유저가 속한 모든 팀의 오늘 추천 문제 조회
+     * TeamMember 기반으로 현재 속한 팀만 조회 (중간 합류/탈퇴/해산 자동 반영)
+     *
+     * @param memberId 회원 ID
+     * @return 팀별 오늘의 문제 목록
+     */
+    @Transactional(readOnly = true)
+    public MyTodayProblemsResponse getMyTodayProblems(Long memberId) {
+        List<TeamMember> teamMemberships = teamMemberRepository.findByMemberId(memberId);
+
+        List<MyTodayProblemsResponse.TeamTodayProblems> teamProblems = teamMemberships.stream()
+                .map(tm -> {
+                    Team team = tm.getTeam();
+                    return findTodayRecommendation(team.getId(), memberId)
+                            .map(todayProblem -> MyTodayProblemsResponse.TeamTodayProblems.from(
+                                    team.getId(),
+                                    team.getName(),
+                                    todayProblem
+                            ));
+                })
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+
+        return MyTodayProblemsResponse.from(teamProblems);
+    }
 
     /**
      * 문제 추천만 수행 (이메일 발송 X) - 오전 스케줄러용

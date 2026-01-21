@@ -5,6 +5,7 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
+import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,14 +61,18 @@ public class RecommendationController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    @Deprecated
     @Operation(
-            summary = "오늘의 문제 조회",
+            summary = "오늘의 문제 조회 (Deprecated)",
             description = """
+                    **Deprecated**: `/api/recommendation/my/today-problems` 사용 권장
+
                     특정 팀의 오늘 추천된 문제를 조회합니다.
                     가장 최근 추천(수동 추천 우선)을 반환합니다.
                     로그인한 사용자의 경우 해결 여부(isSolved)가 포함됩니다.
                     비로그인 시 isSolved는 null입니다.
-                    """
+                    """,
+            deprecated = true
     )
     @GetMapping("/team/{teamId}/today-problem")
     public ResponseEntity<ApiResponse<TodayProblemResponse>> getTodayRecommendation(
@@ -84,6 +89,26 @@ public class RecommendationController {
         }
 
         TodayProblemResponse response = recommendationService.getTodayRecommendation(teamId, memberId);
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
+            summary = "내 오늘의 문제 전체 조회",
+            description = """
+                    로그인한 유저가 속한 모든 팀의 오늘 추천 문제를 조회합니다.
+                    TeamMember 기반으로 현재 속한 팀만 조회됩니다.
+                    - 중간 합류: 즉시 해당 팀의 오늘 문제 표시
+                    - 팀 탈퇴/해산: 자동으로 목록에서 제외
+                    """
+    )
+    @GetMapping("/my/today-problems")
+    public ResponseEntity<ApiResponse<MyTodayProblemsResponse>> getMyTodayProblems(
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        Long memberId = principalDetails.getMemberId();
+        log.info("사용자 {}의 오늘의 문제 전체 조회", memberId);
+
+        MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(memberId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
