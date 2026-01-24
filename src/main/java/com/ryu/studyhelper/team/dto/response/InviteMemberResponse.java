@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.team.dto.response;
 
+import com.ryu.studyhelper.common.util.MaskingUtils;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -11,7 +12,7 @@ public record InviteMemberResponse(
         @Schema(description = "팀원 ID", example = "1")
         Long teamMemberId,
 
-        @Schema(description = "초대된 멤버의 이메일", example = "member@example.com")
+        @Schema(description = "초대된 멤버의 이메일 (마스킹)", example = "mem****@example.com")
         String email,
 
         @Schema(description = "초대된 멤버의 handle", example = "codemate")
@@ -23,7 +24,7 @@ public record InviteMemberResponse(
     public static InviteMemberResponse from(TeamMember teamMember) {
         return new InviteMemberResponse(
                 teamMember.getId(),
-                teamMember.getMember().getEmail(),
+                MaskingUtils.maskEmail(teamMember.getMember().getEmail()),
                 teamMember.getMember().getHandle(),
                 teamMember.getTeam().getName()
         );
