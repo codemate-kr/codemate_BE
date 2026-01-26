@@ -56,7 +56,7 @@ public class NotificationService {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.NOTIFICATION_NOT_FOUND));
 
-        if (!notification.getRecipient().getId().equals(memberId)) {
+        if (notification.getRecipient() == null || !notification.getRecipient().getId().equals(memberId)) {
             throw new CustomException(CustomResponseStatus.FORBIDDEN);
         }
 
@@ -74,7 +74,7 @@ public class NotificationService {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.NOTIFICATION_NOT_FOUND));
 
-        if (!notification.getRecipient().getId().equals(memberId)) {
+        if (notification.getRecipient() == null || !notification.getRecipient().getId().equals(memberId)) {
             throw new CustomException(CustomResponseStatus.FORBIDDEN);
         }
 
