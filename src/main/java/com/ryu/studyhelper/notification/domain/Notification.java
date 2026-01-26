@@ -25,7 +25,7 @@ public class Notification extends BaseEntity {
     private Member recipient;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private NotificationType type;
 
     @Convert(converter = JsonMapConverter.class)
