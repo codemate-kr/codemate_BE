@@ -5,13 +5,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Converter
-@Slf4j
 public class JsonMapConverter implements AttributeConverter<Map<String, Object>, String> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -24,8 +22,7 @@ public class JsonMapConverter implements AttributeConverter<Map<String, Object>,
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JsonProcessingException e) {
-            log.error("Map -> JSON 변환 오류: {}", e.getMessage());
-            return null;
+            throw new IllegalArgumentException("Map -> JSON 변환 오류", e);
         }
     }
 
@@ -37,8 +34,7 @@ public class JsonMapConverter implements AttributeConverter<Map<String, Object>,
         try {
             return objectMapper.readValue(dbData, new TypeReference<>() {});
         } catch (JsonProcessingException e) {
-            log.error("JSON -> Map 변환 오류: {}", e.getMessage());
-            return new HashMap<>();
+            throw new IllegalArgumentException("JSON -> Map 변환 오류", e);
         }
     }
 }
