@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.notification.domain;
+package com.ryu.studyhelper.common.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.notification.domain;
 
+import com.ryu.studyhelper.common.converter.JsonMapConverter;
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import com.ryu.studyhelper.member.domain.Member;
 import jakarta.persistence.*;
