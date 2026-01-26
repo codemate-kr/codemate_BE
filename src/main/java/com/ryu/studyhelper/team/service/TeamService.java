@@ -4,6 +4,8 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.notification.domain.NotificationType;
+import com.ryu.studyhelper.notification.service.NotificationService;
 import com.ryu.studyhelper.problem.repository.TagRepository;
 import com.ryu.studyhelper.problem.domain.Tag;
 import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,8 +51,7 @@ public class TeamService {
     private final RecommendationService recommendationService;
     private final TeamIncludeTagRepository teamIncludeTagRepository;
     private final TagRepository tagRepository;
-    // TODO: 알림 시스템 구현 후 주입
-    // private final NotificationService notificationService;
+    private final NotificationService notificationService;
 
     /**
      * 팀 생성 제한 상수 (LEADER 역할로 생성 가능한 최대 팀 개수)
@@ -76,43 +78,6 @@ public class TeamService {
                 saved.getName(),
                 saved.getDescription()
         );
-    }
-
-    /**
-     * 팀 가입 (공개 팀만 가능)
-     * - 비공개 팀은 초대를 통해서만 가입 가능
-     * @param teamId 팀 ID
-     * @param memberId 회원 ID
-     */
-    @Transactional
-    public void joinTeam(Long teamId, Long memberId) {
-        // 팀 조회
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-
-        // 비공개 팀은 직접 가입 불가 (초대만 가능)
-        if (team.getIsPrivate()) {
-            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
-        }
-
-        // 회원 조회
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
-
-        // 이미 팀에 속해있는지 확인
-        boolean alreadyMember = teamMemberRepository.existsByTeamIdAndMemberId(teamId, memberId);
-        if (alreadyMember) {
-            throw new CustomException(CustomResponseStatus.ALREADY_TEAM_MEMBER);
-        }
-
-        // 팀 가입
-        TeamMember teamMember = TeamMember.builder()
-                .team(team)
-                .member(member)
-                .role(TeamRole.MEMBER)
-                .build();
-
-        teamMemberRepository.save(teamMember);
     }
 
     /**
@@ -343,11 +308,6 @@ public class TeamService {
         // 팀에 멤버 추가
         TeamMember teamMember = TeamMember.createMember(team, invitedMember);
         TeamMember savedTeamMember = teamMemberRepository.save(teamMember);
-
-        // TODO: 웹서비스 자체 알림 시스템을 통해 초대 알림 발송
-        // 알림 서비스가 구현되면 여기서 호출
-        // notificationService.sendTeamInvitationNotification(invitedMember.getId(), team.getId(), team.getName());
-
         return InviteMemberResponse.from(savedTeamMember);
     }
 
@@ -358,18 +318,31 @@ public class TeamService {
      */
     @Transactional
     public void leaveTeam(Long teamId, Long memberId) {
-
-        // 팀 멤버십 조회
         TeamMember teamMember = teamMemberRepository.findByTeamIdAndMemberId(teamId, memberId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_MEMBER_NOT_FOUND));
 
-        // 리더는 탈퇴 불가
         if (teamMember.getRole() == TeamRole.LEADER) {
             throw new CustomException(CustomResponseStatus.TEAM_LEADER_CANNOT_LEAVE);
         }
 
-        // 팀 멤버십 삭제
+        Team team = teamMember.getTeam();
+        Member member = teamMember.getMember();
+
         teamMemberRepository.delete(teamMember);
+
+        // 팀장에게 알림
+        teamMemberRepository.findLeaderIdByTeamId(teamId).ifPresent(leaderId ->
+                notificationService.createNotification(
+                        leaderId,
+                        NotificationType.MEMBER_LEFT,
+                        Map.of(
+                                "teamId", team.getId(),
+                                "teamName", team.getName(),
+                                "memberId", member.getId(),
+                                "memberName", member.getHandle()
+                        )
+                )
+        );
     }
 
     /**
@@ -471,13 +444,4 @@ public class TeamService {
                 .map(Tag::getKey)
                 .toList();
     }
-
-    // TODO: 알림 시스템 구현 후 활성화
-    // /**
-    //  * 초대 알림 발송
-    //  */
-    // private void sendInvitationNotification(Long memberId, Long teamId, String teamName) {
-    //     // 웹서비스 자체 알림 시스템을 통해 알림 발송
-    //     // notificationService.createNotification(memberId, NotificationType.TEAM_INVITATION, teamId, teamName);
-    // }
 }

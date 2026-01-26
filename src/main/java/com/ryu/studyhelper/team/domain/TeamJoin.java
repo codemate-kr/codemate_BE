@@ -63,6 +63,17 @@ public class TeamJoin extends BaseEntity {
                 .build();
     }
 
+    public static TeamJoin createApplication(Team team, Member applicant) {
+        return TeamJoin.builder()
+                .team(team)
+                .type(TeamJoinType.APPLICATION)
+                .requester(applicant)
+                .targetMember(null)
+                .status(TeamJoinStatus.PENDING)
+                .expiresAt(LocalDateTime.now().plusDays(INVITATION_EXPIRE_DAYS))
+                .build();
+    }
+
     public void accept() {
         this.status = TeamJoinStatus.ACCEPTED;
         this.processedAt = LocalDateTime.now();

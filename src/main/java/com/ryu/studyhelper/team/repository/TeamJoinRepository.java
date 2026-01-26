@@ -22,4 +22,10 @@ public interface TeamJoinRepository extends JpaRepository<TeamJoin, Long> {
 
     boolean existsByTeamIdAndTargetMemberIdAndTypeAndStatus(
             Long teamId, Long targetMemberId, TeamJoinType type, TeamJoinStatus status);
+
+    boolean existsByTeamIdAndRequesterIdAndTypeAndStatus(
+            Long teamId, Long requesterId, TeamJoinType type, TeamJoinStatus status);
+
+    List<TeamJoin> findByTeamIdAndTypeAndStatusAndExpiresAtAfter(
+            Long teamId, TeamJoinType type, TeamJoinStatus status, LocalDateTime now);
 }
