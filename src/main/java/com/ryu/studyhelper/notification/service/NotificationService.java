@@ -61,6 +61,7 @@ public class NotificationService {
         }
 
         notification.markAsRead();
+        notificationRepository.save(notification);
     }
 
     @Transactional
@@ -78,6 +79,7 @@ public class NotificationService {
         }
 
         notification.softDelete();
+        notificationRepository.save(notification);
     }
 
     @Transactional
