@@ -5,6 +5,7 @@ import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
+import com.ryu.studyhelper.notification.service.NotificationService;
 import com.ryu.studyhelper.team.domain.*;
 import com.ryu.studyhelper.team.dto.request.TeamJoinInviteRequest;
 import com.ryu.studyhelper.team.dto.response.TeamJoinResponse;
@@ -45,6 +46,8 @@ class TeamJoinServiceTest {
     private MemberRepository memberRepository;
     @Mock
     private MailSendService mailSendService;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private TeamJoinService teamJoinService;
