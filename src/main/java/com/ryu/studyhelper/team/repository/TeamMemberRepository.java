@@ -67,4 +67,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            where tm.team.id = :teamId
            """)
     List<Member> findMembersByTeamId(Long teamId);
+
+    /**
+     * 특정 팀의 리더 ID 조회
+     */
+    @Query("""
+           select tm.member.id
+           from TeamMember tm
+           where tm.team.id = :teamId and tm.role = 'LEADER'
+           """)
+    Optional<Long> findLeaderIdByTeamId(Long teamId);
 }
