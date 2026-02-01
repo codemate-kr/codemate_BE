@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.solvedac.api;
+package com.ryu.studyhelper.solvedac.client;
 
 import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
 import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
