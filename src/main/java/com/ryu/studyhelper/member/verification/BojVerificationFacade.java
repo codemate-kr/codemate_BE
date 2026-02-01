@@ -6,7 +6,7 @@ import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.verification.dto.GenerateHashResponse;
 import com.ryu.studyhelper.member.verification.dto.VerifyBojResponse;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.solvedac.api.SolvedAcClient;
+import com.ryu.studyhelper.solvedac.client.SolvedAcClient;
 import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
