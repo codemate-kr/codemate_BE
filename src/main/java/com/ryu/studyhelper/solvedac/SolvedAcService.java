@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -90,9 +89,10 @@ public class SolvedAcService {
         }
 
         log.debug("solved.ac 추천 쿼리: {}", query);
-        ProblemSearchResponse response = solvedAcClient.searchProblems(query, count);
+        ProblemSearchResponse response = solvedAcClient.searchProblems(query, "random", "asc");
         return response.items().stream()
                 .map(ProblemInfo::withUrl)
+                .limit(count)  // Service에서 개수 제한
                 .toList();
     }
 
@@ -131,13 +131,6 @@ public class SolvedAcService {
         return "(" + tagConditions + ")";
     }
 
-    public List<ProblemInfo> fetchSolvedProblems(String handle) {
-        ProblemSearchResponse response = solvedAcClient.getSolvedProblemsRaw(handle);
-        return response.items().stream()
-                .map(ProblemInfo::withUrl)
-                .toList();
-    }
-
     /**
      * 특정 사용자가 특정 문제를 풀었는지 확인
      * @param handle 사용자 핸들
@@ -146,7 +139,11 @@ public class SolvedAcService {
      */
     public boolean hasUserSolvedProblem(String handle, Long problemId) {
         try {
-            return solvedAcClient.hasUserSolvedProblem(handle, problemId);
+            // 쿼리 조합: 문제 ID와 사용자 해결 여부 조건
+            String query = "id:" + problemId + " s@" + handle;
+            ProblemSearchResponse response = solvedAcClient.searchProblems(query, "id", "asc");
+            // 결과 판단: 검색 결과가 있으면 해결한 것
+            return response.items() != null && !response.items().isEmpty();
         } catch (Exception e) {
             log.error("Failed to check if user {} solved problem {}", handle, problemId, e);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
@@ -155,20 +152,4 @@ public class SolvedAcService {
 
 
 
-
-
-
-
-    /**
-     * solved ac api 응답 시간 측정용
-     * */
-    public List<ProblemInfo> recommendTest(List<String> handles, int totalCount) {
-        List<ProblemInfo> results = new ArrayList<>();
-
-        int retry = 0;
-        for(int i=0;i<10;i++){
-            results.addAll(recommendUnsolvedProblems(handles, totalCount));
-        }
-        return results;
-    }
 }

@@ -1,18 +1,12 @@
 package com.ryu.studyhelper.solvedac.api;
 
 import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.solvedac.dto.SolvedAcUserResponse;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import java.time.Duration;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+
 import java.util.Map;
 
 @Component
@@ -20,20 +14,7 @@ public class SolvedAcClient {
     private final RestClient rest;
 
     public SolvedAcClient() {
-//        PoolingHttpClientConnectionManager pool = PoolingHttpClientConnectionManagerBuilder.create()
-//                .setMaxConnTotal(200)
-//                .setMaxConnPerRoute(50)
-//                .build();
-//        CloseableHttpClient http = HttpClients.custom()
-//                .setConnectionManager(pool)
-//                .evictExpiredConnections()
-//                .build();
-//        HttpComponentsClientHttpRequestFactory rf = new HttpComponentsClientHttpRequestFactory(http);
-//        rf.setConnectTimeout(Duration.ofSeconds(5));
-//        rf.setReadTimeout(Duration.ofSeconds(5));
-
         this.rest = RestClient.builder()
-//                .requestFactory(rf)
                 .baseUrl("https://solved.ac/api/v3")
                 .defaultHeader("User-Agent", "studyhelper/1.0")
                 .build();
@@ -59,44 +40,19 @@ public class SolvedAcClient {
     }
 
 
-    public ProblemSearchResponse searchProblems(String query, int count) {
-        ProblemSearchResponse resp = get("/search/problem", Map.of(
-                "query", query,
-                "sort", "random",
-                "direction", "asc"
-        ), ProblemSearchResponse.class);
-
-        //count개 만 리턴
-        var limited = resp.items().stream()
-                .map(ProblemInfo::withUrl)
-                .limit(count)
-                .toList();
-
-        return new ProblemSearchResponse(limited);
-    }
-
-
-
-    public ProblemSearchResponse getSolvedProblemsRaw(String handle) {
-        return get("/search/problem", Map.of(
-                "query", "s@" + handle,
-                "sort", "id",
-                "direction", "asc"
-        ), ProblemSearchResponse.class);
-    }
-
     /**
-     * 특정 사용자가 특정 문제를 풀었는지 확인
-     * @param handle 사용자 핸들
-     * @param problemId 문제 번호
-     * @return 해결 여부
+     * 문제 검색 API 호출 (순수 HTTP 호출만 담당)
+     * @param query 검색 쿼리
+     * @param sort 정렬 기준 (id, level, title, solved, random 등)
+     * @param direction 정렬 방향 (asc, desc)
+     * @return API 응답 원본
      */
-    public boolean hasUserSolvedProblem(String handle, Long problemId) {
-        // solved.ac 쿼리에서 조건은 공백으로 구분 (URL에서 +는 공백으로 해석됨)
-        ProblemSearchResponse resp = get("/search/problem", Map.of(
-                "query", "id:" + problemId + " s@" + handle
+    public ProblemSearchResponse searchProblems(String query, String sort, String direction) {
+        return get("/search/problem", Map.of(
+                "query", query,
+                "sort", sort,
+                "direction", direction
         ), ProblemSearchResponse.class);
-        return resp.items() != null && !resp.items().isEmpty();
     }
 
     /**
