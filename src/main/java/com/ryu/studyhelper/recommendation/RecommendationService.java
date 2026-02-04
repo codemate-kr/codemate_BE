@@ -2,8 +2,9 @@ package com.ryu.studyhelper.recommendation;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
 import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.recommendation.mail.RecommendationMailBuilder;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;
 import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
@@ -64,7 +65,8 @@ public class RecommendationService {
     private final ProblemTagRepository problemTagRepository;
     private final ProblemService problemService;
     private final ProblemSyncService problemSyncService;
-    private final MailSendService mailSendService;
+    private final MailSender mailSender;
+    private final RecommendationMailBuilder recommendationMailBuilder;
 
     // 신규 추천 시스템
     private final RecommendationRepository recommendationRepository;
@@ -119,7 +121,8 @@ public class RecommendationService {
                     continue;
                 }
 
-                mailSendService.sendMemberRecommendationEmail(memberRecommendation);
+                mailSender.send(recommendationMailBuilder.build(memberRecommendation));
+
                 memberRecommendation.markEmailAsSent();
                 memberRecommendationRepository.save(memberRecommendation);
             } catch (Exception e) {
@@ -307,7 +310,8 @@ public class RecommendationService {
                 }
 
                 // 개별 회원에게 이메일 발송
-                mailSendService.sendMemberRecommendationEmail(memberRecommendation);
+                mailSender.send(recommendationMailBuilder.build(memberRecommendation));
+
                 memberRecommendation.markEmailAsSent();
                 memberRecommendationRepository.save(memberRecommendation);
 

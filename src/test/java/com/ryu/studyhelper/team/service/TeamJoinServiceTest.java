@@ -2,7 +2,8 @@ package com.ryu.studyhelper.team.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
+import com.ryu.studyhelper.team.mail.InvitationMailBuilder;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.notification.service.NotificationService;
@@ -45,7 +46,9 @@ class TeamJoinServiceTest {
     @Mock
     private MemberRepository memberRepository;
     @Mock
-    private MailSendService mailSendService;
+    private MailSender mailSender;
+    @Mock
+    private InvitationMailBuilder invitationMailBuilder;
     @Mock
     private NotificationService notificationService;
 
@@ -95,7 +98,7 @@ class TeamJoinServiceTest {
             // then
             assertThat(response.teamId()).isEqualTo(1L);
             assertThat(response.status()).isEqualTo(TeamJoinStatus.PENDING);
-            verify(mailSendService).sendTeamInvitationEmail(any(TeamJoin.class));
+            verify(mailSender).send(any());
         }
 
         @Test
