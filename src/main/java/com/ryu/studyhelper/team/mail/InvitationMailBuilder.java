@@ -30,7 +30,7 @@ public class InvitationMailBuilder {
     public MailMessage build(TeamJoin teamJoin) {
         String to = teamJoin.getTargetMember().getEmail();
         String teamName = teamJoin.getTeam().getName();
-        String subject = String.format("[Codemate] '%s' 팀에 초대되었습니다", teamName);
+        String subject = String.format("[CodeMate] '%s' 팀에 초대되었습니다", teamName);
 
         Context context = new Context();
         context.setVariable("teamName", teamName);
