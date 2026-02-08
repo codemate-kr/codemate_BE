@@ -1,10 +1,9 @@
 package com.ryu.studyhelper.problem.service;
 
 
-import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
-import com.ryu.studyhelper.solvedac.SolvedAcService;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
