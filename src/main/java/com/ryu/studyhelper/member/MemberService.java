@@ -109,6 +109,11 @@ public class MemberService {
      * @param newEmail 변경할 이메일
      */
     public void sendEmailVerification(Long memberId, String newEmail) {
+        // 0. 이메일 유효성 확인
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new CustomException(CustomResponseStatus.INVALID_EMAIL);
+        }
+
         // 1. 이메일 중복 확인
         if (!isEmailAvailable(newEmail)) {
             throw new CustomException(CustomResponseStatus.EMAIL_ALREADY_EXISTS);

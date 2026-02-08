@@ -19,12 +19,6 @@ public class EmailChangeMailBuilder {
      * 이메일 변경 인증 메일 생성
      */
     public MailMessage build(String newEmail, String verificationUrl) {
-        if (newEmail == null || newEmail.isBlank()) {
-            throw new IllegalArgumentException("newEmail은 필수입니다");
-        }
-        if (verificationUrl == null || verificationUrl.isBlank()) {
-            throw new IllegalArgumentException("verificationUrl은 필수입니다");
-        }
         String subject = "[CodeMate] 이메일 변경 인증";
 
         Context context = new Context();

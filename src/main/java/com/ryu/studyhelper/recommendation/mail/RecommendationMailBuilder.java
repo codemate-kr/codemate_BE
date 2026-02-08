@@ -3,6 +3,7 @@ package com.ryu.studyhelper.recommendation.mail;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailMessage;
 import com.ryu.studyhelper.infrastructure.mail.support.CssInliner;
 import com.ryu.studyhelper.problem.domain.Problem;
+import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.thymeleaf.context.Context;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -61,21 +63,11 @@ public class RecommendationMailBuilder {
         context.setVariable("recommendationDate", date);
         context.setVariable("teamPageUrl", frontendUrl + "/teams/" + teamId);
 
-        List<ProblemView> problems = mr.getRecommendation().getProblems().stream()
-                .map(rp -> {
-                    Problem p = rp.getProblem();
-                    int order = mr.getRecommendation().getProblems().indexOf(rp) + 1;
-                    return new ProblemView(
-                            order,
-                            p.getTitleKo(),
-                            p.getLevel(),
-                            p.getUrl(),
-                            p.getId(),
-                            p.getAcceptedUserCount(),
-                            p.getAverageTries()
-                    );
-                })
-                .toList();
+        List<RecommendationProblem> rps = mr.getRecommendation().getProblems();
+        List<ProblemView> problems = new ArrayList<>();
+        for (int i = 0; i < rps.size(); i++) {
+            problems.add(ProblemView.from(i + 1, rps.get(i).getProblem()));
+        }
         context.setVariable("problems", problems);
 
         try {
@@ -107,6 +99,18 @@ public class RecommendationMailBuilder {
             Integer acceptedUserCount,
             Double averageTries
     ) {
+        static ProblemView from(int order, Problem p) {
+            return new ProblemView(
+                    order,
+                    p.getTitleKo(),
+                    p.getLevel(),
+                    p.getUrl(),
+                    p.getId(),
+                    p.getAcceptedUserCount(),
+                    p.getAverageTries()
+            );
+        }
+
         private static final String[] TIER_NAMES = {
             "Bronze V", "Bronze IV", "Bronze III", "Bronze II", "Bronze I",
             "Silver V", "Silver IV", "Silver III", "Silver II", "Silver I",

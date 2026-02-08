@@ -73,7 +73,12 @@ public class TeamJoinService {
 
         // 이메일 발송
         try {
-            mailSender.send(invitationMailBuilder.build(saved));
+            String targetEmail = targetMember.getEmail();
+            if (targetEmail == null || targetEmail.isBlank()) {
+                log.warn("초대 대상 회원 ID {}에 이메일이 없습니다", targetMember.getId());
+            } else {
+                mailSender.send(invitationMailBuilder.build(saved));
+            }
         } catch (Exception e) {
             log.warn("초대 이메일 발송 실패 (teamJoinId={}): {}", saved.getId(), e.getMessage());
         }
