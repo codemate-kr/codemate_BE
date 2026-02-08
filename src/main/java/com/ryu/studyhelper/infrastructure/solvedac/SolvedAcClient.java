@@ -117,7 +117,7 @@ public class SolvedAcClient {
      */
     public boolean hasUserSolvedProblem(String handle, Long problemId) {
         try {
-            String query = "id:" + problemId + " s@" + handle;
+            String query = "id:" + problemId + "+s@" + handle;
             ProblemSearchResponse response = solvedAcRestClient.searchProblems(query, "id", "asc");
             return response.items() != null && !response.items().isEmpty();
         } catch (Exception e) {
