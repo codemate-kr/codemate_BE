@@ -8,7 +8,7 @@ import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.solvedac.SolvedAcService;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +54,7 @@ class MemberServiceTest {
     private TeamMemberRepository teamMemberRepository;
 
     @Mock
-    private SolvedAcService solvedAcService;
+    private SolvedAcClient solvedAcClient;
 
     private Member member;
     private Problem problem;
@@ -89,7 +89,7 @@ class MemberServiceTest {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
-            given(solvedAcService.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
+            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -166,7 +166,7 @@ class MemberServiceTest {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
-            given(solvedAcService.hasUserSolvedProblem("testuser", 1000L)).willReturn(false);
+            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> memberService.verifyProblemSolved(1L, 1000L))
@@ -269,7 +269,7 @@ class MemberServiceTest {
                     problemRepository,
                     memberSolvedProblemRepository,
                     teamMemberRepository,
-                    solvedAcService,
+                    solvedAcClient,
                     null, // jwtUtil
                     null, // mailSendService
                     clock
@@ -374,7 +374,7 @@ class MemberServiceTest {
         void setUp() {
             service = new MemberService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+                    teamMemberRepository, solvedAcClient, null, null, Clock.systemDefaultZone()
             );
         }
 

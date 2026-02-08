@@ -1,33 +1,34 @@
-package com.ryu.studyhelper.solvedac;
+package com.ryu.studyhelper.infrastructure.solvedac;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.solvedac.client.SolvedAcClient;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
-import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
-import com.ryu.studyhelper.solvedac.dto.SolvedAcUserResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.client.SolvedAcRestClient;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 
-@Service
+@Component
 @Slf4j
 @RequiredArgsConstructor
-public class SolvedAcService {
+public class SolvedAcClient {
     private static final int MIN_LEVEL = 1;
     private static final int MAX_LEVEL = 30;
     private static final int MIN_SOLVED_COUNT = 1000;
 
-    private final SolvedAcClient solvedAcClient;
+    private final SolvedAcRestClient solvedAcRestClient;
 
     public SolvedAcUserResponse getUserInfo(String handle) {
         try {
-            return solvedAcClient.getUserInfo(handle);
+            return solvedAcRestClient.getUserInfo(handle);
         } catch (HttpClientErrorException.NotFound e) {
             log.info("solved.ac user not found: {}", handle);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
@@ -52,7 +53,7 @@ public class SolvedAcService {
             String query = buildRecommendQuery(handles, minLevel, maxLevel, tagKeys);
             log.debug("solved.ac 추천 쿼리: {}", query);
 
-            ProblemSearchResponse response = solvedAcClient.searchProblems(query, "random", "asc");
+            ProblemSearchResponse response = solvedAcRestClient.searchProblems(query, "random", "asc");
             if (response.items() == null) {
                 return List.of();
             }
@@ -97,12 +98,27 @@ public class SolvedAcService {
     }
 
     /**
+     * 백준 핸들 인증용 사용자 bio 조회
+     */
+    public SolvedAcUserBioResponse getUserBio(String handle) {
+        try {
+            return solvedAcRestClient.getUserBio(handle);
+        } catch (HttpClientErrorException.NotFound e) {
+            log.info("solved.ac user not found: {}", handle);
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        } catch (Exception e) {
+            log.error("Failed to fetch user bio from solved.ac: {}", handle, e);
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
+        }
+    }
+
+    /**
      * 특정 사용자가 특정 문제를 풀었는지 확인
      */
     public boolean hasUserSolvedProblem(String handle, Long problemId) {
         try {
             String query = "id:" + problemId + " s@" + handle;
-            ProblemSearchResponse response = solvedAcClient.searchProblems(query, "id", "asc");
+            ProblemSearchResponse response = solvedAcRestClient.searchProblems(query, "id", "asc");
             return response.items() != null && !response.items().isEmpty();
         } catch (Exception e) {
             log.error("Failed to check if user {} solved problem {}", handle, problemId, e);

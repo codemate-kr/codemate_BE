@@ -5,6 +5,7 @@ import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
@@ -14,7 +15,6 @@ import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.solvedac.SolvedAcService;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class MemberService {
     private final ProblemRepository problemRepository;
     private final MemberSolvedProblemRepository memberSolvedProblemRepository;
     private final TeamMemberRepository teamMemberRepository;
-    private final SolvedAcService solvedacService;
+    private final SolvedAcClient solvedAcClient;
     private final JwtUtil jwtUtil;
     private final MailSendService mailSendService;
     private final Clock clock;
@@ -83,7 +83,7 @@ public class MemberService {
      */
     public Member verifySolvedAcHandle(Long memberId, String handle) {
         // 1. solved.ac에 존재하는지 확인 (예외 발생 시 검증 실패)
-        solvedacService.getUserInfo(handle);
+        solvedAcClient.getUserInfo(handle);
 
         // 2. 회원 엔티티에 핸들 저장 (중복 허용, isVerified는 false 유지)
         Member member = getById(memberId);
@@ -191,7 +191,7 @@ public class MemberService {
         }
 
         // 5. solved.ac API로 실제 해결 여부 검증
-        boolean isSolved = solvedacService.hasUserSolvedProblem(member.getHandle(), problemId);
+        boolean isSolved = solvedAcClient.hasUserSolvedProblem(member.getHandle(), problemId);
 
         if (!isSolved) {
             throw new CustomException(CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);

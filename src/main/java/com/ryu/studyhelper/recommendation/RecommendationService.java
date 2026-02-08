@@ -24,7 +24,7 @@ import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.domain.Team;

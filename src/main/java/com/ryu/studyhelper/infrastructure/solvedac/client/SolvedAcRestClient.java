@@ -1,8 +1,8 @@
-package com.ryu.studyhelper.solvedac.client;
+package com.ryu.studyhelper.infrastructure.solvedac.client;
 
-import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
-import com.ryu.studyhelper.solvedac.dto.ProblemSearchResponse;
-import com.ryu.studyhelper.solvedac.dto.SolvedAcUserResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -10,10 +10,10 @@ import org.springframework.web.client.RestClient;
 import java.util.Map;
 
 @Component
-public class SolvedAcClient {
+public class SolvedAcRestClient {
     private final RestClient rest;
 
-    public SolvedAcClient() {
+    public SolvedAcRestClient() {
         this.rest = RestClient.builder()
                 .baseUrl("https://solved.ac/api/v3")
                 .defaultHeader("User-Agent", "studyhelper/1.0")
@@ -60,8 +60,8 @@ public class SolvedAcClient {
      * @param handle 백준 핸들
      * @return 핸들과 bio 정보
      */
-    public BojVerificationDto getUserBio(String handle) {
-        return get("/user/show", Map.of("handle", handle), BojVerificationDto.class);
+    public SolvedAcUserBioResponse getUserBio(String handle) {
+        return get("/user/show", Map.of("handle", handle), SolvedAcUserBioResponse.class);
     }
 
 }

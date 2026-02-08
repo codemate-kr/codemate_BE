@@ -1,6 +1,6 @@
 package com.ryu.studyhelper.problem.dto;
 
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 
 import java.util.List;
 

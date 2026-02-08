@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.solvedac.dto;
+package com.ryu.studyhelper.infrastructure.solvedac.dto;
 
 public record SolvedAcVerificationResponse(
         String handle,

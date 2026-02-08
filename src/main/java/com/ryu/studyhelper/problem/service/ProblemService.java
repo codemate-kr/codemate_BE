@@ -3,10 +3,10 @@ package com.ryu.studyhelper.problem.service;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
 import com.ryu.studyhelper.problem.dto.TeamProblemRecommendResponse;
-import com.ryu.studyhelper.solvedac.SolvedAcService;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.infrastructure.mail.dto.MailTxtSendDto;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ProblemService {
-    private final SolvedAcService solvedAcService;
+    private final SolvedAcClient solvedAcClient;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final MailSendService mailSendService;
@@ -30,7 +30,7 @@ public class ProblemService {
      * 문제 추천
      */
     public List<ProblemInfo> recommend(List<String> handles, int count, Integer minLevel, Integer maxLevel, List<String> tagKeys) {
-        return solvedAcService.recommendUnsolvedProblems(handles, count, minLevel, maxLevel, tagKeys);
+        return solvedAcClient.recommendUnsolvedProblems(handles, count, minLevel, maxLevel, tagKeys);
     }
 
     public List<ProblemInfo> recommend(ProblemRecommendRequest request, int count) {
