@@ -4,7 +4,7 @@ import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
 import com.ryu.studyhelper.problem.service.ProblemService;
-import com.ryu.studyhelper.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;

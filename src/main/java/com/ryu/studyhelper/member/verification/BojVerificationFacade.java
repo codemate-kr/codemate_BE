@@ -2,12 +2,12 @@ package com.ryu.studyhelper.member.verification;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.verification.dto.GenerateHashResponse;
 import com.ryu.studyhelper.member.verification.dto.VerifyBojResponse;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.solvedac.api.SolvedAcClient;
-import com.ryu.studyhelper.solvedac.dto.BojVerificationDto;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,7 +70,7 @@ public class BojVerificationFacade {
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.VERIFICATION_HASH_NOT_FOUND));
 
         // 4. solved.ac API에서 사용자 bio 조회
-        BojVerificationDto userInfo;
+        SolvedAcUserBioResponse userInfo;
         try {
             userInfo = solvedAcClient.getUserBio(handle);
         } catch (Exception e) {
