@@ -83,6 +83,7 @@ public enum CustomResponseStatus {
     INVALID_DAYS_RANGE(HttpStatus.BAD_REQUEST.value(), "5010", "조회 일수는 1~730일 사이여야 합니다."),
     TEAM_JOIN_EXPIRED(HttpStatus.BAD_REQUEST.value(), "5011", "만료된 요청입니다."),
     CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST.value(), "5012", "자기 자신을 초대할 수 없습니다."),
+    INVALID_EMAIL(HttpStatus.BAD_REQUEST.value(), "5013", "유효하지 않은 이메일입니다."),
 
     /***
      * 6000: Server_Error

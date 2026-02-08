@@ -271,7 +271,8 @@ class MemberServiceTest {
                     teamMemberRepository,
                     solvedAcService,
                     null, // jwtUtil
-                    null, // mailSendService
+                    null, // mailSender
+                    null, // emailChangeMailBuilder
                     clock
             );
         }
@@ -374,7 +375,7 @@ class MemberServiceTest {
         void setUp() {
             service = new MemberService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcService, null, null, Clock.systemDefaultZone()
+                    teamMemberRepository, solvedAcService, null, null, null, Clock.systemDefaultZone()
             );
         }
 
