@@ -375,7 +375,7 @@ class MemberServiceTest {
         void setUp() {
             service = new MemberService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    teamMemberRepository, solvedAcClient, null, null, Clock.systemDefaultZone()
+                    teamMemberRepository, solvedAcClient, null, null, null, Clock.systemDefaultZone()
             );
         }
 
