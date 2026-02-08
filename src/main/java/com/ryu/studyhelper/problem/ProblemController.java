@@ -1,11 +1,8 @@
 package com.ryu.studyhelper.problem;
 
-import com.ryu.studyhelper.common.dto.ApiResponse;
-import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.dto.ProblemRecommendRequest;
-import com.ryu.studyhelper.problem.dto.TeamProblemRecommendResponse;
 import com.ryu.studyhelper.problem.service.ProblemService;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,32 +69,5 @@ public class ProblemController {
         int count = (req.count() != null) ? req.count() : 1; // 기본값 1
         List<ProblemInfo> problems = problemService.recommend(req, count);
         return ResponseEntity.ok(problems);
-    }
-
-
-    @Operation(
-            summary = "문제 추천 API (팀원 전체)",
-            description = """
-                    특정 팀의 Solved.ac 핸들을 기반으로 추천 문제 목록을 반환합니다.
-                    count가 null이면 기본값은 1개입니다.
-                    """
-    )
-    @PostMapping("/recommend-team")
-//    @PreAuthorize("authentication.principal.member.verified == true")
-    public ResponseEntity<ApiResponse<TeamProblemRecommendResponse>> recommendTeam(
-            @Parameter(description = "팀 ID", example = "1")
-            @RequestParam Long teamId,
-
-            @Parameter(description = "추천 문제 개수 (기본값 1)", example = "1")
-            @RequestParam(defaultValue = "1") int count,
-            
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        Member currentUser = principalDetails.getMember();
-        log.info("User {} requesting team problem recommendations for team: {}", 
-                currentUser.getId(), teamId);
-        
-        TeamProblemRecommendResponse response = problemService.recommendTeam(teamId, count);
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }   

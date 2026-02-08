@@ -271,7 +271,8 @@ class MemberServiceTest {
                     teamMemberRepository,
                     solvedAcClient,
                     null, // jwtUtil
-                    null, // mailSendService
+                    null, // mailSender
+                    null, // emailChangeMailBuilder
                     clock
             );
         }

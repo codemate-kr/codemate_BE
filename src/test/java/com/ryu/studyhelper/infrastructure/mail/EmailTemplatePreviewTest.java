@@ -1,6 +1,6 @@
 package com.ryu.studyhelper.infrastructure.mail;
 
-import com.ryu.studyhelper.infrastructure.mail.dto.ProblemView;
+import com.ryu.studyhelper.infrastructure.mail.support.CssInliner;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class EmailTemplatePreviewTest {
     private TemplateEngine templateEngine;
 
     @Autowired
-    private CssInlinerService cssInlinerService;
+    private CssInliner cssInliner;
 
     @Test
     public void generateEmailPreview() throws IOException {
@@ -43,11 +43,11 @@ public class EmailTemplatePreviewTest {
         // 샘플 문제 데이터
         List<ProblemView> problems = List.of(
                 new ProblemView(1, "두 수의 합", 13, "https://www.acmicpc.net/problem/1000",
-                        1000L, 50000, 2.3, false),
+                        1000L, 50000, 2.3),
                 new ProblemView(2, "A+B", 1, "https://www.acmicpc.net/problem/1001",
-                        1001L, 100000, 1.5, true),
+                        1001L, 100000, 1.5),
                 new ProblemView(3, "다이나믹 프로그래밍", 20, "https://www.acmicpc.net/problem/2000",
-                        2000L, 5000, 5.8, false)
+                        2000L, 5000, 5.8)
         );
         context.setVariable("problems", problems);
 
@@ -58,7 +58,7 @@ public class EmailTemplatePreviewTest {
         String htmlContent = templateEngine.process("recommendation-email-v3", context);
 
         // CSS 인라인 변환
-        String inlinedHtml = cssInlinerService.inlineCss(htmlContent, "static/css/email-recommendation-v2.css");
+        String inlinedHtml = cssInliner.inline(htmlContent, "static/css/email-recommendation-v2.css");
 
         // 파일로 저장
         String outputPath = "build/email-preview.html";
@@ -92,5 +92,64 @@ public class EmailTemplatePreviewTest {
         System.out.println("팀 초대 이메일 미리보기 생성 완료!");
         System.out.println("파일 위치: " + outputPath);
         System.out.println("====================================");
+    }
+
+    /**
+     * 테스트용 ProblemView
+     */
+    record ProblemView(
+            int order,
+            String title,
+            int level,
+            String url,
+            Long problemId,
+            Integer acceptedUserCount,
+            Double averageTries
+    ) {
+        private static final String[] TIER_NAMES = {
+            "Bronze V", "Bronze IV", "Bronze III", "Bronze II", "Bronze I",
+            "Silver V", "Silver IV", "Silver III", "Silver II", "Silver I",
+            "Gold V", "Gold IV", "Gold III", "Gold II", "Gold I",
+            "Platinum V", "Platinum IV", "Platinum III", "Platinum II", "Platinum I",
+            "Diamond V", "Diamond IV", "Diamond III", "Diamond II", "Diamond I",
+            "Ruby V", "Ruby IV", "Ruby III", "Ruby II", "Ruby I"
+        };
+
+        private static final String[] TIER_COLORS = {
+            "#ea580c", "#ea580c", "#ea580c", "#ea580c", "#ea580c",  // Bronze
+            "#6b7280", "#6b7280", "#6b7280", "#6b7280", "#6b7280",  // Silver
+            "#ca8a04", "#ca8a04", "#ca8a04", "#ca8a04", "#ca8a04",  // Gold
+            "#0891b2", "#0891b2", "#0891b2", "#0891b2", "#0891b2",  // Platinum
+            "#2563eb", "#2563eb", "#2563eb", "#2563eb", "#2563eb",  // Diamond
+            "#dc2626", "#dc2626", "#dc2626", "#dc2626", "#dc2626"   // Ruby
+        };
+
+        private static final String[] TIER_BG_COLORS = {
+            "#fff7ed", "#fff7ed", "#fff7ed", "#fff7ed", "#fff7ed",  // Bronze
+            "#f3f4f6", "#f3f4f6", "#f3f4f6", "#f3f4f6", "#f3f4f6",  // Silver
+            "#fefce8", "#fefce8", "#fefce8", "#fefce8", "#fefce8",  // Gold
+            "#ecfeff", "#ecfeff", "#ecfeff", "#ecfeff", "#ecfeff",  // Platinum
+            "#eff6ff", "#eff6ff", "#eff6ff", "#eff6ff", "#eff6ff",  // Diamond
+            "#fef2f2", "#fef2f2", "#fef2f2", "#fef2f2", "#fef2f2"   // Ruby
+        };
+
+        public String getTierName() {
+            if (level <= 0 || level > 30) return "Unrated";
+            return TIER_NAMES[level - 1];
+        }
+
+        public String getTierColor() {
+            if (level <= 0 || level > 30) return "#6b7280";
+            return TIER_COLORS[level - 1];
+        }
+
+        public String getTierBgColor() {
+            if (level <= 0 || level > 30) return "#f3f4f6";
+            return TIER_BG_COLORS[level - 1];
+        }
+
+        public String getFormattedAverageTries() {
+            return String.format("%.1f", averageTries != null ? averageTries : 0.0);
+        }
     }
 }

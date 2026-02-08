@@ -85,3 +85,4 @@ src/main/java/com/ryu/studyhelper/
 **커밋:**
 - present-tense, imperative, 간결하게
 - prefix 사용: `member: add repository method`, `auth: fix OAuth2 callback`
+- Co-Authored-By 주석 사용 금지 (Claude에 의해 작성되었다는 표시 X)

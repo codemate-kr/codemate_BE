@@ -2,7 +2,8 @@ package com.ryu.studyhelper.recommendation;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
+import com.ryu.studyhelper.recommendation.mail.RecommendationMailBuilder;
 import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
 import com.ryu.studyhelper.problem.service.ProblemService;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
@@ -72,7 +73,10 @@ class RecommendationServiceTest {
     private ProblemSyncService problemSyncService;
 
     @Mock
-    private MailSendService mailSendService;
+    private MailSender mailSender;
+
+    @Mock
+    private RecommendationMailBuilder recommendationMailBuilder;
 
     @Mock
     private RecommendationRepository recommendationRepository;
@@ -106,7 +110,8 @@ class RecommendationServiceTest {
                 problemTagRepository,
                 problemService,
                 problemSyncService,
-                mailSendService,
+                mailSender,
+                recommendationMailBuilder,
                 recommendationRepository,
                 recommendationProblemRepository,
                 memberRecommendationRepository

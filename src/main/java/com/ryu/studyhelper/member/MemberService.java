@@ -3,9 +3,9 @@ package com.ryu.studyhelper.member;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.config.security.jwt.JwtUtil;
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
-import com.ryu.studyhelper.infrastructure.mail.dto.MailHtmlSendDto;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
+import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
+import com.ryu.studyhelper.member.mail.EmailChangeMailBuilder;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
@@ -43,7 +43,8 @@ public class MemberService {
     private final TeamMemberRepository teamMemberRepository;
     private final SolvedAcClient solvedAcClient;
     private final JwtUtil jwtUtil;
-    private final MailSendService mailSendService;
+    private final MailSender mailSender;
+    private final EmailChangeMailBuilder emailChangeMailBuilder;
     private final Clock clock;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")
@@ -108,6 +109,11 @@ public class MemberService {
      * @param newEmail 변경할 이메일
      */
     public void sendEmailVerification(Long memberId, String newEmail) {
+        // 0. 이메일 유효성 확인
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new CustomException(CustomResponseStatus.INVALID_EMAIL);
+        }
+
         // 1. 이메일 중복 확인
         if (!isEmailAvailable(newEmail)) {
             throw new CustomException(CustomResponseStatus.EMAIL_ALREADY_EXISTS);
@@ -122,18 +128,8 @@ public class MemberService {
         // 4. 인증 URL 생성
         String verificationUrl = frontendUrl + "/verify-email?token=" + token;
 
-        // 5. 이메일 발송 (전용 템플릿 사용)
-        MailHtmlSendDto mailDto = MailHtmlSendDto.builder()
-                .emailAddr(newEmail)
-                .subject("[CodeMate] 이메일 변경 인증")
-                .content("아래 버튼을 클릭하여 이메일 변경을 완료해주세요. 링크는 5분간 유효합니다.")
-                .target("user")
-                .buttonUrl(verificationUrl)
-                .buttonText("이메일 인증하기")
-                .templateName("email-change-template")
-                .build();
-
-        mailSendService.sendHtmlEmail(mailDto);
+        // 5. 이메일 발송
+        mailSender.send(emailChangeMailBuilder.build(newEmail, verificationUrl));
     }
 
     /**

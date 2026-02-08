@@ -2,7 +2,8 @@ package com.ryu.studyhelper.team.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.infrastructure.mail.MailSendService;
+import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
+import com.ryu.studyhelper.team.mail.InvitationMailBuilder;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.notification.domain.NotificationType;
@@ -31,7 +32,8 @@ public class TeamJoinService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final MemberRepository memberRepository;
-    private final MailSendService mailSendService;
+    private final MailSender mailSender;
+    private final InvitationMailBuilder invitationMailBuilder;
     private final NotificationService notificationService;
 
     @Transactional
@@ -71,7 +73,12 @@ public class TeamJoinService {
 
         // 이메일 발송
         try {
-            mailSendService.sendTeamInvitationEmail(saved);
+            String targetEmail = targetMember.getEmail();
+            if (targetEmail == null || targetEmail.isBlank()) {
+                log.warn("초대 대상 회원 ID {}에 이메일이 없습니다", targetMember.getId());
+            } else {
+                mailSender.send(invitationMailBuilder.build(saved));
+            }
         } catch (Exception e) {
             log.warn("초대 이메일 발송 실패 (teamJoinId={}): {}", saved.getId(), e.getMessage());
         }
