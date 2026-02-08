@@ -22,7 +22,7 @@ public class SolvedAcRestClient {
 
 
 
-    private <T> T get(String path, Map<String, String> params, Class<T> ResponseType) {
+    private <T> T get(String path, Map<String, String> params, Class<T> responseType) {
         return rest.get()
                 .uri(b -> {
                     var ub = b.path(path);
@@ -31,7 +31,7 @@ public class SolvedAcRestClient {
                 })
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
-                .body(ResponseType);
+                .body(responseType);
     }
 
 
