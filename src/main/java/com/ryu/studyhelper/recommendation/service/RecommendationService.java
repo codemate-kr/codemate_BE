@@ -78,15 +78,6 @@ public class RecommendationService {
     }
 
     /**
-     * 특정 팀의 오늘 추천 조회 (사용자별 해결 여부 포함)
-     */
-    @Transactional(readOnly = true)
-    public TodayProblemResponse getTodayRecommendation(Long teamId, Long memberId) {
-        return findTodayRecommendation(teamId, memberId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.RECOMMENDATION_NOT_FOUND));
-    }
-
-    /**
      * 특정 팀의 오늘 추천 조회 (Optional 반환)
      */
     @Transactional(readOnly = true)

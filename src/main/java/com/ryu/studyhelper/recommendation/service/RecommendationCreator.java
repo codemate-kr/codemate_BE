@@ -1,5 +1,7 @@
 package com.ryu.studyhelper.recommendation.service;
 
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
@@ -79,7 +81,7 @@ class RecommendationCreator {
         List<String> handles = teamMemberRepository.findHandlesByTeamId(team.getId());
         if (handles.isEmpty()) {
             log.warn("팀 '{}'에 인증된 핸들이 없습니다", team.getName());
-            throw new IllegalStateException("인증된 핸들이 없습니다");
+            throw new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE);
         }
 
         List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(team.getId());

@@ -7,7 +7,6 @@ import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.dto.response.RecommendationDetailResponse;
-import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -55,37 +54,6 @@ public class RecommendationController {
         RecommendationDetailResponse response =
                 recommendationService.createManualRecommendation(teamId);
 
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    @Deprecated
-    @Operation(
-            summary = "오늘의 문제 조회 (Deprecated)",
-            description = """
-                    **Deprecated**: `/api/recommendation/my/today-problems` 사용 권장
-
-                    특정 팀의 오늘 추천된 문제를 조회합니다.
-                    가장 최근 추천(수동 추천 우선)을 반환합니다.
-                    로그인한 사용자의 경우 해결 여부(isSolved)가 포함됩니다.
-                    비로그인 시 isSolved는 null입니다.
-                    """,
-            deprecated = true
-    )
-    @GetMapping("/team/{teamId}/today-problem")
-    public ResponseEntity<ApiResponse<TodayProblemResponse>> getTodayRecommendation(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
-
-        if (memberId != null) {
-            log.info("사용자 {}가 팀 {}의 오늘의 문제 조회", memberId, teamId);
-        } else {
-            log.info("비로그인 사용자가 팀 {}의 오늘의 문제 조회", teamId);
-        }
-
-        TodayProblemResponse response = recommendationService.getTodayRecommendation(teamId, memberId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 

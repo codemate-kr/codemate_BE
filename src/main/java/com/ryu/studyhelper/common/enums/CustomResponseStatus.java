@@ -90,7 +90,8 @@ public enum CustomResponseStatus {
      */
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "6000", "내부 서버 오류입니다."),
     ASYNC_COMPLETION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "6001", "비동기 작업에서 오류가 발생하였습니다."),
-    SOLVED_AC_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "6002", "solved.ac API 호출에 실패했습니다.");
+    SOLVED_AC_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "6002", "solved.ac API 호출에 실패했습니다."),
+    NO_VERIFIED_HANDLE(HttpStatus.BAD_REQUEST.value(), "6003", "팀에 인증된 핸들이 없어 추천을 생성할 수 없습니다.");
 
 
     private final int httpStatusCode;
