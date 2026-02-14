@@ -35,7 +35,7 @@ public class EmailSendScheduler {
 
         } catch (Exception e) {
             long endTime = System.currentTimeMillis();
-                log.error("=== 이메일 발송 배치 작업 실패 === (소요시간: {}ms)", endTime - startTime, e);
+            log.error("=== 이메일 발송 배치 작업 실패 === (소요시간: {}ms)", endTime - startTime, e);
         }
     }
 
