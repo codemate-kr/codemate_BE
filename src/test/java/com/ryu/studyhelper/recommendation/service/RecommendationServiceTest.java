@@ -71,6 +71,7 @@ class RecommendationServiceTest {
 
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final Long TEAM_ID = 1L;
+    private static final Long MEMBER_ID = 100L;
 
     private Clock fixedClock(String dateTime) {
         LocalDateTime ldt = LocalDateTime.parse(dateTime);
@@ -263,36 +264,6 @@ class RecommendationServiceTest {
     }
 
     @Nested
-    @DisplayName("이메일 즉시 발송 시간 검증")
-    class EmailSendableTimeValidation {
-
-        @ParameterizedTest
-        @CsvSource({
-                "2025-01-15T09:00:00, true",
-                "2025-01-15T12:00:00, true",
-                "2025-01-15T23:59:59, true",
-                "2025-01-15T00:00:00, true",
-                "2025-01-15T00:59:59, true",
-                "2025-01-15T02:00:00, false",
-                "2025-01-15T05:00:00, false",
-                "2025-01-15T08:59:59, false"
-        })
-        @DisplayName("시간대별 이메일 즉시 발송 여부 로직 검증")
-        void emailSendableTime_correctBehavior(String dateTime, boolean shouldSendImmediately) {
-            // isEmailSendableTime() 로직 검증
-            LocalDateTime time = LocalDateTime.parse(dateTime);
-            java.time.LocalTime localTime = time.toLocalTime();
-
-            java.time.LocalTime emailStart = java.time.LocalTime.of(9, 0);
-            java.time.LocalTime blockedStart = java.time.LocalTime.of(1, 0);
-
-            boolean result = !localTime.isBefore(emailStart) || localTime.isBefore(blockedStart);
-
-            assertThat(result).isEqualTo(shouldSendImmediately);
-        }
-    }
-
-    @Nested
     @DisplayName("수동 추천 problemCount 검증")
     class ManualRecommendationProblemCountValidation {
 
@@ -323,10 +294,6 @@ class RecommendationServiceTest {
     @DisplayName("내 오늘의 문제 전체 조회 (getMyTodayProblems)")
     class GetMyTodayProblemsValidation {
 
-        private static final Long MEMBER_ID = 100L;
-        private static final Long TEAM_ID_1 = 1L;
-        private static final Long TEAM_ID_2 = 2L;
-
         @Test
         @DisplayName("팀에 속하지 않은 유저는 빈 목록을 반환한다")
         void noTeams_returnsEmptyList() {
@@ -352,11 +319,11 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithId(TEAM_ID_1);
+            Team team = createTeamWithId(TEAM_ID);
             TeamMember teamMember = createTeamMember(team, MEMBER_ID);
 
             when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.empty());
 
             // when
@@ -373,17 +340,17 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithIdAndName(TEAM_ID_1, "알고리즘 스터디");
+            Team team = createTeamWithIdAndName(TEAM_ID, "알고리즘 스터디");
             TeamMember teamMember = createTeamMember(team, MEMBER_ID);
 
             Recommendation recommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID_1,
+                    TEAM_ID,
                     LocalDateTime.parse("2025-01-15T06:00:00")
             );
             setRecommendationId(recommendation, 42L);
 
             when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(recommendation));
             lenient().when(recommendationProblemRepository.findProblemsWithSolvedStatus(42L, MEMBER_ID))
                     .thenReturn(List.of());
@@ -394,7 +361,7 @@ class RecommendationServiceTest {
 
             // then
             assertThat(response.teams()).hasSize(1);
-            assertThat(response.teams().get(0).teamId()).isEqualTo(TEAM_ID_1);
+            assertThat(response.teams().get(0).teamId()).isEqualTo(TEAM_ID);
             assertThat(response.teams().get(0).teamName()).isEqualTo("알고리즘 스터디");
             assertThat(response.teams().get(0).recommendationId()).isEqualTo(42L);
         }
@@ -406,24 +373,24 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team1 = createTeamWithIdAndName(TEAM_ID_1, "팀1");
-            Team team2 = createTeamWithIdAndName(TEAM_ID_2, "팀2");
+            Team team1 = createTeamWithIdAndName(TEAM_ID, "팀1");
+            Team team2 = createTeamWithIdAndName(2L, "팀2");
             TeamMember teamMember1 = createTeamMember(team1, MEMBER_ID);
             TeamMember teamMember2 = createTeamMember(team2, MEMBER_ID);
 
             Recommendation recommendation1 = createRecommendationWithCreatedAt(
-                    TEAM_ID_1, LocalDateTime.parse("2025-01-15T06:00:00"));
+                    TEAM_ID, LocalDateTime.parse("2025-01-15T06:00:00"));
             setRecommendationId(recommendation1, 42L);
 
             Recommendation recommendation2 = createRecommendationWithCreatedAt(
-                    TEAM_ID_2, LocalDateTime.parse("2025-01-15T06:00:00"));
+                    2L, LocalDateTime.parse("2025-01-15T06:00:00"));
             setRecommendationId(recommendation2, 43L);
 
             when(teamMemberRepository.findByMemberId(MEMBER_ID))
                     .thenReturn(List.of(teamMember1, teamMember2));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(recommendation1));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_2))
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(2L))
                     .thenReturn(Optional.of(recommendation2));
             lenient().when(recommendationProblemRepository.findProblemsWithSolvedStatus(any(), eq(MEMBER_ID)))
                     .thenReturn(List.of());
@@ -443,15 +410,15 @@ class RecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithId(TEAM_ID_1);
+            Team team = createTeamWithId(TEAM_ID);
             TeamMember teamMember = createTeamMember(team, MEMBER_ID);
 
             // 어제 추천 (이전 미션 사이클)
             Recommendation oldRecommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID_1, LocalDateTime.parse("2025-01-14T10:00:00"));
+                    TEAM_ID, LocalDateTime.parse("2025-01-14T10:00:00"));
 
             when(teamMemberRepository.findByMemberId(MEMBER_ID)).thenReturn(List.of(teamMember));
-            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID_1))
+            when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(oldRecommendation));
 
             // when
@@ -461,62 +428,17 @@ class RecommendationServiceTest {
             assertThat(response.teams()).isEmpty();
         }
 
-        private TeamMember createTeamMember(Team team, Long memberId) {
-            Member member = createMemberWithId(memberId);
-            return TeamMember.create(team, member, TeamRole.MEMBER);
-        }
-
-        private Member createMemberWithId(Long id) {
-            try {
-                Member member = Member.builder()
-                        .email("test@test.com")
-                        .provider("google")
-                        .providerId("test-provider-id")
-                        .isVerified(false)
-                        .build();
-                java.lang.reflect.Field idField = member.getClass().getDeclaredField("id");
-                idField.setAccessible(true);
-                idField.set(member, id);
-                return member;
-            } catch (Exception e) {
-                throw new RuntimeException("Member 생성 실패", e);
-            }
-        }
-
-        private Team createTeamWithIdAndName(Long id, String name) {
-            Team team = Team.create(name, "설명", false);
-            try {
-                java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
-                idField.setAccessible(true);
-                idField.set(team, id);
-            } catch (Exception e) {
-                throw new RuntimeException("id 설정 실패", e);
-            }
-            return team;
-        }
-
-        private void setRecommendationId(Recommendation recommendation, Long id) {
-            try {
-                java.lang.reflect.Field idField = recommendation.getClass().getDeclaredField("id");
-                idField.setAccessible(true);
-                idField.set(recommendation, id);
-            } catch (Exception e) {
-                throw new RuntimeException("id 설정 실패", e);
-            }
-        }
     }
 
     // === Helper Methods ===
 
     private Team createTeamWithId(Long id) {
-        Team team = Team.create("테스트팀", "설명", false);
-        try {
-            java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(team, id);
-        } catch (Exception e) {
-            throw new RuntimeException("id 설정 실패", e);
-        }
+        return createTeamWithIdAndName(id, "테스트팀");
+    }
+
+    private Team createTeamWithIdAndName(Long id, String name) {
+        Team team = Team.create(name, "설명", false);
+        setFieldValue(team, "id", id);
         return team;
     }
 
@@ -526,19 +448,39 @@ class RecommendationServiceTest {
         return team;
     }
 
+    private TeamMember createTeamMember(Team team, Long memberId) {
+        Member member = Member.builder()
+                .email("test@test.com")
+                .provider("google")
+                .providerId("test-provider-id")
+                .isVerified(false)
+                .build();
+        setFieldValue(member, "id", memberId);
+        return TeamMember.create(team, member, TeamRole.MEMBER);
+    }
+
     private Recommendation createRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
         Recommendation recommendation = Recommendation.createScheduledRecommendation(teamId);
-        setCreatedAt(recommendation, createdAt);
+        setFieldValue(recommendation, "createdAt", createdAt, true);
         return recommendation;
     }
 
-    private void setCreatedAt(Recommendation recommendation, LocalDateTime createdAt) {
+    private void setRecommendationId(Recommendation recommendation, Long id) {
+        setFieldValue(recommendation, "id", id);
+    }
+
+    private void setFieldValue(Object target, String fieldName, Object value) {
+        setFieldValue(target, fieldName, value, false);
+    }
+
+    private void setFieldValue(Object target, String fieldName, Object value, boolean superClass) {
         try {
-            java.lang.reflect.Field createdAtField = recommendation.getClass().getSuperclass().getDeclaredField("createdAt");
-            createdAtField.setAccessible(true);
-            createdAtField.set(recommendation, createdAt);
+            Class<?> clazz = superClass ? target.getClass().getSuperclass() : target.getClass();
+            java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
         } catch (Exception e) {
-            throw new RuntimeException("createdAt 설정 실패", e);
+            throw new RuntimeException(fieldName + " 설정 실패", e);
         }
     }
 }
