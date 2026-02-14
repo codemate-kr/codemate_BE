@@ -15,7 +15,7 @@ import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamIncludeTag;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
-import com.ryu.studyhelper.recommendation.RecommendationService;
+import com.ryu.studyhelper.recommendation.service.RecommendationService;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;

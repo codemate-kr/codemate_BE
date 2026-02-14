@@ -1,0 +1,99 @@
+package com.ryu.studyhelper.recommendation.service;
+
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
+import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.member.domain.Member;
+import com.ryu.studyhelper.problem.domain.Problem;
+import com.ryu.studyhelper.problem.service.ProblemService;
+import com.ryu.studyhelper.problem.service.ProblemSyncService;
+import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
+import com.ryu.studyhelper.recommendation.domain.RecommendationType;
+import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.Team;
+import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * 팀 1개에 대한 추천 생성 공통 로직
+ * RecommendationService(수동)와 ScheduledRecommendationService(배치) 모두 사용
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+class RecommendationCreator {
+
+    private final TeamMemberRepository teamMemberRepository;
+    private final TeamIncludeTagRepository teamIncludeTagRepository;
+    private final ProblemService problemService;
+    private final ProblemSyncService problemSyncService;
+    private final RecommendationRepository recommendationRepository;
+    private final RecommendationProblemRepository recommendationProblemRepository;
+    private final MemberRecommendationRepository memberRecommendationRepository;
+
+    Recommendation create(Team team, RecommendationType type) {
+        Recommendation recommendation = createRecommendation(team, type);
+        List<Problem> problems = createRecommendationProblems(recommendation, team);
+        createMemberRecommendations(recommendation, team);
+
+        log.info("팀 '{}' 추천 생성 완료 - 타입: {}, 문제: {}개",
+                team.getName(), type, problems.size());
+
+        return recommendation;
+    }
+
+    private Recommendation createRecommendation(Team team, RecommendationType type) {
+
+        Recommendation recommendation = (type == RecommendationType.MANUAL)
+                ? Recommendation.createManualRecommendation(team.getId())
+                : Recommendation.createScheduledRecommendation(team.getId());
+        return recommendationRepository.save(recommendation);
+    }
+
+    private List<Problem> createRecommendationProblems(Recommendation recommendation, Team team) {
+        List<Problem> problems = recommendProblemsForTeam(team);
+        for (Problem problem : problems) {
+            RecommendationProblem rp = RecommendationProblem.create(problem);
+            recommendation.addProblem(rp);
+            recommendationProblemRepository.save(rp);
+        }
+        return problems;
+    }
+
+    private void createMemberRecommendations(Recommendation recommendation, Team team) {
+        List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
+        for (Member member : teamMembers) {
+            MemberRecommendation mr = MemberRecommendation.create(member, recommendation, team);
+            memberRecommendationRepository.save(mr);
+        }
+    }
+
+    private List<Problem> recommendProblemsForTeam(Team team) {
+        List<String> handles = teamMemberRepository.findHandlesByTeamId(team.getId());
+        if (handles.isEmpty()) {
+            log.warn("팀 '{}'에 인증된 핸들이 없습니다", team.getName());
+            throw new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE);
+        }
+
+        List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(team.getId());
+
+        List<ProblemInfo> problemInfos = problemService.recommend(
+                handles,
+                team.getProblemCount(),
+                team.getEffectiveMinProblemLevel(),
+                team.getEffectiveMaxProblemLevel(),
+                tagKeys
+        );
+
+        return problemSyncService.syncProblems(problemInfos);
+    }
+}

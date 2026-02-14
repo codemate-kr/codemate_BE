@@ -1,6 +1,6 @@
-package com.ryu.studyhelper.infrastructure.scheduler;
+package com.ryu.studyhelper.recommendation.scheduler;
 
-import com.ryu.studyhelper.recommendation.RecommendationService;
+import com.ryu.studyhelper.recommendation.service.RecommendationEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class EmailSendScheduler {
 
-    private final RecommendationService recommendationService;
+    private final RecommendationEmailService recommendationEmailService;
 
     /**
      * 매일 오전 9시에 이메일 발송
@@ -28,7 +28,7 @@ public class EmailSendScheduler {
         long startTime = System.currentTimeMillis();
 
         try {
-            recommendationService.sendPendingRecommendationEmails();
+            recommendationEmailService.sendAll();
 
             long endTime = System.currentTimeMillis();
             log.info("=== 이메일 발송 배치 작업 완료 === (소요시간: {}ms)", endTime - startTime);
