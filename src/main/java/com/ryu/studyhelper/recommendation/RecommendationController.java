@@ -6,13 +6,12 @@ import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimit;
 import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
-import com.ryu.studyhelper.recommendation.dto.response.TeamRecommendationDetailResponse;
+import com.ryu.studyhelper.recommendation.dto.response.RecommendationDetailResponse;
 import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
+import com.ryu.studyhelper.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -40,23 +39,21 @@ public class RecommendationController {
             description = """
                     팀장이 수동으로 문제 추천을 생성합니다.
                     추천 생성 즉시 팀원들에게 이메일이 발송됩니다.
-                    count 파라미터가 없으면 팀 추천 설정의 problemCount 값을 사용합니다.
+                    팀 추천 설정의 problemCount 값을 사용합니다.
                     """
     )
     @RateLimit(type = RateLimitType.SOLVED_AC)
     @PostMapping("/team/{teamId}/manual")
     @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
-    public ResponseEntity<ApiResponse<TeamRecommendationDetailResponse>> createManualRecommendation(
+    public ResponseEntity<ApiResponse<RecommendationDetailResponse>> createManualRecommendation(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,
-            @Parameter(description = "추천 문제 개수 (1~10, 미지정 시 팀 설정값 사용)", example = "3")
-            @RequestParam(required = false) @Min(1) @Max(10) Integer count,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        log.info("팀장 {}가 팀 {}에 수동 추천 생성 (count={})", principalDetails.getMemberId(), teamId, count);
+        log.info("팀장 {}가 팀 {}에 수동 추천 생성", principalDetails.getMemberId(), teamId);
 
-        TeamRecommendationDetailResponse response =
-                recommendationService.createManualRecommendation(teamId, count);
+        RecommendationDetailResponse response =
+                recommendationService.createManualRecommendation(teamId);
 
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }

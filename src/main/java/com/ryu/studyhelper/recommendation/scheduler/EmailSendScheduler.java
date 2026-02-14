@@ -1,6 +1,6 @@
-package com.ryu.studyhelper.infrastructure.scheduler;
+package com.ryu.studyhelper.recommendation.scheduler;
 
-import com.ryu.studyhelper.recommendation.RecommendationService;
+import com.ryu.studyhelper.recommendation.service.RecommendationEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class EmailSendScheduler {
 
-    private final RecommendationService recommendationService;
+    private final RecommendationEmailService recommendationEmailService;
 
     /**
      * 매일 오전 9시에 이메일 발송
@@ -28,7 +28,27 @@ public class EmailSendScheduler {
         long startTime = System.currentTimeMillis();
 
         try {
-            recommendationService.sendPendingRecommendationEmails();
+            recommendationEmailService.sendAll();
+
+            long endTime = System.currentTimeMillis();
+            log.info("=== 이메일 발송 배치 작업 완료 === (소요시간: {}ms)", endTime - startTime);
+
+        } catch (Exception e) {
+            long endTime = System.currentTimeMillis();
+                log.error("=== 이메일 발송 배치 작업 실패 === (소요시간: {}ms)", endTime - startTime, e);
+        }
+    }
+
+
+    // 테스트용 첫 실행후 10초뒤에 딱 한번 문제 추천 배치 작업 시작
+//    @Scheduled(initialDelay = 10000, fixedDelay = Long.MAX_VALUE)
+    public void testsendPendingEmails() {
+        log.info("=== 이메일 발송 배치 작업 시작 ===");
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            recommendationEmailService.sendAll();
 
             long endTime = System.currentTimeMillis();
             log.info("=== 이메일 발송 배치 작업 완료 === (소요시간: {}ms)", endTime - startTime);

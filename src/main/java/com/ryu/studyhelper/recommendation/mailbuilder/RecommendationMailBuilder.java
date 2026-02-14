@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation.mail;
+package com.ryu.studyhelper.recommendation.mailbuilder;
 
 import com.ryu.studyhelper.infrastructure.mail.sender.MailMessage;
 import com.ryu.studyhelper.infrastructure.mail.support.CssInliner;

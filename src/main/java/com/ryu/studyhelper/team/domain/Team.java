@@ -1,7 +1,6 @@
 package com.ryu.studyhelper.team.domain;
 
 import com.ryu.studyhelper.common.entity.BaseEntity;
-import com.ryu.studyhelper.recommendation.domain.team.TeamRecommendation;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -65,10 +64,6 @@ public class Team extends BaseEntity {
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<TeamMember> teamMembers = new ArrayList<>();
-
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<TeamRecommendation> teamRecommendations = new ArrayList<>();
 
     /**
      * 팀 생성을 위한 팩토리 메서드 (최초 생성시 추천 비활성화)
