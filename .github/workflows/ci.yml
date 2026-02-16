@@ -9,6 +9,11 @@ on:
       - dev
       - main
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -27,10 +32,28 @@ jobs:
       - name: Gradle 실행 권한 부여
         run: chmod +x gradlew
 
-      - name: Gradle 빌드
-        run: ./gradlew build -x test
-
-      - name: 테스트 실행
-        run: ./gradlew test
+      - name: 빌드 및 테스트
+        run: ./gradlew build
         env:
           SPRING_PROFILES_ACTIVE: test
+
+      - name: 테스트 결과 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/reports/tests/test/
+
+      - name: 커버리지 리포트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/reports/jacoco/test/
+
+      - name: 테스트 결과 댓글
+        if: always() && github.event_name == 'pull_request'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: build/test-results/test/*.xml
+          comment_title: "🧪 테스트 결과"
