@@ -2,10 +2,10 @@ package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.problem.service.ProblemService;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
@@ -34,7 +34,7 @@ class RecommendationCreator {
 
     private final TeamMemberRepository teamMemberRepository;
     private final TeamIncludeTagRepository teamIncludeTagRepository;
-    private final ProblemService problemService;
+    private final SolvedAcClient solvedAcClient;
     private final ProblemSyncService problemSyncService;
     private final RecommendationRepository recommendationRepository;
     private final RecommendationProblemRepository recommendationProblemRepository;
@@ -86,7 +86,7 @@ class RecommendationCreator {
 
         List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(team.getId());
 
-        List<ProblemInfo> problemInfos = problemService.recommend(
+        List<ProblemInfo> problemInfos = solvedAcClient.recommendUnsolvedProblems(
                 handles,
                 team.getProblemCount(),
                 team.getEffectiveMinProblemLevel(),
