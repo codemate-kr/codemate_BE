@@ -57,14 +57,3 @@ jobs:
         with:
           files: build/test-results/test/*.xml
           comment_title: "🧪 테스트 결과"
-
-      - name: PR 커버리지 댓글
-        if: always() && github.event_name == 'pull_request'
-        uses: madrapps/jacoco-report@v1.7.2
-        with:
-          paths: build/reports/jacoco/test/jacocoTestReport.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "📊 테스트 커버리지 리포트"
-          update-comment: true
-          min-coverage-overall: 0
-          min-coverage-changed-files: 0
