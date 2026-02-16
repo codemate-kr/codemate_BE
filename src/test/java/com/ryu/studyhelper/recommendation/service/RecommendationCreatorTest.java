@@ -2,10 +2,10 @@ package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
+import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.problem.service.ProblemService;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
@@ -43,7 +43,7 @@ class RecommendationCreatorTest {
     private TeamIncludeTagRepository teamIncludeTagRepository;
 
     @Mock
-    private ProblemService problemService;
+    private SolvedAcClient solvedAcClient;
 
     @Mock
     private ProblemSyncService problemSyncService;
@@ -76,7 +76,7 @@ class RecommendationCreatorTest {
 
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
             when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
-            when(problemService.recommend(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
+            when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
@@ -104,7 +104,7 @@ class RecommendationCreatorTest {
 
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
             when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
-            when(problemService.recommend(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
+            when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
@@ -128,7 +128,7 @@ class RecommendationCreatorTest {
 
             when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
             when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
-            when(problemService.recommend(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
+            when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
