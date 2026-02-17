@@ -1,5 +1,6 @@
     package com.ryu.studyhelper.recommendation.service;
 
+    import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
     import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
     import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
     import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
@@ -33,7 +34,7 @@
          * 배치: PENDING 상태의 추천들에 대해 이메일 발송
          * 미션 사이클 기준(06:00~06:00)으로 조회
          */
-        public void sendAll() {
+        public BatchResult sendAll() {
             LocalDateTime now = LocalDateTime.now(clock);
             LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
             log.info("이메일 발송 배치 시작: {} (미션 사이클: {} 06:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
@@ -54,6 +55,7 @@
 
             log.info("이메일 발송 배치 완료 - 대상: {}개, 성공: {}개, 실패: {}개",
                     pendingRecommendations.size(), successCount, failCount);
+            return new BatchResult(pendingRecommendations.size(), successCount, failCount);
         }
 
         /**

@@ -2,6 +2,8 @@ package com.ryu.studyhelper.auth;
 
 import com.ryu.studyhelper.auth.dto.OAuthInfo;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
+import com.ryu.studyhelper.infrastructure.discord.DiscordMessage;
+import com.ryu.studyhelper.infrastructure.discord.DiscordNotifier;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
 import jakarta.transaction.Transactional;
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class GoogleOAuth2UserService extends DefaultOAuth2UserService {
 
     private final MemberRepository memberRepository;
+    private final DiscordNotifier discordNotifier;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -54,7 +57,25 @@ public class GoogleOAuth2UserService extends DefaultOAuth2UserService {
             Member newMember = Member.create("google", oAuthInfo.getProviderId(), oAuthInfo.getEmail());
             Member savedMember = memberRepository.save(newMember);
             log.info("신규 사용자 생성 완료: {}", savedMember.getEmail());
+
+            try {
+                discordNotifier.sendEvent(DiscordMessage.event("신규 회원 가입",
+                        "회원 ID", String.valueOf(savedMember.getId()),
+                        "이메일", maskEmail(savedMember.getEmail())
+                ));
+            } catch (Exception e) {
+                log.warn("Discord 알림 전송 실패", e);
+            }
+
             return savedMember;
         }
+    }
+
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 3) {
+            return email.charAt(0) + "***" + email.substring(atIndex);
+        }
+        return email.substring(0, 3) + "***" + email.substring(atIndex);
     }
 }

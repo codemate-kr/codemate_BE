@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.recommendation.service;
 
+import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Team;
@@ -34,7 +35,7 @@ public class ScheduledRecommendationService {
      * 문제 추천만 수행 (이메일 발송 X)
      * 미션 사이클 기준(06:00~06:00)으로 중복 체크
      */
-    public void prepareDailyRecommendations() {
+    public BatchResult prepareDailyRecommendations() {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
         log.info("문제 추천 준비 시작: {} (미션 사이클: {} 06:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
@@ -64,6 +65,7 @@ public class ScheduledRecommendationService {
 
         log.info("문제 추천 배치 완료 - 대상: {}개, 성공: {}개, 실패: {}개",
                 activeTeams.size(), successCount, failCount);
+        return new BatchResult(activeTeams.size(), successCount, failCount);
     }
 
     private List<Team> getActiveTeams(LocalDate date) {
