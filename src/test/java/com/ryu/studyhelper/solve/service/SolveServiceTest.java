@@ -202,9 +202,9 @@ class SolveServiceTest {
         @BeforeEach
         void setUp() {
             // 2024-11-28 14:00 (오후 2시)으로 고정
-            ZonedDateTime fixedTime = ZonedDateTime.of(2024, 11, 28, 14, 0, 0, 0, ZoneId.systemDefault());
+            ZonedDateTime fixedTime = ZonedDateTime.of(2024, 11, 28, 14, 0, 0, 0, ZoneId.of("Asia/Seoul"));
             given(clock.instant()).willReturn(fixedTime.toInstant());
-            given(clock.getZone()).willReturn(ZoneId.systemDefault());
+            given(clock.getZone()).willReturn(ZoneId.of("Asia/Seoul"));
 
             solveServiceWithClock = new SolveService(
                     memberRepository,
@@ -313,7 +313,7 @@ class SolveServiceTest {
         void setUp() {
             service = new SolveService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    solvedAcClient, Clock.systemDefaultZone()
+                    solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
             );
         }
 

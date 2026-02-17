@@ -8,6 +8,7 @@ import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import lombok.RequiredArgsConstructor;
@@ -68,7 +69,11 @@ public class SolveService {
 
         // 6. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
-        memberSolvedProblemRepository.save(memberSolvedProblem);
+        try {
+            memberSolvedProblemRepository.save(memberSolvedProblem);
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
+        }
     }
 
     /**
