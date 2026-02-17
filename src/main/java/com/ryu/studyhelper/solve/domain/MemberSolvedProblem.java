@@ -1,6 +1,7 @@
-package com.ryu.studyhelper.member.domain;
+package com.ryu.studyhelper.solve.domain;
 
 import com.ryu.studyhelper.common.entity.BaseEntity;
+import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import jakarta.persistence.*;
 import lombok.*;

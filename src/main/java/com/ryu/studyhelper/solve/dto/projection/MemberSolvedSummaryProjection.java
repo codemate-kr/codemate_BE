@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team.dto.projection;
+package com.ryu.studyhelper.solve.dto.projection;
 
 /**
  * 멤버별 기간 내 풀이 수 집계 Projection

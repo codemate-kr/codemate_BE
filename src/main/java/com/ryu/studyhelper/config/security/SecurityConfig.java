@@ -53,6 +53,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/refresh").permitAll()
                 .requestMatchers("/api/member/verify-email").permitAll()
 
+                // 테스트 API (local 환경 전용)
+//                .requestMatchers("/api/test/**").permitAll()
+
                 // 헬스체크 (인증 불필요)
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
@@ -62,7 +65,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/teams/{teamId:\\d+}/activity").permitAll()
 
                 // 랭킹 API (비로그인 허용)
-                .requestMatchers("/api/ranking/**").permitAll()
+                .requestMatchers("/api/solve/ranking/**").permitAll()
+                .requestMatchers("/api/ranking/**").permitAll() // TODO: 프론트엔드 마이그레이션 후 제거
 
                 // Swagger 테스트용 - 모든 API 개방
 //                .requestMatchers("/api/**").permitAll()
