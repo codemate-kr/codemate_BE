@@ -1,7 +1,8 @@
-package com.ryu.studyhelper.member.repository;
+package com.ryu.studyhelper.solve.repository;
 
-import com.ryu.studyhelper.member.domain.MemberSolvedProblem;
-import com.ryu.studyhelper.team.dto.projection.MemberSolvedSummaryProjection;
+import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
+import com.ryu.studyhelper.solve.dto.projection.GlobalRankingProjection;
+import com.ryu.studyhelper.solve.dto.projection.MemberSolvedSummaryProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -72,9 +73,4 @@ public interface MemberSolvedProblemRepository extends JpaRepository<MemberSolve
             LIMIT :limit
             """)
     List<GlobalRankingProjection> findGlobalRanking(@Param("limit") int limit);
-
-    interface GlobalRankingProjection {
-        String getHandle();
-        Long getTotalSolved();
-    }
 }

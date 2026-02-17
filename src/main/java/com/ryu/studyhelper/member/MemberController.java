@@ -8,12 +8,13 @@ import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.dto.request.*;
 import com.ryu.studyhelper.member.dto.response.CheckEmailResponse;
-import com.ryu.studyhelper.member.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.member.dto.response.EmailChangeResponse;
 import com.ryu.studyhelper.member.dto.response.HandleVerificationResponse;
 import com.ryu.studyhelper.member.dto.response.MemberPublicResponse;
 import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
 import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
+import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
+import com.ryu.studyhelper.solve.service.SolveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +33,7 @@ import java.util.List;
 public class MemberController {
 
     private final MemberService memberService;
+    private final SolveService solveService; // TODO: 프론트엔드 마이그레이션 후 제거
 
     @Operation(
             summary = "내 프로필 조회",
@@ -134,21 +136,6 @@ public class MemberController {
     }
 
     @Operation(
-            summary = "문제 해결 인증",
-            description = "BOJ 문제 해결을 solved.ac API로 검증하고 인증합니다. 성공 시 MemberSolvedProblem 레코드가 생성됩니다."
-    )
-    @RateLimit(type = RateLimitType.SOLVED_AC)
-    @PostMapping("/me/problems/{problemId}/verify-solved")
-    public ResponseEntity<ApiResponse<Void>> verifyProblemSolved(
-            @Parameter(description = "BOJ 문제 번호", example = "1000")
-            @PathVariable Long problemId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails
-    ) {
-        memberService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
-        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
-    }
-
-    @Operation(
             summary = "회원 탈퇴",
             description = "회원 탈퇴를 진행합니다. 모든 팀에서 탈퇴한 상태여야 합니다. 민감정보(이메일, 핸들, providerId)는 마스킹 처리됩니다."
     )
@@ -160,17 +147,28 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 
-    @Operation(
-            summary = "일별 문제 풀이 현황 조회",
-            description = "최근 N일간 일별 문제 풀이 현황을 조회합니다. 날짜 기준은 오전 6시입니다."
-    )
+    // ========== 하위 호환용 (프론트엔드 마이그레이션 후 제거) ==========
+
+    @Deprecated
+    @Operation(summary = "[Deprecated] 문제 해결 인증", description = "POST /api/solve/problems/{problemId}/verify 로 이전됨")
+    @RateLimit(type = RateLimitType.SOLVED_AC)
+    @PostMapping("/me/problems/{problemId}/verify-solved")
+    public ResponseEntity<ApiResponse<Void>> verifyProblemSolved(
+            @PathVariable Long problemId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        solveService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
+        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
+    }
+
+    @Deprecated
+    @Operation(summary = "[Deprecated] 일별 문제 풀이 현황 조회", description = "GET /api/solve/daily 로 이전됨")
     @GetMapping("/me/daily-solved")
     public ResponseEntity<ApiResponse<DailySolvedResponse>> getDailySolved(
-            @Parameter(description = "조회할 일수 (기본 7일)", example = "7")
             @RequestParam(defaultValue = "7") int days,
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
-        DailySolvedResponse response = memberService.getDailySolved(principalDetails.getMemberId(), days);
+        DailySolvedResponse response = solveService.getDailySolved(principalDetails.getMemberId(), days);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }

@@ -1,8 +1,8 @@
-package com.ryu.studyhelper.member;
+package com.ryu.studyhelper.solve.service;
 
-import com.ryu.studyhelper.member.dto.response.GlobalRankingResponse;
-import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository;
-import com.ryu.studyhelper.member.repository.MemberSolvedProblemRepository.GlobalRankingProjection;
+import com.ryu.studyhelper.solve.dto.projection.GlobalRankingProjection;
+import com.ryu.studyhelper.solve.dto.response.GlobalRankingResponse;
+import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
