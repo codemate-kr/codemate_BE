@@ -58,10 +58,14 @@ public class GoogleOAuth2UserService extends DefaultOAuth2UserService {
             Member savedMember = memberRepository.save(newMember);
             log.info("신규 사용자 생성 완료: {}", savedMember.getEmail());
 
-            discordNotifier.sendEvent(DiscordMessage.event("신규 회원 가입",
-                    "회원 ID", String.valueOf(savedMember.getId()),
-                    "이메일", maskEmail(savedMember.getEmail())
-            ));
+            try {
+                discordNotifier.sendEvent(DiscordMessage.event("신규 회원 가입",
+                        "회원 ID", String.valueOf(savedMember.getId()),
+                        "이메일", maskEmail(savedMember.getEmail())
+                ));
+            } catch (Exception e) {
+                log.warn("Discord 알림 전송 실패", e);
+            }
 
             return savedMember;
         }

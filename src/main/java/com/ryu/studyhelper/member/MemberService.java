@@ -83,10 +83,14 @@ public class MemberService {
         Member member = getById(memberId);
         member.changeHandle(handle);
 
-        discordNotifier.sendEvent(DiscordMessage.event("핸들 등록",
-                "회원 ID", String.valueOf(memberId),
-                "핸들", handle
-        ));
+        try {
+            discordNotifier.sendEvent(DiscordMessage.event("핸들 등록",
+                    "회원 ID", String.valueOf(memberId),
+                    "핸들", handle
+            ));
+        } catch (Exception e) {
+            log.warn("Discord 알림 전송 실패", e);
+        }
 
         return member;
     }
