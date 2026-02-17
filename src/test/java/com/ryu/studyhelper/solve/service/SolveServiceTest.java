@@ -51,6 +51,9 @@ class SolveServiceTest {
     @Mock
     private SolvedAcClient solvedAcClient;
 
+    @Mock
+    private Clock clock;
+
     private Member member;
     private Problem problem;
 
@@ -187,6 +190,23 @@ class SolveServiceTest {
             assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 동시 요청으로 인한 중복 저장 (TOCTOU)")
+        void fail_concurrentDuplicate() {
+            // given
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
+            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
+            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
+                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate"));
+
+            // when & then
+            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.ALREADY_SOLVED);
         }
     }
 
