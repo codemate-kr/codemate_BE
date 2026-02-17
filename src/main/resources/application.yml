@@ -38,6 +38,12 @@ aws:
     from-email: ${AWS_SES_FROM_EMAIL:noreply@example.com}
     configuration-set: ${AWS_SES_CONFIGURATION_SET:}
 
+# Discord Webhook 설정
+discord:
+  webhooks:
+    scheduler: ${DISCORD_WEBHOOK_SCHEDULER:}
+    event: ${DISCORD_WEBHOOK_EVENT:}
+
 # JWT 공통 설정
 jwt:
   secret: ${JWT_SECRET}

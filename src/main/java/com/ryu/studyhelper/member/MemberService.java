@@ -3,6 +3,8 @@ package com.ryu.studyhelper.member;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.config.security.jwt.JwtUtil;
+import com.ryu.studyhelper.infrastructure.discord.DiscordMessage;
+import com.ryu.studyhelper.infrastructure.discord.DiscordNotifier;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
 import com.ryu.studyhelper.member.mail.EmailChangeMailBuilder;
@@ -35,6 +37,7 @@ public class MemberService {
     private final JwtUtil jwtUtil;
     private final MailSender mailSender;
     private final EmailChangeMailBuilder emailChangeMailBuilder;
+    private final DiscordNotifier discordNotifier;
     private final Clock clock;
 
     @Value("${FRONTEND_URL:http://localhost:5173}")
@@ -79,6 +82,11 @@ public class MemberService {
         // 2. 회원 엔티티에 핸들 저장 (중복 허용, isVerified는 false 유지)
         Member member = getById(memberId);
         member.changeHandle(handle);
+
+        discordNotifier.sendEvent(DiscordMessage.event("핸들 등록",
+                "회원 ID", String.valueOf(memberId),
+                "핸들", handle
+        ));
 
         return member;
     }
