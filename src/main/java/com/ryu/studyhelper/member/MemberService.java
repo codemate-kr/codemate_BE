@@ -2,12 +2,13 @@ package com.ryu.studyhelper.member;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.config.security.jwt.JwtUtil;
 import com.ryu.studyhelper.infrastructure.discord.DiscordMessage;
 import com.ryu.studyhelper.infrastructure.discord.DiscordNotifier;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
 import com.ryu.studyhelper.member.mail.EmailChangeMailBuilder;
+import com.ryu.studyhelper.member.mail.EmailVerificationClaim;
+import com.ryu.studyhelper.member.mail.EmailVerificationTokenProvider;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
 import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
@@ -16,7 +17,6 @@ import com.ryu.studyhelper.solve.service.SolveService;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,14 +34,11 @@ public class MemberService {
     private final TeamMemberRepository teamMemberRepository;
     private final SolvedAcClient solvedAcClient;
     private final SolveService solveService;
-    private final JwtUtil jwtUtil;
     private final MailSender mailSender;
     private final EmailChangeMailBuilder emailChangeMailBuilder;
+    private final EmailVerificationTokenProvider emailVerificationTokenProvider;
     private final DiscordNotifier discordNotifier;
     private final Clock clock;
-
-    @Value("${FRONTEND_URL:http://localhost:5173}")
-    private String frontendUrl;
 
     @Transactional(readOnly = true)
     public Member getById(Long id) {
@@ -124,14 +121,8 @@ public class MemberService {
         // 2. 회원 존재 확인
         getById(memberId);
 
-        // 3. 이메일 인증 토큰 생성 (5분 만료)
-        String token = jwtUtil.createEmailVerificationToken(memberId, newEmail);
-
-        // 4. 인증 URL 생성
-        String verificationUrl = frontendUrl + "/verify-email?token=" + token;
-
-        // 5. 이메일 발송
-        mailSender.send(emailChangeMailBuilder.build(newEmail, verificationUrl));
+        // 3. 인증 메일 생성 및 발송
+        mailSender.send(emailChangeMailBuilder.build(memberId, newEmail));
     }
 
     /**
@@ -140,29 +131,19 @@ public class MemberService {
      * @return 변경된 이메일 주소
      */
     public String verifyAndChangeEmail(String token) {
-        // 1. 토큰 유효성 검증 (만료, 잘못된 서명 등)
-        jwtUtil.validateTokenOrThrow(token);
+        // 1. 토큰 검증 및 클레임 추출
+        EmailVerificationClaim claim = emailVerificationTokenProvider.parseToken(token);
 
-        // 2. 토큰 타입 확인
-        String tokenType = jwtUtil.getTokenType(token);
-        if (!JwtUtil.TOKEN_TYPE_EMAIL_VERIFICATION.equals(tokenType)) {
-            throw new CustomException(CustomResponseStatus.INVALID_EMAIL_VERIFICATION_TOKEN);
-        }
-
-        // 3. 토큰에서 정보 추출
-        Long memberId = jwtUtil.getIdFromToken(token);
-        String newEmail = jwtUtil.getEmailFromToken(token);
-
-        // 4. 이메일 중복 재확인 (인증 메일 발송 후 다른 사용자가 해당 이메일로 가입했을 수 있음)
-        if (!isEmailAvailable(newEmail)) {
+        // 2. 이메일 중복 재확인 (인증 메일 발송 후 다른 사용자가 해당 이메일로 가입했을 수 있음)
+        if (!isEmailAvailable(claim.newEmail())) {
             throw new CustomException(CustomResponseStatus.EMAIL_ALREADY_EXISTS);
         }
 
-        // 5. 회원 정보 업데이트
-        Member member = getById(memberId);
-        member.changeEmail(newEmail);
+        // 3. 회원 정보 업데이트
+        Member member = getById(claim.memberId());
+        member.changeEmail(claim.newEmail());
 
-        return newEmail;
+        return claim.newEmail();
     }
 
     /**
