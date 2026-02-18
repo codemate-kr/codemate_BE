@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.recommendation.service;
 
+import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;

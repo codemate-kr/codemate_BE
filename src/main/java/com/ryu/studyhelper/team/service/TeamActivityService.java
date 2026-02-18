@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.team.service;
 
+import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.domain.Member;
@@ -22,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,7 +42,6 @@ public class TeamActivityService {
 
     private static final int MAX_DAYS = 30;
     private static final int DEFAULT_DAYS = 30;
-    private static final LocalTime MISSION_RESET_TIME = LocalTime.of(6, 0);
 
     /**
      * 팀 활동 현황 조회
@@ -101,20 +100,9 @@ public class TeamActivityService {
 
     // ========== 기간 계산 ==========
 
-    /**
-     * 미션 사이클 기준 "오늘" 날짜 계산
-     * 오전 6시 이전이면 전날로 취급
-     */
-    private LocalDate getMissionDate(LocalDateTime dateTime) {
-        if (dateTime.toLocalTime().isBefore(MISSION_RESET_TIME)) {
-            return dateTime.toLocalDate().minusDays(1);
-        }
-        return dateTime.toLocalDate();
-    }
-
     private QueryPeriod calculateQueryPeriod(Integer days) {
         int queryDays = calculateDays(days);
-        LocalDate endDate = getMissionDate(LocalDateTime.now());
+        LocalDate endDate = MissionCyclePolicy.toMissionDate(LocalDateTime.now());
         LocalDate startDate = endDate.minusDays(queryDays - 1);
         return QueryPeriod.of(queryDays, startDate, endDate);
     }
@@ -229,7 +217,7 @@ public class TeamActivityService {
             List<MemberSolvedStatus> memberSolvedStatuses) {
 
         // 미션 사이클 기준 날짜 (6시 이전 생성분은 전날로 표시)
-        LocalDate date = getMissionDate(recommendation.getCreatedAt());
+        LocalDate date = MissionCyclePolicy.toMissionDate(recommendation.getCreatedAt());
 
         List<TeamActivityResponse.ProblemInfo> problems = buildProblemInfoList(recommendation);
         List<Long> problemIds = problems.stream()
