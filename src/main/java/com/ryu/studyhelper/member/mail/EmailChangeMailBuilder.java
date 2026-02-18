@@ -17,7 +17,7 @@ public class EmailChangeMailBuilder {
     private final TemplateEngine templateEngine;
     private final EmailVerificationTokenProvider tokenProvider;
 
-    @Value("${FRONTEND_URL:http://localhost:5173}")
+    @Value("${FRONTEND_URL:https://codemate.kr}")
     private String frontendUrl;
 
     /**
