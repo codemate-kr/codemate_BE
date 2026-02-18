@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.recommendation.service;
 
+import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
