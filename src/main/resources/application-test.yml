@@ -13,6 +13,10 @@ spring:
       enabled: true
       path: /h2-console
 
+  # 테스트 Flyway 비활성화 (H2 + create-drop으로 Hibernate가 직접 관리)
+  flyway:
+    enabled: false
+
   # 테스트용 JPA 설정
   jpa:
     hibernate:

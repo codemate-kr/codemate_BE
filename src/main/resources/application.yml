@@ -11,6 +11,10 @@ spring:
   profiles:
     default: local
 
+  # Flyway 공통 설정
+  flyway:
+    locations: classpath:db/migration
+
   # JPA 공통 설정
   jpa:
     properties:
