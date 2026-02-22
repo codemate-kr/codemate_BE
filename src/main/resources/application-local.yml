@@ -17,14 +17,19 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
 
+  # 로컬 Flyway 설정 (기존 DB baseline 처리)
+  flyway:
+    baseline-on-migrate: true   # 기존 스키마가 있는 DB는 V1을 baseline으로 건너뜀
+    baseline-version: 1
+
   # 로컬 JPA 설정
   jpa:
     hibernate:
-      ddl-auto: update  # 로컬에서는 자동 스키마 업데이트
-    show-sql: true      # SQL 로그 출력
+      ddl-auto: validate  # Flyway가 스키마 관리, Hibernate는 검증만
+    show-sql: true
     properties:
       hibernate:
-        format_sql: true  # SQL 포맷팅
+        format_sql: true
 
   # 메일 디버그 설정
   mail:

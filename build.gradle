@@ -57,6 +57,9 @@ dependencies {
 
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // Flyway - DB 마이그레이션 관리
+    implementation 'org.flywaydb:flyway-mysql'
+
     // 테스트용 H2 데이터베이스
     testRuntimeOnly 'com.h2database:h2'
 
