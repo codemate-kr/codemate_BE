@@ -7,8 +7,6 @@ import com.ryu.studyhelper.team.dto.request.CreateSquadRequest;
 import com.ryu.studyhelper.team.dto.request.SquadRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateMemberSquadRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateSquadRequest;
-import com.ryu.studyhelper.recommendation.dto.response.RecommendationDetailResponse;
-import com.ryu.studyhelper.recommendation.service.RecommendationService;
 import com.ryu.studyhelper.team.dto.response.SquadRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.dto.response.SquadResponse;
 import com.ryu.studyhelper.team.dto.response.SquadSummaryResponse;
@@ -31,7 +29,6 @@ import java.util.List;
 public class SquadController {
 
     private final SquadService squadService;
-    private final RecommendationService recommendationService;
 
     @Operation(summary = "스쿼드 생성", description = "팀장 전용. 스쿼드는 최대 5개까지 생성할 수 있습니다.")
     @PostMapping("/{teamId}/squads")
@@ -111,17 +108,6 @@ public class SquadController {
     ) {
         SquadRecommendationSettingsResponse response = squadService.disableRecommendation(
                 teamId, squadId, principalDetails.getMemberId());
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    @Operation(summary = "스쿼드 수동 추천 생성", description = "팀장 전용. 오늘 이미 추천이 있으면 실패합니다.")
-    @PostMapping("/{teamId}/squads/{squadId}/recommendation/manual")
-    public ResponseEntity<ApiResponse<RecommendationDetailResponse>> createManualRecommendation(
-            @PathVariable Long teamId,
-            @PathVariable Long squadId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails
-    ) {
-        RecommendationDetailResponse response = recommendationService.createManualRecommendationForSquad(teamId, squadId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 

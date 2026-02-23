@@ -58,6 +58,32 @@ public class RecommendationController {
     }
 
     @Operation(
+            summary = "스쿼드 수동 추천 생성",
+            description = """
+                    팀장이 특정 스쿼드에 수동으로 문제 추천을 생성합니다.
+                    추천 생성 즉시 스쿼드 멤버들에게 이메일이 발송됩니다.
+                    오늘 이미 추천이 있으면 실패합니다.
+                    """
+    )
+    @RateLimit(type = RateLimitType.SOLVED_AC)
+    @PostMapping("/team/{teamId}/squad/{squadId}/manual")
+    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
+    public ResponseEntity<ApiResponse<RecommendationDetailResponse>> createManualRecommendationForSquad(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+            @Parameter(description = "스쿼드 ID", example = "1")
+            @PathVariable Long squadId,
+            @AuthenticationPrincipal PrincipalDetails principalDetails) {
+
+        log.info("팀장 {}가 팀 {}, 스쿼드 {}에 수동 추천 생성", principalDetails.getMemberId(), teamId, squadId);
+
+        RecommendationDetailResponse response =
+                recommendationService.createManualRecommendationForSquad(teamId, squadId);
+
+        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
+    }
+
+    @Operation(
             summary = "내 오늘의 문제 전체 조회",
             description = """
                     로그인한 유저가 속한 모든 팀의 오늘 추천 문제를 조회합니다.
