@@ -39,6 +39,8 @@ public enum CustomResponseStatus {
     TEAM_JOIN_ALREADY_PROCESSED(HttpStatus.CONFLICT.value(), "3015", "이미 처리된 요청입니다."),
     TEAM_JOIN_ALREADY_MEMBER(HttpStatus.CONFLICT.value(), "3016", "이미 팀 멤버입니다."),
     TEAM_JOIN_NO_PERMISSION(HttpStatus.FORBIDDEN.value(), "3017", "해당 요청에 대한 권한이 없습니다."),
+    SQUAD_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST.value(), "3018", "스쿼드는 최대 5개까지 생성할 수 있습니다."),
+    DEFAULT_SQUAD_CANNOT_DELETE(HttpStatus.BAD_REQUEST.value(), "3019", "기본 스쿼드는 삭제할 수 없습니다."),
 
     /***
      * 4000: NOT_FOUND
@@ -62,6 +64,7 @@ public enum CustomResponseStatus {
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4015", "문제를 찾을 수 없습니다."),
     TEAM_JOIN_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4016", "해당 요청을 찾을 수 없습니다."),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4017", "해당 알림을 찾을 수 없습니다."),
+    SQUAD_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4018", "해당 스쿼드를 찾을 수 없습니다."),
     //    MAP_VALUE_NOT_EXIST(HttpStatus.NOT_FOUND.value(), "4005", "채팅이 존재하지 않습니다. 채팅을 새롭게 시작해주세요."),
     //    EVALUATION_SERVER_NOT_ANSWER(HttpStatus.NOT_FOUND.value(), "4006", "평가서버가 응답하지 않습니다."),
     //    CS_CHAT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "4007", "해당 CS 채팅이 존재하지 않습니다."),

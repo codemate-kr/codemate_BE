@@ -17,6 +17,8 @@ import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.service.TeamActivityService;
+import com.ryu.studyhelper.team.service.TeamMemberService;
+import com.ryu.studyhelper.team.service.TeamRecommendationSettingsService;
 import com.ryu.studyhelper.team.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,6 +38,8 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    private final TeamMemberService teamMemberService;
+    private final TeamRecommendationSettingsService teamRecommendationSettingsService;
     private final TeamActivityService teamActivityService;
 
     @Operation(
@@ -119,7 +123,7 @@ public class TeamController {
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId) {
 
-        TeamRecommendationSettingsResponse response = teamService.getRecommendationSettings(teamId);
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.getRecommendationSettings(teamId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
@@ -135,7 +139,7 @@ public class TeamController {
             @Valid @RequestBody TeamRecommendationSettingsRequest request,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        TeamRecommendationSettingsResponse response = teamService.updateRecommendationSettings(
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.updateRecommendationSettings(
                 teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
@@ -151,7 +155,7 @@ public class TeamController {
             @PathVariable Long teamId,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        TeamRecommendationSettingsResponse response = teamService.disableRecommendation(
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.disableRecommendation(
                 teamId, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
@@ -168,7 +172,7 @@ public class TeamController {
             @Valid @RequestBody InviteMemberRequest request,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        InviteMemberResponse response = teamService.inviteMember(teamId, request, principalDetails.getMemberId());
+        InviteMemberResponse response = teamMemberService.inviteMember(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
@@ -182,7 +186,7 @@ public class TeamController {
             @PathVariable Long teamId,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        teamService.leaveTeam(teamId, principalDetails.getMemberId());
+        teamMemberService.leaveTeam(teamId, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 
