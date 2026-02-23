@@ -65,6 +65,8 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
      */
     Optional<Recommendation> findFirstByTeamIdOrderByCreatedAtDesc(Long teamId);
 
+    Optional<Recommendation> findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(Long teamId, Long squadId);
+
     /**
      * 특정 팀의 특정 날짜 범위 내 추천 조회 (타입 무관, 1개만)
      * 수동 추천 시 오늘 이미 추천이 있는지 검증할 때 사용
