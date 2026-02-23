@@ -13,6 +13,7 @@ import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
+import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,9 @@ class RecommendationServiceTest {
 
     @Mock
     private TeamRepository teamRepository;
+
+    @Mock
+    private SquadRepository squadRepository;
 
     @Mock
     private TeamMemberRepository teamMemberRepository;
@@ -83,6 +87,7 @@ class RecommendationServiceTest {
         recommendationService = new RecommendationService(
                 clock,
                 teamRepository,
+                squadRepository,
                 teamMemberRepository,
                 problemTagRepository,
                 recommendationRepository,
