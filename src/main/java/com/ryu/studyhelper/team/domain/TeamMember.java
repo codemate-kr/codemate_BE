@@ -29,15 +29,23 @@ public class TeamMember extends BaseEntity {
     @Column(nullable = false)
     private TeamRole role;
 
+    @Column(name = "squad_id")
+    private Long squadId;
+
     /**
      * 팀원 생성을 위한 팩토리 메서드
      */
-    public static TeamMember create(Team team, Member member, TeamRole role) {
+    public static TeamMember create(Team team, Member member, TeamRole role, Long squadId) {
         return TeamMember.builder()
                 .team(team)
                 .member(member)
                 .role(role)
+                .squadId(squadId)
                 .build();
+    }
+
+    public static TeamMember create(Team team, Member member, TeamRole role) {
+        return create(team, member, role, null);
     }
 
     /**
@@ -47,10 +55,22 @@ public class TeamMember extends BaseEntity {
         return create(team, member, TeamRole.LEADER);
     }
 
+    public static TeamMember createLeader(Team team, Member member, Long squadId) {
+        return create(team, member, TeamRole.LEADER, squadId);
+    }
+
     /**
      * 일반 팀원 생성을 위한 팩토리 메서드
      */
     public static TeamMember createMember(Team team, Member member) {
         return create(team, member, TeamRole.MEMBER);
+    }
+
+    public static TeamMember createMember(Team team, Member member, Long squadId) {
+        return create(team, member, TeamRole.MEMBER, squadId);
+    }
+
+    public void updateSquadId(Long squadId) {
+        this.squadId = squadId;
     }
 }

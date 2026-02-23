@@ -19,6 +19,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<String> findHandlesByTeamId(Long teamId);
 
     @Query("""
+      select m.handle
+      from TeamMember tm join tm.member m
+      where tm.team.id = :teamId
+        and tm.squadId = :squadId
+    """)
+    List<String> findHandlesByTeamIdAndSquadId(Long teamId, Long squadId);
+
+    @Query("""
            select m.email
            from TeamMember tm
            join tm.member m
@@ -68,6 +76,14 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            """)
     List<Member> findMembersByTeamId(Long teamId);
 
+    @Query("""
+           select tm.member
+           from TeamMember tm
+           where tm.team.id = :teamId
+             and tm.squadId = :squadId
+           """)
+    List<Member> findMembersByTeamIdAndSquadId(Long teamId, Long squadId);
+
     /**
      * 특정 팀의 리더 ID 조회
      */
@@ -77,4 +93,10 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            where tm.team.id = :teamId and tm.role = 'LEADER'
            """)
     Optional<Long> findLeaderIdByTeamId(Long teamId);
+
+    List<TeamMember> findByTeamId(Long teamId);
+
+    List<TeamMember> findByTeamIdAndSquadId(Long teamId, Long squadId);
+
+    int countByTeamIdAndSquadId(Long teamId, Long squadId);
 }

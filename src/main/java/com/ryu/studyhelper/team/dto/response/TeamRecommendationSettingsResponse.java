@@ -18,7 +18,8 @@ public record TeamRecommendationSettingsResponse(
         Integer minProblemLevel, // 커스텀 모드일 때만 값 있음
         Integer maxProblemLevel, // 커스텀 모드일 때만 값 있음
         Integer problemCount, // 추천 문제 개수 (1~10, 기본값 3)
-        List<String> includeTags // 포함할 알고리즘 태그 키 목록
+        List<String> includeTags, // 포함할 알고리즘 태그 키 목록
+        String deprecationMessage
 ) {
     /**
      * 태그 정보 없이 응답 생성 (기존 API 호환용)
@@ -42,7 +43,8 @@ public record TeamRecommendationSettingsResponse(
                 team.getEffectiveMinProblemLevel(),
                 team.getEffectiveMaxProblemLevel(),
                 team.getProblemCount(),
-                includeTags != null ? includeTags : List.of()
+                includeTags != null ? includeTags : List.of(),
+                "이 API는 deprecated 예정입니다. Squad 추천 설정 API(/api/teams/{teamId}/squads/{squadId}/recommendation-settings)로 전환해주세요."
         );
     }
 }
