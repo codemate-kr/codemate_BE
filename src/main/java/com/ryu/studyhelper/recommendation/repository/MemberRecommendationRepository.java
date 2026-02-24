@@ -76,4 +76,23 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
      * @return 개인 추천 목록
      */
     List<MemberRecommendation> findByRecommendationId(Long recommendationId);
+
+    /**
+     * 현재 팀원의 MemberRecommendation 조회 (팀 활동 현황 V2 / 리더보드용)
+     * TeamMember JOIN으로 현재 팀원 MR만 반환, recommendation·problems·member fetch join으로 N+1 방지
+     * problems 컬렉션 JOIN FETCH로 인한 Cartesian product는 DISTINCT로 제거
+     */
+    @Query("SELECT DISTINCT mr FROM MemberRecommendation mr " +
+            "JOIN TeamMember tm ON tm.member = mr.member AND tm.team.id = :teamId " +
+            "JOIN FETCH mr.recommendation r " +
+            "JOIN FETCH r.problems rp " +
+            "JOIN FETCH rp.problem " +
+            "JOIN FETCH mr.member " +
+            "WHERE mr.teamId = :teamId " +
+            "AND r.createdAt BETWEEN :start AND :end")
+    List<MemberRecommendation> findByTeamIdAndCreatedAtBetween(
+            @Param("teamId") Long teamId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }

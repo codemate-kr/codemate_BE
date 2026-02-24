@@ -1,23 +1,22 @@
 package com.ryu.studyhelper.team.service;
 
 import com.ryu.studyhelper.common.MissionCyclePolicy;
-import com.ryu.studyhelper.common.enums.CustomResponseStatus;
-import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
-import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
+import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
-import com.ryu.studyhelper.team.repository.TeamMemberRepository;
-import com.ryu.studyhelper.team.repository.TeamRepository;
-import com.ryu.studyhelper.team.domain.Team;
-import com.ryu.studyhelper.team.dto.internal.MemberSolvedStatus;
+import com.ryu.studyhelper.solve.service.SolveService;
+import com.ryu.studyhelper.team.domain.Squad;
+import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.dto.internal.QueryPeriod;
-import com.ryu.studyhelper.solve.dto.projection.MemberSolvedSummaryProjection;
 import com.ryu.studyhelper.team.dto.response.TeamActivityResponse;
+import com.ryu.studyhelper.team.dto.response.TeamActivityResponseV2;
+import com.ryu.studyhelper.team.dto.response.TeamLeaderboardResponse;
+import com.ryu.studyhelper.team.repository.SquadRepository;
+import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,25 +31,25 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class TeamActivityService {
 
-    private final TeamRepository teamRepository;
+    private final TeamService teamService;
+    private final SolveService solveService;
     private final TeamMemberRepository teamMemberRepository;
     private final RecommendationRepository recommendationRepository;
-    private final MemberSolvedProblemRepository memberSolvedProblemRepository;
+    private final SquadRepository squadRepository;
+    private final MemberRecommendationRepository memberRecommendationRepository;
 
     private static final int MAX_DAYS = 30;
     private static final int DEFAULT_DAYS = 30;
 
-    /**
-     * 팀 활동 현황 조회
-     * TODO: 추후 readOnly 고려
-     */
+    // TODO: V1 API 제거 예정 - getTeamActivity, buildMemberRanks, buildDailyActivities,
+    //       buildProblemInfoList, buildMemberSolvedList, buildEmptyResponse 및
+    //       관련 import (TeamActivityResponse, RecommendationRepository, Recommendation,
+    //       RecommendationProblem) 일괄 삭제
     @Transactional
     public TeamActivityResponse getTeamActivity(Long teamId, Long currentMemberId, Integer days) {
-        Team team = findTeamOrThrow(teamId);
-        validatePrivateTeamAccess(team, currentMemberId);
+        teamService.validateTeamAccess(teamId, currentMemberId);
 
         QueryPeriod period = calculateQueryPeriod(days);
         List<Member> members = teamMemberRepository.findMembersByTeamId(teamId);
@@ -59,110 +58,70 @@ public class TeamActivityService {
             return buildEmptyResponse(currentMemberId, period);
         }
 
-        // 기간 내 추천 조회 (리더보드와 일별 활동에서 공통 사용)
         List<Recommendation> recommendations =
                 recommendationRepository.findByTeamIdAndCreatedAtBetweenWithProblems(
                         teamId, period.startDateTime(), period.endDateTime());
 
-        Set<Long> recommendedProblemIds = extractAllProblemIds(recommendations);
+        Set<Long> recommendedProblemIds = recommendations.stream()
+                .flatMap(r -> r.getProblems().stream())
+                .map(rp -> rp.getProblem().getId())
+                .collect(Collectors.toSet());
 
-        List<TeamActivityResponse.MemberRank> memberRanks = buildMemberRanks(members, recommendedProblemIds);
-        List<TeamActivityResponse.DailyActivity> dailyActivities = buildDailyActivities(recommendations, members, recommendedProblemIds);
+        List<Long> memberIds = members.stream().map(Member::getId).toList();
+        Map<Long, Set<Long>> solvedMap = solveService.getSolvedProblemIdMap(memberIds, recommendedProblemIds);
 
         return TeamActivityResponse.of(
                 currentMemberId,
                 new TeamActivityResponse.Period(period.days(), period.startDate(), period.endDate()),
-                memberRanks,
-                dailyActivities
+                buildMemberRanks(members, recommendedProblemIds, solvedMap),
+                buildDailyActivities(recommendations, memberIds, solvedMap)
         );
-    }
-
-    // ========== 팀 조회 ==========
-
-    private Team findTeamOrThrow(Long teamId) {
-        return teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-    }
-
-    // ========== 권한 검증 ==========
-
-    private void validatePrivateTeamAccess(Team team, Long memberId) {
-        if (!team.getIsPrivate()) {
-            return;
-        }
-        if (memberId == null) {
-            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
-        }
-        if (!teamMemberRepository.existsByTeamIdAndMemberId(team.getId(), memberId)) {
-            throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
-        }
     }
 
     // ========== 기간 계산 ==========
 
     private QueryPeriod calculateQueryPeriod(Integer days) {
-        int queryDays = calculateDays(days);
+        int queryDays = (days == null || days <= 0) ? DEFAULT_DAYS : Math.min(days, MAX_DAYS);
         LocalDate endDate = MissionCyclePolicy.toMissionDate(LocalDateTime.now());
         LocalDate startDate = endDate.minusDays(queryDays - 1);
         return QueryPeriod.of(queryDays, startDate, endDate);
     }
 
-    private int calculateDays(Integer days) {
-        if (days == null || days <= 0) {
-            return DEFAULT_DAYS;
-        }
-        return Math.min(days, MAX_DAYS);
-    }
-
     // ========== 리더보드 구성 ==========
 
-    /**
-     * 리더보드 구성 (팀 추천 문제 기준)
-     */
-    private List<TeamActivityResponse.MemberRank> buildMemberRanks(List<Member> members, Set<Long> recommendedProblemIds) {
-        if (recommendedProblemIds.isEmpty()) {
-            // 추천 문제가 없으면 모든 멤버 0문제로 처리 (동률 1위, 핸들순 정렬)
-            return members.stream()
-                    .sorted(Comparator.comparing(Member::getHandle, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .map(m -> new TeamActivityResponse.MemberRank(m.getId(), m.getHandle(), 1, 0))
-                    .toList();
-        }
+    private List<TeamActivityResponse.MemberRank> buildMemberRanks(
+            List<Member> members,
+            Set<Long> recommendedProblemIds,
+            Map<Long, Set<Long>> solvedMap) {
 
-        List<Long> memberIds = members.stream().map(Member::getId).toList();
-        List<MemberSolvedSummaryProjection> summaries =
-                memberSolvedProblemRepository.countSolvedByMemberIdsAndProblemIds(
-                        memberIds, new ArrayList<>(recommendedProblemIds));
+        record MemberScore(Member member, long solved) {}
+        List<MemberScore> scores = members.stream()
+                .map(m -> {
+                    Set<Long> solved = solvedMap.getOrDefault(m.getId(), Set.of());
+                    long count = recommendedProblemIds.stream().filter(solved::contains).count();
+                    return new MemberScore(m, count);
+                })
+                .sorted(Comparator.comparingLong(MemberScore::solved).reversed()
+                        .thenComparing(s -> s.member().getHandle(), Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
 
-        return assignRanks(summaries);
-    }
-
-    /**
-     * 순위 부여 (동점자 처리: 공동 2위 2명이면 다음은 4위)
-     */
-    private List<TeamActivityResponse.MemberRank> assignRanks(List<MemberSolvedSummaryProjection> summaries) {
         List<TeamActivityResponse.MemberRank> ranks = new ArrayList<>();
         int currentRank = 1;
         long previousSolved = -1;
         int sameRankCount = 0;
 
-        for (MemberSolvedSummaryProjection summary : summaries) {
-            long totalSolved = summary.getTotalSolved();
-
-            if (totalSolved != previousSolved) {
+        for (MemberScore score : scores) {
+            if (score.solved() != previousSolved) {
                 currentRank += sameRankCount;
                 sameRankCount = 1;
             } else {
                 sameRankCount++;
             }
-
             ranks.add(new TeamActivityResponse.MemberRank(
-                    summary.getMemberId(),
-                    summary.getHandle(),
-                    currentRank,
-                    (int) totalSolved
+                    score.member().getId(), score.member().getHandle(),
+                    currentRank, (int) score.solved()
             ));
-
-            previousSolved = totalSolved;
+            previousSolved = score.solved();
         }
 
         return ranks;
@@ -172,62 +131,21 @@ public class TeamActivityService {
 
     private List<TeamActivityResponse.DailyActivity> buildDailyActivities(
             List<Recommendation> recommendations,
-            List<Member> members,
-            Set<Long> recommendedProblemIds) {
+            List<Long> memberIds,
+            Map<Long, Set<Long>> solvedMap) {
 
-        if (recommendations.isEmpty() || recommendedProblemIds.isEmpty()) {
+        if (recommendations.isEmpty()) {
             return List.of();
         }
 
-        List<Long> memberIds = members.stream().map(Member::getId).toList();
-        List<MemberSolvedStatus> memberSolvedStatuses = loadMemberSolvedStatuses(memberIds, recommendedProblemIds);
-
         return recommendations.stream()
-                .map(rec -> buildDailyActivity(rec, memberSolvedStatuses))
+                .map(rec -> {
+                    LocalDate date = MissionCyclePolicy.toMissionDate(rec.getCreatedAt());
+                    List<TeamActivityResponse.ProblemInfo> problems = buildProblemInfoList(rec);
+                    List<Long> problemIds = problems.stream().map(TeamActivityResponse.ProblemInfo::problemId).toList();
+                    return new TeamActivityResponse.DailyActivity(date, problems, buildMemberSolvedList(memberIds, problemIds, solvedMap));
+                })
                 .toList();
-    }
-
-    private Set<Long> extractAllProblemIds(List<Recommendation> recommendations) {
-        return recommendations.stream()
-                .flatMap(r -> r.getProblems().stream())
-                .map(rp -> rp.getProblem().getId())
-                .collect(Collectors.toSet());
-    }
-
-    private List<MemberSolvedStatus> loadMemberSolvedStatuses(List<Long> memberIds, Set<Long> problemIds) {
-        List<MemberSolvedProblem> solvedRecords =
-                memberSolvedProblemRepository.findByMemberIdsAndProblemIds(memberIds, new ArrayList<>(problemIds));
-
-        Map<Long, Set<Long>> memberSolvedMap = solvedRecords.stream()
-                .collect(Collectors.groupingBy(
-                        msp -> msp.getMember().getId(),
-                        Collectors.mapping(msp -> msp.getProblem().getId(), Collectors.toSet())
-                ));
-
-        return memberIds.stream()
-                .map(memberId -> new MemberSolvedStatus(
-                        memberId,
-                        memberSolvedMap.getOrDefault(memberId, Set.of())
-                ))
-                .toList();
-    }
-
-    private TeamActivityResponse.DailyActivity buildDailyActivity(
-            Recommendation recommendation,
-            List<MemberSolvedStatus> memberSolvedStatuses) {
-
-        // 미션 사이클 기준 날짜 (6시 이전 생성분은 전날로 표시)
-        LocalDate date = MissionCyclePolicy.toMissionDate(recommendation.getCreatedAt());
-
-        List<TeamActivityResponse.ProblemInfo> problems = buildProblemInfoList(recommendation);
-        List<Long> problemIds = problems.stream()
-                .map(TeamActivityResponse.ProblemInfo::problemId)
-                .toList();
-
-        List<TeamActivityResponse.MemberSolved> memberSolvedList =
-                buildMemberSolvedList(memberSolvedStatuses, problemIds);
-
-        return new TeamActivityResponse.DailyActivity(date, problems, memberSolvedList);
     }
 
     private List<TeamActivityResponse.ProblemInfo> buildProblemInfoList(Recommendation recommendation) {
@@ -243,17 +161,16 @@ public class TeamActivityService {
     }
 
     private List<TeamActivityResponse.MemberSolved> buildMemberSolvedList(
-            List<MemberSolvedStatus> memberSolvedStatuses,
-            List<Long> problemIds) {
+            List<Long> memberIds,
+            List<Long> problemIds,
+            Map<Long, Set<Long>> solvedMap) {
 
-        return memberSolvedStatuses.stream()
-                .map(status -> {
-                    Map<Long, Boolean> solvedMap = problemIds.stream()
-                            .collect(Collectors.toMap(
-                                    pid -> pid,
-                                    status::hasSolved
-                            ));
-                    return new TeamActivityResponse.MemberSolved(status.memberId(), solvedMap);
+        return memberIds.stream()
+                .map(memberId -> {
+                    Set<Long> solved = solvedMap.getOrDefault(memberId, Set.of());
+                    Map<Long, Boolean> solvedResult = problemIds.stream()
+                            .collect(Collectors.toMap(pid -> pid, solved::contains));
+                    return new TeamActivityResponse.MemberSolved(memberId, solvedResult);
                 })
                 .toList();
     }
@@ -267,5 +184,190 @@ public class TeamActivityService {
                 List.of(),
                 List.of()
         );
+    }
+
+
+
+
+    // ========== V2: 팀 리더보드 ==========
+    @Transactional(readOnly = true)
+    public TeamLeaderboardResponse getTeamLeaderboard(Long teamId, Long currentMemberId, Integer days) {
+        teamService.validateTeamAccess(teamId, currentMemberId);
+
+        QueryPeriod period = calculateQueryPeriod(days);
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamIdWithMember(teamId);
+        List<Squad> squads = squadRepository.findByTeamIdOrderByIdAsc(teamId);
+        Map<Long, Squad> squadMap = squads.stream().collect(Collectors.toMap(Squad::getId, s -> s));
+
+        if (teamMembers.isEmpty()) {
+            return new TeamLeaderboardResponse(currentMemberId,
+                    new TeamLeaderboardResponse.Period(period.days(), period.startDate(), period.endDate()),
+                    List.of());
+        }
+
+        List<MemberRecommendation> memberRecs = memberRecommendationRepository
+                .findByTeamIdAndCreatedAtBetween(teamId, period.startDateTime(), period.endDateTime());
+
+        Map<Long, Set<Long>> solvedMap = Map.of();
+        if (!memberRecs.isEmpty()) {
+            Set<Long> allProblemIds = memberRecs.stream()
+                    .flatMap(mr -> mr.getRecommendation().getProblems().stream())
+                    .map(rp -> rp.getProblem().getId())
+                    .collect(Collectors.toSet());
+            List<Long> participatingMemberIds = memberRecs.stream()
+                    .map(mr -> mr.getMember().getId()).distinct().toList();
+            solvedMap = solveService.getSolvedProblemIdMap(participatingMemberIds, allProblemIds);
+        }
+
+        return new TeamLeaderboardResponse(currentMemberId,
+                new TeamLeaderboardResponse.Period(period.days(), period.startDate(), period.endDate()),
+                buildLeaderboardRanks(teamMembers, memberRecs, solvedMap, squadMap));
+    }
+
+    private List<TeamLeaderboardResponse.MemberRank> buildLeaderboardRanks(
+            List<TeamMember> teamMembers,
+            List<MemberRecommendation> memberRecs,
+            Map<Long, Set<Long>> solvedMap,
+            Map<Long, Squad> squadMap) {
+
+        Map<Long, Set<Long>> memberProblemIds = memberRecs.stream().collect(Collectors.groupingBy(
+                mr -> mr.getMember().getId(),
+                Collectors.flatMapping(
+                        mr -> mr.getRecommendation().getProblems().stream().map(rp -> rp.getProblem().getId()),
+                        Collectors.toSet()
+                )
+        ));
+
+        record MemberScore(TeamMember tm, long solved) {}
+        List<MemberScore> scores = teamMembers.stream()
+                .map(tm -> {
+                    Set<Long> pIds = memberProblemIds.getOrDefault(tm.getMember().getId(), Set.of());
+                    Set<Long> solved = solvedMap.getOrDefault(tm.getMember().getId(), Set.of());
+                    long count = pIds.stream().filter(solved::contains).count();
+                    return new MemberScore(tm, count);
+                })
+                .sorted(Comparator.comparingLong(MemberScore::solved).reversed()
+                        .thenComparingLong(s -> s.tm().getMember().getId()))
+                .toList();
+
+        List<TeamLeaderboardResponse.MemberRank> ranks = new ArrayList<>();
+        int currentRank = 1;
+        long previousSolved = -1;
+        int sameRankCount = 0;
+
+        for (MemberScore score : scores) {
+            if (score.solved() != previousSolved) {
+                currentRank += sameRankCount;
+                sameRankCount = 1;
+            } else {
+                sameRankCount++;
+            }
+            previousSolved = score.solved();
+
+            TeamMember tm = score.tm();
+            Long squadId = tm.getSquadId();
+            Squad squad = squadId != null ? squadMap.get(squadId) : null;
+            ranks.add(new TeamLeaderboardResponse.MemberRank(
+                    tm.getMember().getId(), tm.getMember().getHandle(),
+                    squadId, squad != null ? squad.getName() : null,
+                    currentRank, score.solved()
+            ));
+        }
+
+        return ranks;
+    }
+
+
+    // ========== V2: 팀원별 활동 현황 ==========
+
+    @Transactional(readOnly = true)
+    public TeamActivityResponseV2 getTeamActivityV2(Long teamId, Long currentMemberId, Integer days) {
+        teamService.validateTeamAccess(teamId, currentMemberId);
+
+        QueryPeriod period = calculateQueryPeriod(days);
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamIdWithMember(teamId);
+
+        if (teamMembers.isEmpty()) {
+            return buildEmptyResponseV2(currentMemberId, period);
+        }
+
+        List<Squad> squads = squadRepository.findByTeamIdOrderByIdAsc(teamId);
+        Map<Long, Squad> squadMap = squads.stream().collect(Collectors.toMap(Squad::getId, s -> s));
+
+        List<MemberRecommendation> memberRecs = memberRecommendationRepository
+                .findByTeamIdAndCreatedAtBetween(teamId, period.startDateTime(), period.endDateTime());
+
+        Map<Long, Set<Long>> solvedMap = Map.of();
+        if (!memberRecs.isEmpty()) {
+            Set<Long> allProblemIds = memberRecs.stream()
+                    .flatMap(mr -> mr.getRecommendation().getProblems().stream())
+                    .map(rp -> rp.getProblem().getId())
+                    .collect(Collectors.toSet());
+            List<Long> participatingMemberIds = memberRecs.stream()
+                    .map(mr -> mr.getMember().getId()).distinct().toList();
+            solvedMap = solveService.getSolvedProblemIdMap(participatingMemberIds, allProblemIds);
+        }
+
+        Map<Long, List<MemberRecommendation>> recsByMember = memberRecs.stream()
+                .collect(Collectors.groupingBy(mr -> mr.getMember().getId()));
+
+        return new TeamActivityResponseV2(currentMemberId,
+                new TeamActivityResponseV2.Period(period.days(), period.startDate(), period.endDate()),
+                buildMemberActivities(teamMembers, recsByMember, solvedMap, squadMap)
+        );
+    }
+
+    private List<TeamActivityResponseV2.MemberActivity> buildMemberActivities(
+            List<TeamMember> teamMembers,
+            Map<Long, List<MemberRecommendation>> recsByMember,
+            Map<Long, Set<Long>> solvedMap,
+            Map<Long, Squad> squadMap) {
+
+        return teamMembers.stream()
+                .map(tm -> {
+                    Long memberId = tm.getMember().getId();
+                    Long squadId = tm.getSquadId();
+                    Squad squad = squadId != null ? squadMap.get(squadId) : null;
+                    Set<Long> solved = solvedMap.getOrDefault(memberId, Set.of());
+
+                    List<TeamActivityResponseV2.DailyRecommendation> dailyRecs =
+                            recsByMember.getOrDefault(memberId, List.of()).stream()
+                                    .sorted(Comparator.comparing(
+                                            mr -> MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt()),
+                                            Comparator.reverseOrder()))
+                                    .map(mr -> {
+                                        LocalDate date = MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt());
+                                        List<TeamActivityResponseV2.ProblemActivity> problems =
+                                                mr.getRecommendation().getProblems().stream()
+                                                        .sorted(Comparator.comparing(rp -> rp.getProblem().getId()))
+                                                        .map(rp -> new TeamActivityResponseV2.ProblemActivity(
+                                                                rp.getProblem().getId(),
+                                                                rp.getProblem().getTitle(),
+                                                                rp.getProblem().getTitleKo(),
+                                                                rp.getProblem().getLevel(),
+                                                                solved.contains(rp.getProblem().getId())
+                                                        ))
+                                                        .toList();
+                                        return new TeamActivityResponseV2.DailyRecommendation(date, problems);
+                                    })
+                                    .toList();
+
+                    return new TeamActivityResponseV2.MemberActivity(
+                            memberId,
+                            tm.getMember().getHandle(),
+                            squadId,
+                            squad != null ? squad.getName() : null,
+                            dailyRecs
+                    );
+                })
+                .toList();
+    }
+
+    // ========== V2: 빈 응답 ==========
+
+    private TeamActivityResponseV2 buildEmptyResponseV2(Long currentMemberId, QueryPeriod period) {
+        return new TeamActivityResponseV2(currentMemberId,
+                new TeamActivityResponseV2.Period(period.days(), period.startDate(), period.endDate()),
+                List.of());
     }
 }
