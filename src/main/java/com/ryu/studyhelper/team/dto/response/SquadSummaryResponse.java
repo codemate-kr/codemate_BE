@@ -1,5 +1,6 @@
 package com.ryu.studyhelper.team.dto.response;
 
+import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.team.domain.ProblemDifficultyPreset;
 import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.domain.Squad;
@@ -18,9 +19,11 @@ public record SquadSummaryResponse(
         Integer minProblemLevel,
         Integer maxProblemLevel,
         Integer problemCount,
-        List<String> includeTags
+        List<String> includeTags,
+        TodayProblemResponse todayProblems
 ) {
-    public static SquadSummaryResponse from(Squad squad, int memberCount, List<String> includeTags) {
+    public static SquadSummaryResponse from(Squad squad, int memberCount, List<String> includeTags,
+                                            TodayProblemResponse todayProblems) {
         return new SquadSummaryResponse(
                 squad.getId(),
                 squad.getName(),
@@ -33,7 +36,8 @@ public record SquadSummaryResponse(
                 squad.getEffectiveMinProblemLevel(),
                 squad.getEffectiveMaxProblemLevel(),
                 squad.getProblemCount(),
-                includeTags != null ? includeTags : List.of()
+                includeTags != null ? includeTags : List.of(),
+                todayProblems
         );
     }
 }

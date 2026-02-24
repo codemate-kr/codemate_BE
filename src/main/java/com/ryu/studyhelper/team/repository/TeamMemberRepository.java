@@ -96,6 +96,15 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     List<TeamMember> findByTeamId(Long teamId);
 
+    /**
+     * 특정 팀의 모든 팀멤버 조회 (Member fetch join, N+1 방지)
+     */
+    @Query("""
+           SELECT tm FROM TeamMember tm JOIN FETCH tm.member
+           WHERE tm.team.id = :teamId
+           """)
+    List<TeamMember> findByTeamIdWithMember(@org.springframework.data.repository.query.Param("teamId") Long teamId);
+
     List<TeamMember> findByTeamIdAndSquadId(Long teamId, Long squadId);
 
     int countByTeamIdAndSquadId(Long teamId, Long squadId);

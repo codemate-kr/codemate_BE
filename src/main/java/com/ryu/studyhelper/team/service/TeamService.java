@@ -149,13 +149,12 @@ public class TeamService {
                 .map(squad -> SquadSummaryResponse.from(
                         squad,
                         teamMemberRepository.countByTeamIdAndSquadId(teamId, squad.getId()),
-                        squadIncludeTagRepository.findTagKeysBySquadId(squad.getId())
+                        squadIncludeTagRepository.findTagKeysBySquadId(squad.getId()),
+                        recommendationService.findTodayRecommendationBySquad(teamId, squad.getId(), memberId).orElse(null)
                 ))
                 .toList();
 
-        TodayProblemResponse todayProblem = resolveTodayProblemBySquad(teamId, memberId);
-
-        return new TeamPageResponseV2(teamInfo, members, squadSummaries, todayProblem);
+        return new TeamPageResponseV2(teamInfo, members, squadSummaries);
     }
 
     @Transactional
@@ -232,6 +231,12 @@ public class TeamService {
         }
     }
 
+    public void validateTeamAccess(Long teamId, Long memberId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+        validatePrivateTeamAccess(team, memberId);
+    }
+
     private void validatePrivateTeamAccess(Team team, Long memberId) {
         if (!team.getIsPrivate()) {
             return;
@@ -239,16 +244,6 @@ public class TeamService {
         if (memberId == null || !teamMemberRepository.existsByTeamIdAndMemberId(team.getId(), memberId)) {
             throw new CustomException(CustomResponseStatus.TEAM_ACCESS_DENIED);
         }
-    }
-
-    private TodayProblemResponse resolveTodayProblemBySquad(Long teamId, Long memberId) {
-        if (memberId == null) {
-            return null;
-        }
-        return teamMemberRepository.findByTeamIdAndMemberId(teamId, memberId)
-                .filter(tm -> tm.getSquadId() != null)
-                .flatMap(tm -> recommendationService.findTodayRecommendationBySquad(teamId, tm.getSquadId(), memberId))
-                .orElse(null);
     }
 
     private Map<Long, String> buildSquadNameMap(Long teamId) {

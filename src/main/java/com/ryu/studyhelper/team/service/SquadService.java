@@ -77,7 +77,8 @@ public class SquadService {
                 .map(squad -> SquadSummaryResponse.from(
                         squad,
                         memberCountBySquadId.getOrDefault(squad.getId(), 0),
-                        squadIncludeTagRepository.findTagKeysBySquadId(squad.getId())
+                        squadIncludeTagRepository.findTagKeysBySquadId(squad.getId()),
+                        null
                 ))
                 .toList();
     }

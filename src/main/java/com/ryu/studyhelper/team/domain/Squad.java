@@ -39,7 +39,7 @@ public class Squad extends BaseEntity {
     private Boolean isDefault = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "recommendation_status", nullable = false)
+    @Column(name = "recommendation_status", nullable = false, length = 16)
     @Builder.Default
     private RecommendationStatus recommendationStatus = RecommendationStatus.INACTIVE;
 
@@ -48,7 +48,7 @@ public class Squad extends BaseEntity {
     private Integer recommendationDays = RecommendationDayOfWeek.INACTIVE;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "problem_difficulty_preset")
+    @Column(name = "problem_difficulty_preset", length = 16)
     @Builder.Default
     private ProblemDifficultyPreset problemDifficultyPreset = ProblemDifficultyPreset.NORMAL;
 
@@ -65,8 +65,8 @@ public class Squad extends BaseEntity {
     public static Squad createDefault(Team team) {
         return Squad.builder()
                 .team(team)
-                .name("기본 스쿼드")
-                .description("팀 기본 스쿼드")
+                .name("스쿼드A")
+                .description("스쿼드A")
                 .isDefault(true)
                 .recommendationStatus(team.getRecommendationStatus())
                 .recommendationDays(team.getRecommendationDays())

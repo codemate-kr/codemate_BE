@@ -19,10 +19,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -158,6 +156,26 @@ public class SolveService {
             return dateTime.toLocalDate().minusDays(1);
         }
         return dateTime.toLocalDate();
+    }
+
+    /**
+     * 여러 멤버의 특정 문제 풀이 여부 맵 조회
+     * @param memberIds 멤버 ID 목록
+     * @param problemIds 문제 ID 컬렉션
+     * @return memberId → 풀이한 problemId 집합
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Set<Long>> getSolvedProblemIdMap(List<Long> memberIds, Collection<Long> problemIds) {
+        if (memberIds.isEmpty() || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        return memberSolvedProblemRepository
+                .findByMemberIdsAndProblemIds(memberIds, new ArrayList<>(problemIds))
+                .stream()
+                .collect(Collectors.groupingBy(
+                        msp -> msp.getMember().getId(),
+                        Collectors.mapping(msp -> msp.getProblem().getId(), Collectors.toSet())
+                ));
     }
 
     private Member findMemberById(Long memberId) {
