@@ -28,7 +28,7 @@ public record SquadSummaryResponse(
                 squad.getId(),
                 squad.getName(),
                 squad.getDescription(),
-                squad.getIsDefault(),
+                squad.isDefault(),
                 memberCount,
                 squad.isRecommendationActive(),
                 squad.getRecommendationDaysList(),

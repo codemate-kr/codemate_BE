@@ -13,7 +13,7 @@ public record SquadResponse(
                 squad.getId(),
                 squad.getName(),
                 squad.getDescription(),
-                squad.getIsDefault()
+                squad.isDefault()
         );
     }
 }

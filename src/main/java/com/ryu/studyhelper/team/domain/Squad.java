@@ -36,7 +36,7 @@ public class Squad extends BaseEntity {
 
     @Column(name = "is_default", nullable = false)
     @Builder.Default
-    private Boolean isDefault = false;
+    private boolean isDefault = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "recommendation_status", nullable = false, length = 16)
@@ -95,10 +95,6 @@ public class Squad extends BaseEntity {
         this.description = description;
     }
 
-    public void updateInfo(String name, String description) {
-        updateBasicInfo(name, description);
-    }
-
     public void updateRecommendationDays(List<RecommendationDayOfWeek> days) {
         this.recommendationDays = RecommendationDayOfWeek.toBitMask(days);
         this.recommendationStatus = this.recommendationDays > 0
@@ -119,20 +115,23 @@ public class Squad extends BaseEntity {
     }
 
     private void updateCustomLevelRange(Integer minLevel, Integer maxLevel) {
-        if (minLevel != null && minLevel >= 1 && minLevel <= 30) {
-            this.minProblemLevel = minLevel;
+        if (minLevel == null || minLevel < 1 || minLevel > 30) return;
+        if (maxLevel == null || maxLevel < 1 || maxLevel > 30) return;
+
+        int newMin = minLevel;
+        int newMax = maxLevel;
+        if (newMin > newMax) {
+            int tmp = newMin;
+            newMin = newMax;
+            newMax = tmp;
         }
-        if (maxLevel != null && maxLevel >= 1 && maxLevel <= 30) {
-            if (this.minProblemLevel == null || maxLevel >= this.minProblemLevel) {
-                this.maxProblemLevel = maxLevel;
-            }
-        }
+        this.minProblemLevel = newMin;
+        this.maxProblemLevel = newMax;
     }
 
     public void updateProblemCount(Integer count) {
-        if (count != null && count >= 1 && count <= 10) {
-            this.problemCount = count;
-        }
+        if (count == null) return;
+        this.problemCount = Math.max(1, Math.min(10, count));
     }
 
     public Integer getEffectiveMinProblemLevel() {
