@@ -3,6 +3,7 @@ package com.ryu.studyhelper.recommendation.service;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.TeamRepository;
+import com.ryu.studyhelper.team.service.SquadService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class ScheduledRecommendationServiceTest {
     @Mock
     private RecommendationCreator recommendationCreator;
 
+    @Mock
+    private SquadService squadService;
+
     private ScheduledRecommendationService scheduledRecommendationService;
 
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Seoul");
@@ -54,7 +58,8 @@ class ScheduledRecommendationServiceTest {
                 clock,
                 teamRepository,
                 recommendationRepository,
-                recommendationCreator
+                recommendationCreator,
+                squadService
         );
     }
 

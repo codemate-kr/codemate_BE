@@ -4,8 +4,10 @@ import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.TeamRepository;
+import com.ryu.studyhelper.team.service.SquadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ public class ScheduledRecommendationService {
     private final TeamRepository teamRepository;
     private final RecommendationRepository recommendationRepository;
     private final RecommendationCreator recommendationCreator;
+    private final SquadService squadService;
 
     /**
      * 문제 추천만 수행 (이메일 발송 X)
@@ -47,6 +50,7 @@ public class ScheduledRecommendationService {
 
         for (Team team : activeTeams) {
             try {
+                // TODO(#172): 2차 배포 시 스쿼드 기반 중복 체크로 교체 - teamId+squadId 조합으로 검사
                 if (recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
                         team.getId(), missionCycleStart, now
                 ).isPresent()) {
@@ -54,7 +58,8 @@ public class ScheduledRecommendationService {
                     continue;
                 }
 
-                recommendationCreator.create(team, RecommendationType.SCHEDULED);
+                Squad defaultSquad = squadService.findDefaultSquad(team.getId());
+                recommendationCreator.createForSquad(defaultSquad, RecommendationType.SCHEDULED);
                 successCount++;
                 log.info("팀 '{}' 문제 추천 완료", team.getName());
 
@@ -69,6 +74,8 @@ public class ScheduledRecommendationService {
         return new BatchResult(activeTeams.size(), successCount, failCount);
     }
 
+    // TODO(#172): 2차 배포 시 스쿼드 기반으로 교체 - 팀 단위 필터 대신 활성 스쿼드(recommendationStatus=ACTIVE,
+    //             해당 요일 포함) 목록을 직접 조회하도록 변경. TeamRepository.findAll() 제거 가능
     private List<Team> getActiveTeams(LocalDate date) {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         return teamRepository.findAll().stream()

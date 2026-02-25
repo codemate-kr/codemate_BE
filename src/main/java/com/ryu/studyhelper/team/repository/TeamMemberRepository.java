@@ -108,4 +108,9 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<TeamMember> findByTeamIdAndSquadId(Long teamId, Long squadId);
 
     int countByTeamIdAndSquadId(Long teamId, Long squadId);
+
+    /**
+     * 기본 스쿼드 lazy 초기화 시 squad 미배정 멤버 조회
+     */
+    List<TeamMember> findByTeamIdAndSquadIdIsNull(Long teamId);
 }

@@ -10,12 +10,14 @@ import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
+import com.ryu.studyhelper.team.service.SquadService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,9 @@ class RecommendationServiceTest {
 
     @Mock
     private SquadRepository squadRepository;
+
+    @Mock
+    private SquadService squadService;
 
     @Mock
     private TeamMemberRepository teamMemberRepository;
@@ -88,6 +93,7 @@ class RecommendationServiceTest {
                 clock,
                 teamRepository,
                 squadRepository,
+                squadService,
                 teamMemberRepository,
                 problemTagRepository,
                 recommendationRepository,
@@ -141,17 +147,19 @@ class RecommendationServiceTest {
             setupServiceWithClock(clock);
 
             Team team = createTeamWithId(TEAM_ID);
+            Squad squad = Squad.createDefault(team);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.empty());
-            when(recommendationCreator.create(any(), any()))
+            when(squadService.findDefaultSquad(TEAM_ID)).thenReturn(squad);
+            when(recommendationCreator.createForSquad(any(), any()))
                     .thenReturn(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now()));
 
             // when: 시간 검증 통과하여 정상 실행
             recommendationService.createManualRecommendation(TEAM_ID);
 
             // then: Creator가 호출되었음을 검증 (시간 검증 통과)
-            verify(recommendationCreator).create(any(), eq(RecommendationType.MANUAL));
+            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL));
         }
     }
 
@@ -193,6 +201,7 @@ class RecommendationServiceTest {
             setupServiceWithClock(clock);
 
             Team team = createTeamWithId(TEAM_ID);
+            Squad squad = Squad.createDefault(team);
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
 
             // 어제 10시 추천 (이전 사이클)
@@ -202,14 +211,15 @@ class RecommendationServiceTest {
             );
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.of(oldRecommendation));
-            when(recommendationCreator.create(any(), any()))
+            when(squadService.findDefaultSquad(TEAM_ID)).thenReturn(squad);
+            when(recommendationCreator.createForSquad(any(), any()))
                     .thenReturn(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now()));
 
             // when: 사이클 검증 통과하여 정상 실행
             recommendationService.createManualRecommendation(TEAM_ID);
 
             // then
-            verify(recommendationCreator).create(any(), eq(RecommendationType.MANUAL));
+            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL));
         }
 
         @Test
@@ -273,25 +283,27 @@ class RecommendationServiceTest {
     class ManualRecommendationProblemCountValidation {
 
         @Test
-        @DisplayName("팀 설정의 problemCount를 사용하여 추천을 생성한다")
+        @DisplayName("팀 설정의 problemCount를 기본 스쿼드에 복사하여 추천을 생성한다")
         void usesTeamProblemCount() {
             // given: 오전 10시 (금지 시간대 외)
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
-            // problemCount가 5로 설정된 팀
+            // problemCount가 5로 설정된 팀 → 기본 스쿼드에도 5 복사됨
             Team team = createTeamWithIdAndProblemCount(TEAM_ID, 5);
+            Squad squad = Squad.createDefault(team); // problemCount=5 복사
             when(teamRepository.findById(TEAM_ID)).thenReturn(Optional.of(team));
             when(recommendationRepository.findFirstByTeamIdOrderByCreatedAtDesc(TEAM_ID))
                     .thenReturn(Optional.empty());
-            when(recommendationCreator.create(any(), any()))
+            when(squadService.findDefaultSquad(TEAM_ID)).thenReturn(squad);
+            when(recommendationCreator.createForSquad(any(), any()))
                     .thenReturn(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now()));
 
             // when
             recommendationService.createManualRecommendation(TEAM_ID);
 
-            // then: Creator가 team 객체(problemCount=5)와 MANUAL 타입으로 호출됨
-            verify(recommendationCreator).create(team, RecommendationType.MANUAL);
+            // then: Creator가 기본 스쿼드와 MANUAL 타입으로 호출됨
+            verify(recommendationCreator).createForSquad(squad, RecommendationType.MANUAL);
         }
     }
 

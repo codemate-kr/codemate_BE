@@ -12,7 +12,7 @@ public interface SquadRepository extends JpaRepository<Squad, Long> {
 
     Optional<Squad> findByIdAndTeamId(Long squadId, Long teamId);
 
-    Optional<Squad> findByTeamIdAndIsDefaultTrue(Long teamId);
+    Optional<Squad> findFirstByTeamIdAndIsDefaultTrueOrderByIdAsc(Long teamId);
 
     long countByTeamId(Long teamId);
 

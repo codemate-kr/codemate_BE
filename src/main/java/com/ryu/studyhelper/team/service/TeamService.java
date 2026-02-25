@@ -164,6 +164,7 @@ public class TeamService {
 
         validateTeamLeaderAccess(teamId, memberId);
         team.updateInfo(request.name(), request.description(), request.isPrivate());
+        teamRepository.save(team);
     }
 
     @Transactional
@@ -173,6 +174,7 @@ public class TeamService {
 
         validateTeamLeaderAccess(teamId, memberId);
         team.updateVisibility(request.isPrivate());
+        teamRepository.save(team);
     }
 
     @Transactional
@@ -209,6 +211,12 @@ public class TeamService {
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
 
         validateTeamLeaderAccess(teamId, memberId);
+
+        // Squad 삭제 전 SquadIncludeTag 먼저 정리 (DB FK 없으므로 명시적 처리)
+        List<Squad> squads = squadRepository.findByTeamIdOrderByIdAsc(teamId);
+        squads.forEach(squad -> squadIncludeTagRepository.deleteAllBySquadId(squad.getId()));
+        squadRepository.deleteAll(squads);
+
         teamRepository.delete(team);
     }
 

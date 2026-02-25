@@ -23,6 +23,7 @@ import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
+import com.ryu.studyhelper.team.service.SquadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ public class RecommendationService {
     private final Clock clock;
     private final TeamRepository teamRepository;
     private final SquadRepository squadRepository;
+    private final SquadService squadService;
     private final TeamMemberRepository teamMemberRepository;
     private final ProblemTagRepository problemTagRepository;
     private final RecommendationRepository recommendationRepository;
@@ -60,22 +62,27 @@ public class RecommendationService {
 
     /**
      * 수동 추천 생성 (팀장 요청)
+     * 기본 스쿼드 기반으로 생성 (squadId 포함, team/squad read API 양쪽 조회 가능)
      * 즉시 이메일 발송
      */
     // TODO(#172): 2차 배포 시 제거 - 팀 기반 수동 추천, createManualRecommendationForSquad로 대체
     public RecommendationDetailResponse createManualRecommendation(Long teamId) {
-        Team team = teamRepository.findById(teamId)
+        teamRepository.findById(teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
 
         validateNoRecommendationToday(teamId);
 
-        Recommendation recommendation = recommendationCreator.create(team, RecommendationType.MANUAL);
+        // findDefaultSquad()가 lazy 초기화 포함 — 기존 팀에 squad 없어도 안전
+        Squad defaultSquad = squadService.findDefaultSquad(teamId);
+
+        Recommendation recommendation = recommendationCreator.createForSquad(defaultSquad, RecommendationType.MANUAL);
 
         // 즉시 이메일 발송
         List<MemberRecommendation> memberRecommendations =
                 memberRecommendationRepository.findByRecommendationId(recommendation.getId());
         recommendationEmailService.send(memberRecommendations);
 
+        Team team = defaultSquad.getTeam();
         List<Problem> problems = recommendation.getProblems().stream()
                 .map(RecommendationProblem::getProblem)
                 .toList();
@@ -98,8 +105,7 @@ public class RecommendationService {
                 memberRecommendationRepository.findByRecommendationId(recommendation.getId());
         recommendationEmailService.send(memberRecommendations);
 
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
+        Team team = squad.getTeam();
 
         List<Problem> problems = recommendation.getProblems().stream()
                 .map(RecommendationProblem::getProblem)
