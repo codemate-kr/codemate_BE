@@ -12,6 +12,7 @@ import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
+import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
@@ -40,6 +41,7 @@ public class TeamRecommendationSettingsService {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamIncludeTagRepository teamIncludeTagRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
+    private final SquadRepository squadRepository;
     private final TagRepository tagRepository;
     private final SquadService squadService;
 
@@ -78,6 +80,7 @@ public class TeamRecommendationSettingsService {
                 request.maxProblemLevel()
         );
         team.updateProblemCount(request.problemCount());
+        teamRepository.save(team);
 
         List<Tag> validTags = updateTeamIncludeTags(team, request.includeTags());
 
@@ -90,6 +93,7 @@ public class TeamRecommendationSettingsService {
                 request.maxProblemLevel()
         );
         defaultSquad.updateProblemCount(request.problemCount());
+        squadRepository.save(defaultSquad);
         syncSquadIncludeTags(defaultSquad, validTags);
 
         return TeamRecommendationSettingsResponse.from(team,
@@ -104,10 +108,12 @@ public class TeamRecommendationSettingsService {
         validateTeamLeaderAccess(teamId, memberId);
 
         team.updateRecommendationDays(List.of());
+        teamRepository.save(team);
 
         // Dual Write: 기본 스쿼드도 비활성화
         Squad defaultSquad = squadService.findDefaultSquad(teamId);
         defaultSquad.updateRecommendationDays(List.of());
+        squadRepository.save(defaultSquad);
 
         return TeamRecommendationSettingsResponse.from(team);
     }

@@ -8,7 +8,9 @@ import java.util.List;
 
 /**
  * 팀별 추천 설정 응답 DTO
+ * @deprecated Squad 추천 설정 API로 전환 예정
  */
+@Deprecated
 public record TeamRecommendationSettingsResponse(
         Long teamId,
         String teamName,
