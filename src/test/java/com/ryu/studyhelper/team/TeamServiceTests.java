@@ -14,7 +14,6 @@ import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.service.TeamService;
-import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
