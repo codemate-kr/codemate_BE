@@ -44,9 +44,10 @@ class RecommendationCreator {
     private final MemberRecommendationRepository memberRecommendationRepository;
 
     Recommendation createForSquad(Squad squad, RecommendationType type) {
-        Recommendation recommendation = recommendationRepository.save(
-                Recommendation.createManualRecommendationForSquad(squad.getTeam().getId(), squad.getId())
-        );
+        Recommendation base = (type == RecommendationType.MANUAL)
+                ? Recommendation.createManualRecommendationForSquad(squad.getTeam().getId(), squad.getId())
+                : Recommendation.createScheduledRecommendationForSquad(squad.getTeam().getId(), squad.getId());
+        Recommendation recommendation = recommendationRepository.save(base);
         List<Problem> problems = createRecommendationProblemsForSquad(recommendation, squad);
         createMemberRecommendationsForSquad(recommendation, squad);
 

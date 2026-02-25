@@ -58,6 +58,14 @@ public class Recommendation extends BaseEntity {
                 .build();
     }
 
+    public static Recommendation createScheduledRecommendationForSquad(Long teamId, Long squadId) {
+        return Recommendation.builder()
+                .teamId(teamId)
+                .squadId(squadId)
+                .type(RecommendationType.SCHEDULED)
+                .build();
+    }
+
     /**
      * 양방향 연관관계 편의 메서드
      */

@@ -85,8 +85,8 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
     @Query("SELECT DISTINCT mr FROM MemberRecommendation mr " +
             "JOIN TeamMember tm ON tm.member = mr.member AND tm.team.id = :teamId " +
             "JOIN FETCH mr.recommendation r " +
-            "JOIN FETCH r.problems rp " +
-            "JOIN FETCH rp.problem " +
+            "LEFT JOIN FETCH r.problems rp " +
+            "LEFT JOIN FETCH rp.problem " +
             "JOIN FETCH mr.member " +
             "WHERE mr.teamId = :teamId " +
             "AND r.createdAt BETWEEN :start AND :end")
