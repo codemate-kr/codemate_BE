@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.recommendation;
+package com.ryu.studyhelper.recommendation.controller;
 
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
@@ -83,9 +83,14 @@ public class RecommendationController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    /**
+     * @deprecated {@link #getMyTodayProblemsV2} 사용 (MemberRecommendation 기반)
+     */
+    @Deprecated
     @Operation(
-            summary = "내 오늘의 문제 전체 조회",
+            summary = "[Deprecated] 내 오늘의 문제 전체 조회",
             description = """
+                    (Deprecated) /my/today-problems/v2 를 사용하세요.
                     로그인한 유저가 속한 모든 팀의 오늘 추천 문제를 조회합니다.
                     TeamMember 기반으로 현재 속한 팀만 조회됩니다.
                     - 중간 합류: 즉시 해당 팀의 오늘 문제 표시
@@ -97,11 +102,12 @@ public class RecommendationController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         Long memberId = principalDetails.getMemberId();
-        log.info("사용자 {}의 오늘의 문제 전체 조회", memberId);
+        log.info("사용자 {}의 오늘의 문제 전체 조회 (deprecated)", memberId);
 
         MyTodayProblemsResponse response = recommendationService.getMyTodayProblems(memberId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
+
 
     @Operation(
             summary = "추천 시스템 상태 확인",

@@ -78,6 +78,23 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
     List<MemberRecommendation> findByRecommendationId(Long recommendationId);
 
     /**
+     * 오늘 미션 사이클 이후 생성된 회원의 MemberRecommendation 조회 (v2 오늘의 문제용)
+     * MemberRecommendation 기반으로 조회하므로 TeamMember JOIN 불필요
+     *
+     * @param memberId         회원 ID
+     * @param missionCycleStart 오늘 미션 사이클 시작 시각 (오전 6시)
+     * @return 오늘의 개인 추천 목록
+     */
+    @Query("SELECT mr FROM MemberRecommendation mr " +
+            "JOIN FETCH mr.recommendation r " +
+            "WHERE mr.member.id = :memberId " +
+            "AND r.createdAt >= :missionCycleStart")
+    List<MemberRecommendation> findTodayByMemberId(
+            @Param("memberId") Long memberId,
+            @Param("missionCycleStart") LocalDateTime missionCycleStart
+    );
+
+    /**
      * 현재 팀원의 MemberRecommendation 조회 (팀 활동 현황 V2 / 리더보드용)
      * TeamMember JOIN으로 현재 팀원 MR만 반환, recommendation·problems·member fetch join으로 N+1 방지
      * problems 컬렉션 JOIN FETCH로 인한 Cartesian product는 DISTINCT로 제거
