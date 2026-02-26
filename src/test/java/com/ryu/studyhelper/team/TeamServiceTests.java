@@ -200,6 +200,7 @@ class TeamServiceTests {
 
         verify(teamRepository, never()).save(any());
         verify(teamMemberRepository, never()).save(any());
+        verify(squadRepository, never()).save(any());
     }
 
     @Test

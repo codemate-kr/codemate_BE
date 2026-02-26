@@ -103,20 +103,23 @@ public class Squad extends BaseEntity {
     }
 
     public void updateProblemDifficultySettings(ProblemDifficultyPreset preset, Integer customMin, Integer customMax) {
-        this.problemDifficultyPreset = preset;
-
         if (preset.isCustom()) {
-            updateCustomLevelRange(customMin, customMax);
+            // 검증 + 설정 성공한 경우에만 preset 변경
+            if (updateCustomLevelRange(customMin, customMax)) {
+                this.problemDifficultyPreset = preset;
+            }
             return;
         }
 
+        this.problemDifficultyPreset = preset;
         this.minProblemLevel = null;
         this.maxProblemLevel = null;
     }
 
-    private void updateCustomLevelRange(Integer minLevel, Integer maxLevel) {
-        if (minLevel == null || minLevel < 1 || minLevel > 30) return;
-        if (maxLevel == null || maxLevel < 1 || maxLevel > 30) return;
+    /** @return 유효한 범위면 true, 검증 실패면 false (preset은 변경되지 않음) */
+    private boolean updateCustomLevelRange(Integer minLevel, Integer maxLevel) {
+        if (minLevel == null || minLevel < 1 || minLevel > 30) return false;
+        if (maxLevel == null || maxLevel < 1 || maxLevel > 30) return false;
 
         int newMin = minLevel;
         int newMax = maxLevel;
@@ -127,6 +130,7 @@ public class Squad extends BaseEntity {
         }
         this.minProblemLevel = newMin;
         this.maxProblemLevel = newMax;
+        return true;
     }
 
     public void updateProblemCount(Integer count) {
