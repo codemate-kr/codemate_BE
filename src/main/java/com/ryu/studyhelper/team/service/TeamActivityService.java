@@ -330,15 +330,28 @@ public class TeamActivityService {
                     Squad squad = squadId != null ? squadMap.get(squadId) : null;
                     Set<Long> solved = solvedMap.getOrDefault(memberId, Set.of());
 
-                    List<TeamActivityResponseV2.DailyRecommendation> dailyRecs =
+                    // 미션 날짜 기준으로 그룹핑 (같은 날 여러 MR 머지)
+                    Map<LocalDate, List<MemberRecommendation>> byDate =
                             recsByMember.getOrDefault(memberId, List.of()).stream()
-                                    .sorted(Comparator.comparing(
-                                            mr -> MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt()),
-                                            Comparator.reverseOrder()))
-                                    .map(mr -> {
-                                        LocalDate date = MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt());
+                                    .collect(Collectors.groupingBy(
+                                            mr -> MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt())
+                                    ));
+
+                    List<TeamActivityResponseV2.DailyRecommendation> dailyRecs =
+                            byDate.entrySet().stream()
+                                    .sorted(Map.Entry.<LocalDate, List<MemberRecommendation>>comparingByKey().reversed())
+                                    .map(entry -> {
+                                        LocalDate date = entry.getKey();
+                                        // 같은 날 MR들의 문제를 flat하게 수집, problemId 기준 중복 제거 후 정렬
                                         List<TeamActivityResponseV2.ProblemActivity> problems =
-                                                mr.getRecommendation().getProblems().stream()
+                                                entry.getValue().stream()
+                                                        .flatMap(mr -> mr.getRecommendation().getProblems().stream())
+                                                        .collect(Collectors.toMap(
+                                                                rp -> rp.getProblem().getId(),
+                                                                rp -> rp,
+                                                                (a, b) -> a
+                                                        ))
+                                                        .values().stream()
                                                         .sorted(Comparator.comparing(rp -> rp.getProblem().getId()))
                                                         .map(rp -> new TeamActivityResponseV2.ProblemActivity(
                                                                 rp.getProblem().getId(),
