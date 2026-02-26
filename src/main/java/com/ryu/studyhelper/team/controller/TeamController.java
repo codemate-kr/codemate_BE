@@ -34,6 +34,7 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    // TODO(#172): 2차 배포 시 제거 - TeamRecommendationSettingsService 클래스 전체 삭제 시 함께 제거
     private final TeamRecommendationSettingsService teamRecommendationSettingsService;
     private final TeamActivityService teamActivityService;
 
@@ -76,6 +77,7 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - V1 팀 페이지 엔드포인트, TeamControllerV2의 getTeamPageDetailV2로 대체
     @Operation(
             summary = "팀 페이지 통합 조회",
             description = """
@@ -109,6 +111,7 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 조회, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 설정 조회",
             description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다.",
@@ -124,6 +127,7 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 업데이트, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 설정 업데이트",
             description = "팀의 문제 추천 요일과 난이도를 설정합니다. 팀장만 설정 가능합니다.",
@@ -142,6 +146,7 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 비활성화, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 비활성화",
             description = "팀의 문제 추천을 비활성화합니다. 팀장만 설정 가능합니다.",

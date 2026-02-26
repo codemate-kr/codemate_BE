@@ -212,7 +212,8 @@ public class TeamService {
 
         validateTeamLeaderAccess(teamId, memberId);
 
-        // Squad 삭제 전 SquadIncludeTag 먼저 정리 (DB FK 없으므로 명시적 처리)
+        // TeamIncludeTag → SquadIncludeTag → Squad → Team 순서로 삭제
+        teamIncludeTagRepository.deleteAllByTeamId(teamId);
         List<Squad> squads = squadRepository.findByTeamIdOrderByIdAsc(teamId);
         squads.forEach(squad -> squadIncludeTagRepository.deleteAllBySquadId(squad.getId()));
         squadRepository.deleteAll(squads);

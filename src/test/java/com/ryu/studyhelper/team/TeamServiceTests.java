@@ -10,7 +10,9 @@ import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.domain.TeamRole;
+import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.SquadRepository;
+import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.service.TeamService;
@@ -49,6 +51,12 @@ class TeamServiceTests {
 
     @Mock
     private SquadRepository squadRepository;
+
+    @Mock
+    private SquadIncludeTagRepository squadIncludeTagRepository;
+
+    @Mock
+    private TeamIncludeTagRepository teamIncludeTagRepository;
 
     @Mock
     private NotificationService notificationService;

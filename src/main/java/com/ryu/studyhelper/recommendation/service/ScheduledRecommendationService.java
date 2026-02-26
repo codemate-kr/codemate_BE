@@ -51,9 +51,16 @@ public class ScheduledRecommendationService {
         int successCount = 0;
         int failCount = 0;
 
+        // TODO(#172): 2차 배포 시 루프 전체 교체 — 아래 스쿼드 기반으로 변경
+        //   List<Squad> activeSquads = getActiveSquads(now.toLocalDate());
+        //   for (Squad squad : activeSquads) {
+        //       if (recommendationRepository.findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+        //               squad.getTeam().getId(), squad.getId(), missionCycleStart, now).isPresent()) { continue; }
+        //       recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+        //   }
+        //   getActiveTeams(), squadService.findDefaultSquad() 호출 제거
         for (Team team : activeTeams) {
             try {
-                // TODO(#172): 2차 배포 시 스쿼드 기반 중복 체크로 교체 - teamId+squadId 조합으로 검사
                 if (recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
                         team.getId(), missionCycleStart, now
                 ).isPresent()) {
