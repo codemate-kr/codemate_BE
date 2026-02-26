@@ -41,6 +41,7 @@ public enum CustomResponseStatus {
     TEAM_JOIN_NO_PERMISSION(HttpStatus.FORBIDDEN.value(), "3017", "해당 요청에 대한 권한이 없습니다."),
     SQUAD_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN.value(), "3018", "스쿼드는 최대 5개까지 생성할 수 있습니다."),
     DEFAULT_SQUAD_CANNOT_DELETE(HttpStatus.FORBIDDEN.value(), "3019", "기본 스쿼드는 삭제할 수 없습니다."),
+    PROBLEM_NOT_IN_RECOMMENDATION(HttpStatus.FORBIDDEN.value(), "3020", "추천 목록에 없는 문제는 인증할 수 없습니다."),
 
     /***
      * 4000: NOT_FOUND

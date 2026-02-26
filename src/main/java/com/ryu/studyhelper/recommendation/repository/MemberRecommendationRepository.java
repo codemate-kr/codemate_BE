@@ -95,6 +95,24 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
     );
 
     /**
+     * 특정 회원의 MemberRecommendation에 해당 문제가 포함되어 있는지 확인
+     * 스쿼드 간 인증 차단에 사용됩니다. 날짜 조건 없음.
+     *
+     * @param memberId  회원 ID
+     * @param problemId 문제 ID
+     * @return 포함 여부
+     */
+    @Query("SELECT COUNT(mr) > 0 FROM MemberRecommendation mr " +
+            "JOIN mr.recommendation r " +
+            "JOIN r.problems rp " +
+            "WHERE mr.member.id = :memberId " +
+            "AND rp.problem.id = :problemId")
+    boolean existsByMemberIdAndRecommendedProblemId(
+            @Param("memberId") Long memberId,
+            @Param("problemId") Long problemId
+    );
+
+    /**
      * 현재 팀원의 MemberRecommendation 조회 (팀 활동 현황 V2 / 리더보드용)
      * TeamMember JOIN으로 현재 팀원 MR만 반환, recommendation·problems·member fetch join으로 N+1 방지
      * problems 컬렉션 JOIN FETCH로 인한 Cartesian product는 DISTINCT로 제거

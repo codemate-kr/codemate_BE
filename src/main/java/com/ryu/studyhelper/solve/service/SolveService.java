@@ -10,6 +10,7 @@ import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class SolveService {
     private final MemberRepository memberRepository;
     private final ProblemRepository problemRepository;
     private final MemberSolvedProblemRepository memberSolvedProblemRepository;
+    private final MemberRecommendationRepository memberRecommendationRepository;
     private final SolvedAcClient solvedAcClient;
     private final Clock clock;
 
@@ -53,19 +55,24 @@ public class SolveService {
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.PROBLEM_NOT_FOUND));
 
-        // 4. 이미 인증된 문제인지 확인
+        // 4. 본인 추천 목록에 포함된 문제인지 확인
+        if (!memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(memberId, problemId)) {
+            throw new CustomException(CustomResponseStatus.PROBLEM_NOT_IN_RECOMMENDATION);
+        }
+
+        // 5. 이미 인증된 문제인지 확인
         if (memberSolvedProblemRepository.existsByMemberIdAndProblemId(memberId, problemId)) {
             throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
         }
 
-        // 5. solved.ac API로 실제 해결 여부 검증
+        // 6. solved.ac API로 실제 해결 여부 검증
         boolean isSolved = solvedAcClient.hasUserSolvedProblem(member.getHandle(), problemId);
 
         if (!isSolved) {
             throw new CustomException(CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);
         }
 
-        // 6. MemberSolvedProblem 레코드 생성
+        // 7. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
         try {
             memberSolvedProblemRepository.save(memberSolvedProblem);
