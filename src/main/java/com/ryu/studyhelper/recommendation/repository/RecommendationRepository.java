@@ -77,8 +77,20 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
      * @param endDateTime 날짜 범위 끝
      * @return 추천 (Optional)
      */
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 중복 체크, 하단 squad 기반 메서드로 대체
     Optional<Recommendation> findFirstByTeamIdAndCreatedAtBetweenOrderById(
             Long teamId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
+
+    /**
+     * 특정 팀/스쿼드의 특정 날짜 범위 내 추천 조회 (타입 무관, 1개만)
+     * 배치 스케줄러 스쿼드 기반 중복 체크 시 사용
+     */
+    Optional<Recommendation> findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+            Long teamId,
+            Long squadId,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     );

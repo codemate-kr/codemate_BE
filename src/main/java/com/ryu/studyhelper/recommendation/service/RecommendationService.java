@@ -164,8 +164,9 @@ public class RecommendationService {
 
     /**
      * 로그인한 유저가 속한 모든 팀의 오늘 추천 문제 조회
+     * squadId가 설정된 경우 스쿼드 기반 조회, null이면 팀 기반 fallback (1차 배포 기간 한정)
      */
-    // TODO(#172): 2차 배포 시 스쿼드 기반으로 수정 - 내부에서 팀 기반 findTodayRecommendation 사용
+    // TODO(#172): 2차 배포 시 팀 기반 fallback 제거 (모든 TeamMember에 squadId 보장)
     @Transactional(readOnly = true)
     public MyTodayProblemsResponse getMyTodayProblems(Long memberId) {
         List<TeamMember> teamMemberships = teamMemberRepository.findByMemberId(memberId);
@@ -173,12 +174,15 @@ public class RecommendationService {
         List<MyTodayProblemsResponse.TeamTodayProblems> teamProblems = teamMemberships.stream()
                 .map(tm -> {
                     Team team = tm.getTeam();
-                    return findTodayRecommendation(team.getId(), memberId)
-                            .map(todayProblem -> MyTodayProblemsResponse.TeamTodayProblems.from(
-                                    team.getId(),
-                                    team.getName(),
-                                    todayProblem
-                            ));
+                    Long squadId = tm.getSquadId();
+                    // 1차 배포 기간: squadId 미배정(기존 팀) → 팀 기반 fallback
+                    // TODO(#172): 2차 배포 시 else 분기 제거 — squadId != null 보장
+                    Optional<TodayProblemResponse> todayProblem = squadId != null
+                            ? findTodayRecommendationBySquad(team.getId(), squadId, memberId)
+                            : findTodayRecommendation(team.getId(), memberId);
+                    return todayProblem.map(tp -> MyTodayProblemsResponse.TeamTodayProblems.from(
+                            team.getId(), team.getName(), tp
+                    ));
                 })
                 .filter(Optional::isPresent)
                 .map(Optional::get)

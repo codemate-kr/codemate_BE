@@ -4,8 +4,10 @@ import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
+import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.service.SquadService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class ScheduledRecommendationService {
 
     private final Clock clock;
     private final TeamRepository teamRepository;
+    private final SquadRepository squadRepository;
     private final RecommendationRepository recommendationRepository;
     private final RecommendationCreator recommendationCreator;
     private final SquadService squadService;
@@ -74,8 +77,7 @@ public class ScheduledRecommendationService {
         return new BatchResult(activeTeams.size(), successCount, failCount);
     }
 
-    // TODO(#172): 2차 배포 시 스쿼드 기반으로 교체 - 팀 단위 필터 대신 활성 스쿼드(recommendationStatus=ACTIVE,
-    //             해당 요일 포함) 목록을 직접 조회하도록 변경. TeamRepository.findAll() 제거 가능
+    // TODO(#172): 2차 배포 시 제거 - getActiveSquads()로 교체, TeamRepository.findAll() 제거
     private List<Team> getActiveTeams(LocalDate date) {
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         return teamRepository.findAll().stream()
@@ -83,5 +85,14 @@ public class ScheduledRecommendationService {
                 .filter(Team::isRecommendationActive)
                 .filter(team -> team.isRecommendationDay(dayOfWeek))
                 .toList();
+    }
+
+    /**
+     * 2차 배포 시 getActiveTeams() 대체 메서드
+     * recommendation_status=ACTIVE이고 해당 요일이 설정된 스쿼드 목록을 DB에서 직접 조회
+     */
+    private List<Squad> getActiveSquads(LocalDate date) {
+        int dayBit = RecommendationDayOfWeek.from(date.getDayOfWeek()).getBitValue();
+        return squadRepository.findActiveSquadsForDay(dayBit);
     }
 }
