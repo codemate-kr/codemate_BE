@@ -7,6 +7,7 @@ import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.repository.ProblemRepository;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
@@ -47,6 +48,9 @@ class SolveServiceTest {
 
     @Mock
     private MemberSolvedProblemRepository memberSolvedProblemRepository;
+
+    @Mock
+    private MemberRecommendationRepository memberRecommendationRepository;
 
     @Mock
     private SolvedAcClient solvedAcClient;
@@ -230,6 +234,7 @@ class SolveServiceTest {
                     memberRepository,
                     problemRepository,
                     memberSolvedProblemRepository,
+                    memberRecommendationRepository,
                     solvedAcClient,
                     clock
             );
@@ -333,7 +338,7 @@ class SolveServiceTest {
         void setUp() {
             service = new SolveService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
+                    memberRecommendationRepository, solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
             );
         }
 
