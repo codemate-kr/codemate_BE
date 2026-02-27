@@ -4,18 +4,13 @@ import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
-import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
-import com.ryu.studyhelper.team.dto.response.TeamActivityResponse;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
-import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
-import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.service.TeamActivityService;
-import com.ryu.studyhelper.team.service.TeamRecommendationSettingsService;
 import com.ryu.studyhelper.team.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,8 +29,6 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
-    // TODO(#172): 2차 배포 시 제거 - TeamRecommendationSettingsService 클래스 전체 삭제 시 함께 제거
-    private final TeamRecommendationSettingsService teamRecommendationSettingsService;
     private final TeamActivityService teamActivityService;
 
     @Operation(
@@ -77,26 +70,6 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
-    // TODO(#172): 2차 배포 시 제거 - V1 팀 페이지 엔드포인트, TeamControllerV2의 getTeamPageDetailV2로 대체
-    @Operation(
-            summary = "팀 페이지 통합 조회",
-            description = """
-                    팀 페이지에 필요한 모든 정보를 한번에 조회합니다.
-                    - 팀 기본 정보, 멤버 목록, 추천 설정, 오늘의 문제 포함
-                    - 비공개 팀인 경우 팀원만 접근 가능합니다.
-                    """
-    )
-    @GetMapping("/{teamId}")
-    public ResponseEntity<ApiResponse<TeamPageResponse>> getTeamPageDetail(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
-        TeamPageResponse response = teamService.getTeamPageDetail(teamId, memberId);
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
     @Operation(
             summary = "팀 멤버 목록 조회",
             description = "특정 팀의 멤버 목록을 조회합니다."
@@ -108,59 +81,6 @@ public class TeamController {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         List<TeamMemberResponse> response = teamService.getTeamMembers(teamId, principalDetails.getMemberId());
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 조회, SquadController 엔드포인트로 대체됨
-    @Operation(
-            summary = "팀 추천 설정 조회",
-            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다.",
-            deprecated = true
-    )
-    @Deprecated(forRemoval = true)
-    @GetMapping("/{teamId}/recommendation-settings")
-    public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> getRecommendationSettings(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId) {
-
-        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.getRecommendationSettings(teamId);
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 업데이트, SquadController 엔드포인트로 대체됨
-    @Operation(
-            summary = "팀 추천 설정 업데이트",
-            description = "팀의 문제 추천 요일과 난이도를 설정합니다. 팀장만 설정 가능합니다.",
-            deprecated = true
-    )
-    @Deprecated(forRemoval = true)
-    @PutMapping("/{teamId}/recommendation-settings")
-    public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> updateRecommendationSettings(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @Valid @RequestBody TeamRecommendationSettingsRequest request,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.updateRecommendationSettings(
-                teamId, request, principalDetails.getMemberId());
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 비활성화, SquadController 엔드포인트로 대체됨
-    @Operation(
-            summary = "팀 추천 비활성화",
-            description = "팀의 문제 추천을 비활성화합니다. 팀장만 설정 가능합니다.",
-            deprecated = true
-    )
-    @Deprecated(forRemoval = true)
-    @DeleteMapping("/{teamId}/recommendation-settings")
-    public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> disableRecommendation(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.disableRecommendation(
-                teamId, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
@@ -222,29 +142,5 @@ public class TeamController {
 
         teamService.updateTeamInfo(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
-    }
-
-    @Operation(
-            summary = "팀 활동 현황 조회",
-            description = """
-                    팀의 활동 현황을 조회합니다.
-                    - 공개 팀: 비로그인 사용자도 조회 가능
-                    - 비공개 팀: 팀원만 조회 가능
-                    - days 파라미터로 조회 기간 설정 (기본: 30일, 최대: 30일)
-                    - 리더보드: 기간 내 풀이 수 기준 순위
-                    - 일별 활동: 추천된 문제와 멤버별 풀이 현황
-                    """
-    )
-    @GetMapping("/{teamId}/activity")
-    public ResponseEntity<ApiResponse<TeamActivityResponse>> getTeamActivity(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @Parameter(description = "조회 일수 (기본: 30, 최대: 30)", example = "30")
-            @RequestParam(required = false, defaultValue = "30") Integer days,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        Long memberId = principalDetails != null ? principalDetails.getMemberId() : null;
-        TeamActivityResponse response = teamActivityService.getTeamActivity(teamId, memberId, days);
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }

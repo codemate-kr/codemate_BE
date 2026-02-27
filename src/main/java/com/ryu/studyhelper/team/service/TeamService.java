@@ -4,7 +4,6 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
@@ -16,7 +15,6 @@ import com.ryu.studyhelper.team.domain.TeamRole;
 import com.ryu.studyhelper.notification.domain.NotificationType;
 import com.ryu.studyhelper.notification.service.NotificationService;
 import com.ryu.studyhelper.recommendation.service.RecommendationService;
-import com.ryu.studyhelper.recommendation.dto.response.TodayProblemResponse;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
@@ -25,9 +23,7 @@ import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
-import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponseV2;
-import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.dto.response.SquadSummaryResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +47,6 @@ public class TeamService {
     private final MemberRepository memberRepository;
     private final SquadRepository squadRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
-    private final TeamIncludeTagRepository teamIncludeTagRepository;
     private final RecommendationService recommendationService;
     private final NotificationService notificationService;
 
@@ -132,35 +127,6 @@ public class TeamService {
         return team.getTeamMembers().stream()
                 .map(tm -> TeamMemberResponse.from(tm, currentMemberId, squadNameMap.get(tm.getSquadId())))
                 .toList();
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - V1 팀 페이지, getTeamPageDetailV2로 대체
-    @Transactional(readOnly = true)
-    public TeamPageResponse getTeamPageDetail(Long teamId, Long memberId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-
-        validatePrivateTeamAccess(team, memberId);
-
-        TeamPageResponse.TeamInfo teamInfo = new TeamPageResponse.TeamInfo(
-                team.getId(), team.getName(), team.getDescription(),
-                team.getIsPrivate(), team.getTeamMembers().size()
-        );
-
-        Map<Long, String> squadNameMap = buildSquadNameMap(teamId);
-        List<TeamMemberResponse> members = team.getTeamMembers().stream()
-                .map(tm -> TeamMemberResponse.from(tm, memberId, squadNameMap.get(tm.getSquadId())))
-                .toList();
-
-        List<String> includeTags = teamIncludeTagRepository.findTagKeysByTeamId(teamId);
-        TeamRecommendationSettingsResponse recommendationSettings =
-                TeamRecommendationSettingsResponse.from(team, includeTags);
-
-        TodayProblemResponse todayProblem = recommendationService
-                .findTodayRecommendation(teamId, memberId)
-                .orElse(null);
-
-        return new TeamPageResponse(teamInfo, members, recommendationSettings, todayProblem);
     }
 
     @Transactional(readOnly = true)
@@ -250,8 +216,7 @@ public class TeamService {
 
         validateTeamLeaderAccess(teamId, memberId);
 
-        // TeamIncludeTag → SquadIncludeTag → Squad → Team 순서로 삭제
-        teamIncludeTagRepository.deleteAllByTeamId(teamId);
+        // SquadIncludeTag → Squad → Team 순서로 삭제
         List<Squad> squads = squadRepository.findByTeamIdOrderByIdAsc(teamId);
         squads.forEach(squad -> squadIncludeTagRepository.deleteAllBySquadId(squad.getId()));
         squadRepository.deleteAll(squads);

@@ -24,9 +24,6 @@ public record MyTeamResponse(
         @Schema(description = "팀원 수", example = "5")
         int memberCount,
 
-        @Schema(description = "추천 활성화 여부", example = "true")
-        boolean isRecommendationActive,
-
         @Schema(description = "비공개 팀 여부", example = "false")
         boolean isPrivate,
 
@@ -41,7 +38,6 @@ public record MyTeamResponse(
                 team.getDescription(),
                 teamMember.getRole(),
                 team.getTeamMembers().size(),
-                team.isRecommendationActive(),
                 team.getIsPrivate(),
                 team.getCreatedAt()
         );

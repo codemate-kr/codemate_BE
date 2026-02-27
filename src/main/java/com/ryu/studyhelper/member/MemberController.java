@@ -13,8 +13,6 @@ import com.ryu.studyhelper.member.dto.response.HandleVerificationResponse;
 import com.ryu.studyhelper.member.dto.response.MemberPublicResponse;
 import com.ryu.studyhelper.member.dto.response.MemberSearchResponse;
 import com.ryu.studyhelper.member.dto.response.MyProfileResponse;
-import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
-import com.ryu.studyhelper.solve.service.SolveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +31,6 @@ import java.util.List;
 public class MemberController {
 
     private final MemberService memberService;
-    private final SolveService solveService; // TODO: 프론트엔드 마이그레이션 후 제거
 
     @Operation(
             summary = "내 프로필 조회",
@@ -145,30 +142,5 @@ public class MemberController {
     ) {
         memberService.withdraw(principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
-    }
-
-    // ========== 하위 호환용 (프론트엔드 마이그레이션 후 제거) ==========
-
-    @Deprecated
-    @Operation(summary = "[Deprecated] 문제 해결 인증", description = "POST /api/solve/problems/{problemId}/verify 로 이전됨")
-    @RateLimit(type = RateLimitType.SOLVED_AC)
-    @PostMapping("/me/problems/{problemId}/verify-solved")
-    public ResponseEntity<ApiResponse<Void>> verifyProblemSolved(
-            @PathVariable Long problemId,
-            @AuthenticationPrincipal PrincipalDetails principalDetails
-    ) {
-        solveService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
-        return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
-    }
-
-    @Deprecated
-    @Operation(summary = "[Deprecated] 일별 문제 풀이 현황 조회", description = "GET /api/solve/daily 로 이전됨")
-    @GetMapping("/me/daily-solved")
-    public ResponseEntity<ApiResponse<DailySolvedResponse>> getDailySolved(
-            @RequestParam(defaultValue = "7") int days,
-            @AuthenticationPrincipal PrincipalDetails principalDetails
-    ) {
-        DailySolvedResponse response = solveService.getDailySolved(principalDetails.getMemberId(), days);
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 }
