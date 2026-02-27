@@ -12,8 +12,9 @@ import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
-import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
+import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,7 +41,7 @@ class RecommendationCreatorTest {
     private TeamMemberRepository teamMemberRepository;
 
     @Mock
-    private TeamIncludeTagRepository teamIncludeTagRepository;
+    private SquadIncludeTagRepository squadIncludeTagRepository;
 
     @Mock
     private SolvedAcClient solvedAcClient;
@@ -61,6 +62,7 @@ class RecommendationCreatorTest {
     private RecommendationCreator recommendationCreator;
 
     private static final Long TEAM_ID = 1L;
+    private static final Long SQUAD_ID = 10L;
 
     @Nested
     @DisplayName("추천 생성 성공")
@@ -70,21 +72,23 @@ class RecommendationCreatorTest {
         @DisplayName("MANUAL 타입으로 추천을 생성한다")
         void createManualRecommendation() {
             // given
-            Team team = createTeamWithId(TEAM_ID);
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L), createProblem(1001L));
             Member member = createMember(100L);
 
-            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
-            when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of("handle1"));
+            when(squadIncludeTagRepository.findTagKeysBySquadId(SQUAD_ID)).thenReturn(List.of());
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(teamMemberRepository.findMembersByTeamId(TEAM_ID)).thenReturn(List.of(member));
+            when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of(member));
 
             // when
-            Recommendation result = recommendationCreator.create(team, RecommendationType.MANUAL);
+            Recommendation result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
 
             // then
             assertThat(result).isNotNull();
@@ -98,45 +102,49 @@ class RecommendationCreatorTest {
         @DisplayName("SCHEDULED 타입으로 추천을 생성한다")
         void createScheduledRecommendation() {
             // given
-            Team team = createTeamWithId(TEAM_ID);
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L));
             Member member = createMember(100L);
 
-            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
-            when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of("handle1"));
+            when(squadIncludeTagRepository.findTagKeysBySquadId(SQUAD_ID)).thenReturn(List.of());
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(teamMemberRepository.findMembersByTeamId(TEAM_ID)).thenReturn(List.of(member));
+            when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of(member));
 
             // when
-            Recommendation result = recommendationCreator.create(team, RecommendationType.SCHEDULED);
+            Recommendation result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
 
             // then
             assertThat(result.getType()).isEqualTo(RecommendationType.SCHEDULED);
         }
 
         @Test
-        @DisplayName("팀원 수만큼 MemberRecommendation을 생성한다")
-        void createsMemberRecommendationsForAllMembers() {
+        @DisplayName("스쿼드 멤버 수만큼 MemberRecommendation을 생성한다")
+        void createsMemberRecommendationsForAllSquadMembers() {
             // given
-            Team team = createTeamWithId(TEAM_ID);
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L));
             List<Member> members = List.of(createMember(100L), createMember(101L), createMember(102L));
 
-            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of("handle1"));
-            when(teamIncludeTagRepository.findTagKeysByTeamId(TEAM_ID)).thenReturn(List.of());
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of("handle1"));
+            when(squadIncludeTagRepository.findTagKeysBySquadId(SQUAD_ID)).thenReturn(List.of());
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
             when(recommendationRepository.save(any(Recommendation.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(teamMemberRepository.findMembersByTeamId(TEAM_ID)).thenReturn(members);
+            when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(members);
 
             // when
-            recommendationCreator.create(team, RecommendationType.MANUAL);
+            recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
 
             // then
             verify(memberRecommendationRepository, times(3)).save(any());
@@ -151,14 +159,15 @@ class RecommendationCreatorTest {
         @DisplayName("인증된 핸들이 없으면 CustomException을 던진다")
         void noVerifiedHandle_throwsException() {
             // given
-            Team team = createTeamWithId(TEAM_ID);
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
 
-            when(teamMemberRepository.findHandlesByTeamId(TEAM_ID)).thenReturn(List.of());
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of());
             when(recommendationRepository.save(any(Recommendation.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
             // when & then
-            assertThatThrownBy(() -> recommendationCreator.create(team, RecommendationType.MANUAL))
+            assertThatThrownBy(() -> recommendationCreator.createForSquad(squad, RecommendationType.MANUAL))
                     .isInstanceOf(CustomException.class)
                     .satisfies(ex -> {
                         CustomException customEx = (CustomException) ex;
@@ -169,10 +178,13 @@ class RecommendationCreatorTest {
 
     // === Helper Methods ===
 
-    private Team createTeamWithId(Long id) {
+    private Squad createSquadWithId(Long squadId, Long teamId) {
         Team team = Team.create("테스트팀", "설명", false);
-        setFieldValue(team, "id", id);
-        return team;
+        setFieldValue(team, "id", teamId);
+
+        Squad squad = Squad.createDefault(team);
+        setFieldValue(squad, "id", squadId);
+        return squad;
     }
 
     private Problem createProblem(Long id) {

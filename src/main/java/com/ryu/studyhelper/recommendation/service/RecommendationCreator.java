@@ -17,7 +17,6 @@ import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
-import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 팀 1개에 대한 추천 생성 공통 로직
+ * 스쿼드 1개에 대한 추천 생성 공통 로직
  * RecommendationService(수동)와 ScheduledRecommendationService(배치) 모두 사용
  */
 @Service
@@ -35,7 +34,6 @@ import java.util.List;
 class RecommendationCreator {
 
     private final TeamMemberRepository teamMemberRepository;
-    private final TeamIncludeTagRepository teamIncludeTagRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
     private final SolvedAcClient solvedAcClient;
     private final ProblemSyncService problemSyncService;
@@ -51,72 +49,10 @@ class RecommendationCreator {
         List<Problem> problems = createRecommendationProblemsForSquad(recommendation, squad);
         createMemberRecommendationsForSquad(recommendation, squad);
 
-        log.info("스쿼드 '{}' 추천 생성 완료 - 타입: {}, 문제: {}개",
-                squad.getName(), type, problems.size());
+        log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 타입: {}, 문제: {}개",
+                squad.getTeam().getName(), squad.getName(), type, problems.size());
 
         return recommendation;
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 생성, createForSquad로 대체
-    Recommendation create(Team team, RecommendationType type) {
-        Recommendation recommendation = createRecommendation(team, type);
-        List<Problem> problems = createRecommendationProblems(recommendation, team);
-        createMemberRecommendations(recommendation, team);
-
-        log.info("팀 '{}' 추천 생성 완료 - 타입: {}, 문제: {}개",
-                team.getName(), type, problems.size());
-
-        return recommendation;
-    }
-
-    // TODO(#172): 2차 배포 시 제거
-    private Recommendation createRecommendation(Team team, RecommendationType type) {
-
-        Recommendation recommendation = (type == RecommendationType.MANUAL)
-                ? Recommendation.createManualRecommendation(team.getId())
-                : Recommendation.createScheduledRecommendation(team.getId());
-        return recommendationRepository.save(recommendation);
-    }
-
-    // TODO(#172): 2차 배포 시 제거
-    private List<Problem> createRecommendationProblems(Recommendation recommendation, Team team) {
-        List<Problem> problems = recommendProblemsForTeam(team);
-        for (Problem problem : problems) {
-            RecommendationProblem rp = RecommendationProblem.create(problem);
-            recommendation.addProblem(rp);
-            recommendationProblemRepository.save(rp);
-        }
-        return problems;
-    }
-
-    // TODO(#172): 2차 배포 시 제거
-    private void createMemberRecommendations(Recommendation recommendation, Team team) {
-        List<Member> teamMembers = teamMemberRepository.findMembersByTeamId(team.getId());
-        for (Member member : teamMembers) {
-            MemberRecommendation mr = MemberRecommendation.create(member, recommendation, team);
-            memberRecommendationRepository.save(mr);
-        }
-    }
-
-    // TODO(#172): 2차 배포 시 제거
-    private List<Problem> recommendProblemsForTeam(Team team) {
-        List<String> handles = teamMemberRepository.findHandlesByTeamId(team.getId());
-        if (handles.isEmpty()) {
-            log.warn("팀 '{}'에 인증된 핸들이 없습니다", team.getName());
-            throw new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE);
-        }
-
-        List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(team.getId());
-
-        List<ProblemInfo> problemInfos = solvedAcClient.recommendUnsolvedProblems(
-                handles,
-                team.getProblemCount(),
-                team.getEffectiveMinProblemLevel(),
-                team.getEffectiveMaxProblemLevel(),
-                tagKeys
-        );
-
-        return problemSyncService.syncProblems(problemInfos);
     }
 
     private List<Problem> createRecommendationProblemsForSquad(Recommendation recommendation, Squad squad) {

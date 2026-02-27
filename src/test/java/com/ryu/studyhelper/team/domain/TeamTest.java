@@ -4,10 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.DayOfWeek;
-import java.util.Arrays;
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Team 도메인 테스트")
@@ -21,301 +17,22 @@ class TeamTest {
     }
 
     @Test
-    @DisplayName("팀 생성 시 추천 상태는 INACTIVE이고 요일은 비어있다")
+    @DisplayName("팀 생성 시 이름, 설명, 공개 설정이 저장된다")
     void create_initialState() {
         // when
         Team newTeam = Team.create("새 팀", "설명", false);
 
         // then
-        assertThat(newTeam.isRecommendationActive()).isFalse();
-        assertThat(newTeam.getRecommendationDaysList()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("updateRecommendationDays는 요일을 설정하고 추천 상태를 ACTIVE로 변경한다")
-    void updateRecommendationDays_activatesRecommendation() {
-        // given
-        List<RecommendationDayOfWeek> days = Arrays.asList(
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.WEDNESDAY,
-                RecommendationDayOfWeek.FRIDAY
-        );
-
-        // when
-        team.updateRecommendationDays(days);
-
-        // then
-        assertThat(team.isRecommendationActive()).isTrue();
-        assertThat(team.getRecommendationDaysList())
-                .hasSize(3)
-                .containsExactly(
-                        RecommendationDayOfWeek.MONDAY,
-                        RecommendationDayOfWeek.WEDNESDAY,
-                        RecommendationDayOfWeek.FRIDAY
-                );
-    }
-
-    @Test
-    @DisplayName("updateRecommendationDays에 빈 List를 전달하면 추천 상태가 INACTIVE로 변경된다")
-    void updateRecommendationDays_emptyList_deactivatesRecommendation() {
-        // given: 먼저 요일을 설정
-        team.updateRecommendationDays(Arrays.asList(
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.FRIDAY
-        ));
-        assertThat(team.isRecommendationActive()).isTrue();
-
-        // when: 빈 List로 업데이트
-        team.updateRecommendationDays(List.of());
-
-        // then
-        assertThat(team.isRecommendationActive()).isFalse();
-        assertThat(team.getRecommendationDaysList()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("getRecommendationDaysList는 월요일부터 일요일까지 정렬된 순서로 반환한다")
-    void getRecommendationDaysList_returnsOrderedList() {
-        // given: 순서 없이 요일 설정 (금, 월, 수)
-        List<RecommendationDayOfWeek> unorderedDays = Arrays.asList(
-                RecommendationDayOfWeek.FRIDAY,
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.WEDNESDAY
-        );
-        team.updateRecommendationDays(unorderedDays);
-
-        // when
-        List<RecommendationDayOfWeek> retrievedDays = team.getRecommendationDaysList();
-
-        // then: 월, 수, 금 순서로 정렬되어 반환
-        assertThat(retrievedDays)
-                .hasSize(3)
-                .containsExactly(
-                        RecommendationDayOfWeek.MONDAY,
-                        RecommendationDayOfWeek.WEDNESDAY,
-                        RecommendationDayOfWeek.FRIDAY
-                );
-    }
-
-    @Test
-    @DisplayName("isRecommendationDay는 설정된 요일에 대해 true를 반환한다")
-    void isRecommendationDay_configuredDay_returnsTrue() {
-        // given: 월, 수, 금 설정
-        team.updateRecommendationDays(Arrays.asList(
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.WEDNESDAY,
-                RecommendationDayOfWeek.FRIDAY
-        ));
-
-        // when & then
-        assertThat(team.isRecommendationDay(DayOfWeek.MONDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.WEDNESDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.FRIDAY)).isTrue();
-    }
-
-    @Test
-    @DisplayName("isRecommendationDay는 설정되지 않은 요일에 대해 false를 반환한다")
-    void isRecommendationDay_notConfiguredDay_returnsFalse() {
-        // given: 월, 수, 금 설정
-        team.updateRecommendationDays(Arrays.asList(
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.WEDNESDAY,
-                RecommendationDayOfWeek.FRIDAY
-        ));
-
-        // when & then
-        assertThat(team.isRecommendationDay(DayOfWeek.TUESDAY)).isFalse();
-        assertThat(team.isRecommendationDay(DayOfWeek.THURSDAY)).isFalse();
-        assertThat(team.isRecommendationDay(DayOfWeek.SATURDAY)).isFalse();
-        assertThat(team.isRecommendationDay(DayOfWeek.SUNDAY)).isFalse();
-    }
-
-    @Test
-    @DisplayName("중복된 요일을 설정해도 올바르게 처리된다")
-    void updateRecommendationDays_withDuplicates_handlesCorrectly() {
-        // given: 월요일이 중복된 List
-        List<RecommendationDayOfWeek> daysWithDuplicates = Arrays.asList(
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.MONDAY,
-                RecommendationDayOfWeek.FRIDAY
-        );
-
-        // when
-        team.updateRecommendationDays(daysWithDuplicates);
-
-        // then: 중복이 제거되고 월, 금만 저장됨
-        List<RecommendationDayOfWeek> days = team.getRecommendationDaysList();
-        assertThat(days)
-                .hasSize(2)
-                .containsExactly(
-                        RecommendationDayOfWeek.MONDAY,
-                        RecommendationDayOfWeek.FRIDAY
-                );
-    }
-
-    @Test
-    @DisplayName("모든 요일을 설정하면 매일 추천받을 수 있다")
-    void updateRecommendationDays_allDays() {
-        // given: 모든 요일
-        List<RecommendationDayOfWeek> allDays = Arrays.asList(RecommendationDayOfWeek.values());
-
-        // when
-        team.updateRecommendationDays(allDays);
-
-        // then
-        assertThat(team.isRecommendationActive()).isTrue();
-        assertThat(team.getRecommendationDaysList()).hasSize(7);
-        assertThat(team.isRecommendationDay(DayOfWeek.MONDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.TUESDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.WEDNESDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.THURSDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.FRIDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.SATURDAY)).isTrue();
-        assertThat(team.isRecommendationDay(DayOfWeek.SUNDAY)).isTrue();
-    }
-
-    @Test
-    @DisplayName("난이도 프리셋을 설정하면 커스텀 레벨이 초기화된다")
-    void updateProblemDifficultySettings_presetMode_clearsCustomLevels() {
-        // given: 먼저 커스텀 설정
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.CUSTOM, 5, 15);
-        assertThat(team.getMinProblemLevel()).isEqualTo(5);
-        assertThat(team.getMaxProblemLevel()).isEqualTo(15);
-
-        // when: 프리셋으로 변경
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.NORMAL, null, null);
-
-        // then: 커스텀 값이 null로 초기화됨
-        assertThat(team.getProblemDifficultyPreset()).isEqualTo(ProblemDifficultyPreset.NORMAL);
-        assertThat(team.getMinProblemLevel()).isNull();
-        assertThat(team.getMaxProblemLevel()).isNull();
-    }
-
-    @Test
-    @DisplayName("커스텀 난이도를 설정하면 min/max 레벨이 저장된다")
-    void updateProblemDifficultySettings_customMode_savesLevels() {
-        // when
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.CUSTOM, 10, 20);
-
-        // then
-        assertThat(team.getProblemDifficultyPreset()).isEqualTo(ProblemDifficultyPreset.CUSTOM);
-        assertThat(team.getMinProblemLevel()).isEqualTo(10);
-        assertThat(team.getMaxProblemLevel()).isEqualTo(20);
-    }
-
-    @Test
-    @DisplayName("getEffectiveMinProblemLevel은 프리셋 모드일 때 프리셋 값을 반환한다")
-    void getEffectiveMinProblemLevel_presetMode() {
-        // given
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.EASY, null, null);
-
-        // when
-        Integer effectiveMin = team.getEffectiveMinProblemLevel();
-
-        // then
-        assertThat(effectiveMin).isEqualTo(ProblemDifficultyPreset.EASY.getMinLevel());
-    }
-
-    @Test
-    @DisplayName("getEffectiveMinProblemLevel은 커스텀 모드일 때 커스텀 값을 반환한다")
-    void getEffectiveMinProblemLevel_customMode() {
-        // given
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.CUSTOM, 7, 25);
-
-        // when
-        Integer effectiveMin = team.getEffectiveMinProblemLevel();
-
-        // then
-        assertThat(effectiveMin).isEqualTo(7);
-    }
-
-    @Test
-    @DisplayName("getEffectiveMaxProblemLevel은 프리셋 모드일 때 프리셋 값을 반환한다")
-    void getEffectiveMaxProblemLevel_presetMode() {
-        // given
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.HARD, null, null);
-
-        // when
-        Integer effectiveMax = team.getEffectiveMaxProblemLevel();
-
-        // then
-        assertThat(effectiveMax).isEqualTo(ProblemDifficultyPreset.HARD.getMaxLevel());
-    }
-
-    @Test
-    @DisplayName("getEffectiveMaxProblemLevel은 커스텀 모드일 때 커스텀 값을 반환한다")
-    void getEffectiveMaxProblemLevel_customMode() {
-        // given
-        team.updateProblemDifficultySettings(ProblemDifficultyPreset.CUSTOM, 5, 18);
-
-        // when
-        Integer effectiveMax = team.getEffectiveMaxProblemLevel();
-
-        // then
-        assertThat(effectiveMax).isEqualTo(18);
-    }
-
-    @Test
-    @DisplayName("팀 생성 시 problemCount 기본값은 3이다")
-    void create_defaultProblemCount() {
-        // when
-        Team newTeam = Team.create("새 팀", "설명", false);
-
-        // then
-        assertThat(newTeam.getProblemCount()).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("updateProblemCount로 문제 개수를 변경할 수 있다")
-    void updateProblemCount_validValue() {
-        // when
-        team.updateProblemCount(5);
-
-        // then
-        assertThat(team.getProblemCount()).isEqualTo(5);
-    }
-
-    @Test
-    @DisplayName("updateProblemCount는 1~10 범위 내의 값만 허용한다")
-    void updateProblemCount_boundaryValues() {
-        // given
-        Team team1 = Team.create("팀1", "설명", false);
-        Team team2 = Team.create("팀2", "설명", false);
-        Team team3 = Team.create("팀3", "설명", false);
-        Team team4 = Team.create("팀4", "설명", false);
-
-        // when: 경계값 테스트
-        team1.updateProblemCount(1);   // 최소값
-        team2.updateProblemCount(10);  // 최대값
-        team3.updateProblemCount(0);   // 범위 밖 (최소 미만)
-        team4.updateProblemCount(11);  // 범위 밖 (최대 초과)
-
-        // then
-        assertThat(team1.getProblemCount()).isEqualTo(1);
-        assertThat(team2.getProblemCount()).isEqualTo(10);
-        assertThat(team3.getProblemCount()).isEqualTo(3);  // 기본값 유지
-        assertThat(team4.getProblemCount()).isEqualTo(3);  // 기본값 유지
-    }
-
-    @Test
-    @DisplayName("updateProblemCount에 null을 전달하면 기존 값이 유지된다")
-    void updateProblemCount_nullValue() {
-        // given
-        team.updateProblemCount(7);
-        assertThat(team.getProblemCount()).isEqualTo(7);
-
-        // when
-        team.updateProblemCount(null);
-
-        // then
-        assertThat(team.getProblemCount()).isEqualTo(7);
+        assertThat(newTeam.getName()).isEqualTo("새 팀");
+        assertThat(newTeam.getDescription()).isEqualTo("설명");
+        assertThat(newTeam.getIsPrivate()).isFalse();
     }
 
     @Test
     @DisplayName("updateInfo로 팀 이름, 설명, 공개/비공개를 수정할 수 있다")
     void updateInfo_changesNameDescriptionAndVisibility() {
         // given
-        assertThat(team.getIsPrivate()).isFalse();  // 초기값: 공개
+        assertThat(team.getIsPrivate()).isFalse();
 
         // when
         team.updateInfo("새로운 팀 이름", "새로운 설명", true);
@@ -330,7 +47,7 @@ class TeamTest {
     @DisplayName("updateInfo에서 isPrivate가 null이면 기존 값이 유지된다")
     void updateInfo_nullIsPrivate_keepsOriginalValue() {
         // given
-        team.updateInfo("팀", "설명", true);  // 비공개로 설정
+        team.updateInfo("팀", "설명", true);
         assertThat(team.getIsPrivate()).isTrue();
 
         // when
@@ -338,7 +55,7 @@ class TeamTest {
 
         // then
         assertThat(team.getName()).isEqualTo("수정된 팀");
-        assertThat(team.getIsPrivate()).isTrue();  // 기존 값 유지
+        assertThat(team.getIsPrivate()).isTrue();
     }
 
     @Test
@@ -350,5 +67,18 @@ class TeamTest {
         // then
         assertThat(team.getName()).isEqualTo("팀 이름");
         assertThat(team.getDescription()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateVisibility로 공개/비공개 설정을 변경할 수 있다")
+    void updateVisibility_changesPrivateSetting() {
+        // given
+        assertThat(team.getIsPrivate()).isFalse();
+
+        // when
+        team.updateVisibility(true);
+
+        // then
+        assertThat(team.getIsPrivate()).isTrue();
     }
 }

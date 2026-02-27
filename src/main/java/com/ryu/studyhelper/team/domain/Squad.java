@@ -69,15 +69,12 @@ public class Squad extends BaseEntity {
     public static Squad createDefault(Team team) {
         return Squad.builder()
                 .team(team)
-                .name("스쿼드A")
-                .description("스쿼드A")
+                .name("기본 스쿼드")
                 .isDefault(true)
-                .recommendationStatus(team.getRecommendationStatus())
-                .recommendationDays(team.getRecommendationDays())
-                .problemDifficultyPreset(team.getProblemDifficultyPreset())
-                .minProblemLevel(team.getMinProblemLevel())
-                .maxProblemLevel(team.getMaxProblemLevel())
-                .problemCount(team.getProblemCount())
+                .recommendationStatus(RecommendationStatus.INACTIVE)
+                .recommendationDays(RecommendationDayOfWeek.INACTIVE)
+                .problemDifficultyPreset(ProblemDifficultyPreset.NORMAL)
+                .problemCount(3)
                 .build();
     }
 

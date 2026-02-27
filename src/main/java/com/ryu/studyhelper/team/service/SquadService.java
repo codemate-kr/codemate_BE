@@ -18,7 +18,6 @@ import com.ryu.studyhelper.team.dto.response.SquadResponse;
 import com.ryu.studyhelper.team.dto.response.SquadSummaryResponse;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.SquadRepository;
-import com.ryu.studyhelper.team.repository.TeamIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,8 +43,6 @@ public class SquadService {
     private final SquadIncludeTagRepository squadIncludeTagRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final TagRepository tagRepository;
-    // TODO(#172): 2차 배포 시 제거 - initDefaultSquad() 제거 시 함께 제거
-    private final TeamIncludeTagRepository teamIncludeTagRepository;
 
     @Transactional
     public SquadResponse createSquad(Long teamId, CreateSquadRequest request, Long memberId) {
@@ -195,51 +191,10 @@ public class SquadService {
         teamMemberRepository.save(target);
     }
 
-    // TODO(#172): 2차 배포 시 단순화 - 모든 팀에 기본 스쿼드 생성 완료 후 lazy 초기화 분기 제거,
-    //             단순 조회(orElseThrow SQUAD_NOT_FOUND)로 교체
-    @Transactional
+    @Transactional(readOnly = true)
     public Squad findDefaultSquad(Long teamId) {
-        // 1차 확인 (락 없이 빠른 패스)
-        Optional<Squad> existing = squadRepository.findFirstByTeamIdAndIsDefaultTrueOrderByIdAsc(teamId);
-        if (existing.isPresent()) return existing.get();
-
-        // 기본 스쿼드 없음 → 팀 행에 비관적 쓰기 락
-        teamRepository.findByIdWithPessimisticLock(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-
-        // 2차 확인 (락 획득 후 재확인, 다른 스레드가 먼저 생성했을 수 있음)
         return squadRepository.findFirstByTeamIdAndIsDefaultTrueOrderByIdAsc(teamId)
-                .orElseGet(() -> initDefaultSquad(teamId));
-    }
-
-    // TODO(#172): 2차 배포 시 제거 - 1차 배포 기간에만 필요한 backward compat 초기화 메서드.
-    //             TeamIncludeTagRepository 의존성, TeamMemberRepository.findByTeamIdAndSquadIdIsNull()도 함께 제거
-    /** 기존 팀에 기본 스쿼드 없는 경우 자동 초기화 (1차 배포 backward compat) */
-    private Squad initDefaultSquad(Long teamId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.TEAM_NOT_FOUND));
-
-        Squad defaultSquad = squadRepository.save(Squad.createDefault(team));
-
-        // squad 미배정 팀원을 기본 스쿼드에 배정
-        List<TeamMember> unassigned = teamMemberRepository.findByTeamIdAndSquadIdIsNull(teamId);
-        unassigned.forEach(m -> m.updateSquadId(defaultSquad.getId()));
-        if (!unassigned.isEmpty()) {
-            teamMemberRepository.saveAll(unassigned);
-        }
-
-        // TeamIncludeTag → SquadIncludeTag 복사
-        List<String> tagKeys = teamIncludeTagRepository.findTagKeysByTeamId(teamId);
-        if (!tagKeys.isEmpty()) {
-            List<Tag> tags = tagRepository.findByKeyIn(tagKeys);
-            squadIncludeTagRepository.saveAll(
-                    tags.stream().map(tag -> SquadIncludeTag.create(defaultSquad, tag)).toList()
-            );
-        }
-
-        log.info("팀 {} 기본 스쿼드 자동 초기화 완료 (멤버: {}명, 태그: {}개)",
-                teamId, unassigned.size(), tagKeys.size());
-        return defaultSquad;
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.SQUAD_NOT_FOUND));
     }
 
     private void validateTeamLeaderAccess(Long teamId, Long memberId) {

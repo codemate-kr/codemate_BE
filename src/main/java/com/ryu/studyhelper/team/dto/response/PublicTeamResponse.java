@@ -1,11 +1,8 @@
 package com.ryu.studyhelper.team.dto.response;
 
-import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.domain.TeamRole;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.util.List;
 
 @Schema(description = "공개 팀 정보 응답")
 public record PublicTeamResponse(
@@ -22,16 +19,7 @@ public record PublicTeamResponse(
         String leaderHandle,
 
         @Schema(description = "팀원 수", example = "5")
-        int memberCount,
-
-        @Schema(description = "추천 활성화 요일 목록", example = "[\"MONDAY\", \"WEDNESDAY\", \"FRIDAY\"]")
-        List<RecommendationDayOfWeek> recommendationDays,
-
-        @Schema(description = "추천 난이도 최소값 (solved.ac 레벨 1~30)", example = "9")
-        Integer minProblemLevel,
-
-        @Schema(description = "추천 난이도 최대값 (solved.ac 레벨 1~30)", example = "12")
-        Integer maxProblemLevel
+        int memberCount
 ) {
     public static PublicTeamResponse from(Team team) {
         String leaderHandle = team.getTeamMembers().stream()
@@ -45,10 +33,7 @@ public record PublicTeamResponse(
                 team.getName(),
                 team.getDescription(),
                 leaderHandle,
-                team.getTeamMembers().size(),
-                team.getRecommendationDaysList(),
-                team.getEffectiveMinProblemLevel(),
-                team.getEffectiveMaxProblemLevel()
+                team.getTeamMembers().size()
         );
     }
 }

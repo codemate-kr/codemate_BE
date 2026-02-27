@@ -2,16 +2,12 @@ package com.ryu.studyhelper.team.service;
 
 import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.member.domain.Member;
-import com.ryu.studyhelper.recommendation.domain.Recommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
-import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.solve.service.SolveService;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.TeamMember;
 import com.ryu.studyhelper.team.dto.internal.QueryPeriod;
-import com.ryu.studyhelper.team.dto.response.TeamActivityResponse;
 import com.ryu.studyhelper.team.dto.response.TeamActivityResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamLeaderboardResponse;
 import com.ryu.studyhelper.team.repository.SquadRepository;
@@ -36,47 +32,11 @@ public class TeamActivityService {
     private final TeamService teamService;
     private final SolveService solveService;
     private final TeamMemberRepository teamMemberRepository;
-    private final RecommendationRepository recommendationRepository;
     private final SquadRepository squadRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
 
     private static final int MAX_DAYS = 30;
     private static final int DEFAULT_DAYS = 30;
-
-    // TODO: V1 API 제거 예정 - getTeamActivity, buildMemberRanks, buildDailyActivities,
-    //       buildProblemInfoList, buildMemberSolvedList, buildEmptyResponse 및
-    //       관련 import (TeamActivityResponse, RecommendationRepository, Recommendation,
-    //       RecommendationProblem) 일괄 삭제
-    @Transactional
-    public TeamActivityResponse getTeamActivity(Long teamId, Long currentMemberId, Integer days) {
-        teamService.validateTeamAccess(teamId, currentMemberId);
-
-        QueryPeriod period = calculateQueryPeriod(days);
-        List<Member> members = teamMemberRepository.findMembersByTeamId(teamId);
-
-        if (members.isEmpty()) {
-            return buildEmptyResponse(currentMemberId, period);
-        }
-
-        List<Recommendation> recommendations =
-                recommendationRepository.findByTeamIdAndCreatedAtBetweenWithProblems(
-                        teamId, period.startDateTime(), period.endDateTime());
-
-        Set<Long> recommendedProblemIds = recommendations.stream()
-                .flatMap(r -> r.getProblems().stream())
-                .map(rp -> rp.getProblem().getId())
-                .collect(Collectors.toSet());
-
-        List<Long> memberIds = members.stream().map(Member::getId).toList();
-        Map<Long, Set<Long>> solvedMap = solveService.getSolvedProblemIdMap(memberIds, recommendedProblemIds);
-
-        return TeamActivityResponse.of(
-                currentMemberId,
-                new TeamActivityResponse.Period(period.days(), period.startDate(), period.endDate()),
-                buildMemberRanks(members, recommendedProblemIds, solvedMap),
-                buildDailyActivities(recommendations, memberIds, solvedMap)
-        );
-    }
 
     // ========== 기간 계산 ==========
 
@@ -86,108 +46,6 @@ public class TeamActivityService {
         LocalDate startDate = endDate.minusDays(queryDays - 1);
         return QueryPeriod.of(queryDays, startDate, endDate);
     }
-
-    // ========== 리더보드 구성 ==========
-
-    private List<TeamActivityResponse.MemberRank> buildMemberRanks(
-            List<Member> members,
-            Set<Long> recommendedProblemIds,
-            Map<Long, Set<Long>> solvedMap) {
-
-        record MemberScore(Member member, long solved) {}
-        List<MemberScore> scores = members.stream()
-                .map(m -> {
-                    Set<Long> solved = solvedMap.getOrDefault(m.getId(), Set.of());
-                    long count = recommendedProblemIds.stream().filter(solved::contains).count();
-                    return new MemberScore(m, count);
-                })
-                .sorted(Comparator.comparingLong(MemberScore::solved).reversed()
-                        .thenComparing(s -> s.member().getHandle(), Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList();
-
-        List<TeamActivityResponse.MemberRank> ranks = new ArrayList<>();
-        int currentRank = 1;
-        long previousSolved = -1;
-        int sameRankCount = 0;
-
-        for (MemberScore score : scores) {
-            if (score.solved() != previousSolved) {
-                currentRank += sameRankCount;
-                sameRankCount = 1;
-            } else {
-                sameRankCount++;
-            }
-            ranks.add(new TeamActivityResponse.MemberRank(
-                    score.member().getId(), score.member().getHandle(),
-                    currentRank, (int) score.solved()
-            ));
-            previousSolved = score.solved();
-        }
-
-        return ranks;
-    }
-
-    // ========== 일별 활동 구성 ==========
-
-    private List<TeamActivityResponse.DailyActivity> buildDailyActivities(
-            List<Recommendation> recommendations,
-            List<Long> memberIds,
-            Map<Long, Set<Long>> solvedMap) {
-
-        if (recommendations.isEmpty()) {
-            return List.of();
-        }
-
-        return recommendations.stream()
-                .map(rec -> {
-                    LocalDate date = MissionCyclePolicy.toMissionDate(rec.getCreatedAt());
-                    List<TeamActivityResponse.ProblemInfo> problems = buildProblemInfoList(rec);
-                    List<Long> problemIds = problems.stream().map(TeamActivityResponse.ProblemInfo::problemId).toList();
-                    return new TeamActivityResponse.DailyActivity(date, problems, buildMemberSolvedList(memberIds, problemIds, solvedMap));
-                })
-                .toList();
-    }
-
-    private List<TeamActivityResponse.ProblemInfo> buildProblemInfoList(Recommendation recommendation) {
-        return recommendation.getProblems().stream()
-                .sorted(Comparator.comparing(RecommendationProblem::getId))
-                .map(rp -> new TeamActivityResponse.ProblemInfo(
-                        rp.getProblem().getId(),
-                        rp.getProblem().getTitleKo() != null ?
-                                rp.getProblem().getTitleKo() : rp.getProblem().getTitle(),
-                        rp.getProblem().getLevel()
-                ))
-                .toList();
-    }
-
-    private List<TeamActivityResponse.MemberSolved> buildMemberSolvedList(
-            List<Long> memberIds,
-            List<Long> problemIds,
-            Map<Long, Set<Long>> solvedMap) {
-
-        return memberIds.stream()
-                .map(memberId -> {
-                    Set<Long> solved = solvedMap.getOrDefault(memberId, Set.of());
-                    Map<Long, Boolean> solvedResult = problemIds.stream()
-                            .collect(Collectors.toMap(pid -> pid, solved::contains));
-                    return new TeamActivityResponse.MemberSolved(memberId, solvedResult);
-                })
-                .toList();
-    }
-
-    // ========== 빈 응답 ==========
-
-    private TeamActivityResponse buildEmptyResponse(Long currentMemberId, QueryPeriod period) {
-        return TeamActivityResponse.of(
-                currentMemberId,
-                new TeamActivityResponse.Period(period.days(), period.startDate(), period.endDate()),
-                List.of(),
-                List.of()
-        );
-    }
-
-
-
 
     // ========== V2: 팀 리더보드 ==========
     @Transactional(readOnly = true)

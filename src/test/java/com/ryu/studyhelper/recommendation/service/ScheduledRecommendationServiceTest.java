@@ -1,10 +1,10 @@
 package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
+import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
+import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadRepository;
-import com.ryu.studyhelper.team.repository.TeamRepository;
-import com.ryu.studyhelper.team.service.SquadService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,9 +31,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ScheduledRecommendationService 테스트")
 class ScheduledRecommendationServiceTest {
-
-    @Mock
-    private TeamRepository teamRepository;
 
     @Mock
     private SquadRepository squadRepository;
@@ -43,13 +41,11 @@ class ScheduledRecommendationServiceTest {
     @Mock
     private RecommendationCreator recommendationCreator;
 
-    @Mock
-    private SquadService squadService;
-
     private ScheduledRecommendationService scheduledRecommendationService;
 
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Seoul");
     private static final Long TEAM_ID = 1L;
+    private static final Long SQUAD_ID = 10L;
 
     private Clock fixedClock(String dateTime) {
         LocalDateTime ldt = LocalDateTime.parse(dateTime);
@@ -60,11 +56,9 @@ class ScheduledRecommendationServiceTest {
     private void setupServiceWithClock(Clock clock) {
         scheduledRecommendationService = new ScheduledRecommendationService(
                 clock,
-                teamRepository,
                 squadRepository,
                 recommendationRepository,
-                recommendationCreator,
-                squadService
+                recommendationCreator
         );
     }
 
@@ -79,11 +73,11 @@ class ScheduledRecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T06:00:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
-            when(teamRepository.findAll()).thenReturn(List.of(team));
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(squadRepository.findActiveSquadsForDay(anyInt())).thenReturn(List.of(squad));
 
-            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    eq(TEAM_ID), any(LocalDateTime.class), any(LocalDateTime.class)
+            when(recommendationRepository.findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), eq(SQUAD_ID), any(LocalDateTime.class), any(LocalDateTime.class)
             )).thenReturn(Optional.empty());
 
             // when
@@ -93,8 +87,8 @@ class ScheduledRecommendationServiceTest {
             ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
             ArgumentCaptor<LocalDateTime> toCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
 
-            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    eq(TEAM_ID), fromCaptor.capture(), toCaptor.capture()
+            verify(recommendationRepository).findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), eq(SQUAD_ID), fromCaptor.capture(), toCaptor.capture()
             );
 
             LocalDateTime capturedFrom = fromCaptor.getValue();
@@ -112,11 +106,11 @@ class ScheduledRecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T06:00:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
-            when(teamRepository.findAll()).thenReturn(List.of(team));
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(squadRepository.findActiveSquadsForDay(anyInt())).thenReturn(List.of(squad));
 
-            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    eq(TEAM_ID),
+            when(recommendationRepository.findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), eq(SQUAD_ID),
                     eq(LocalDateTime.parse("2025-01-15T06:00:00")),
                     eq(LocalDateTime.parse("2025-01-15T06:00:00"))
             )).thenReturn(Optional.empty());
@@ -125,8 +119,8 @@ class ScheduledRecommendationServiceTest {
             scheduledRecommendationService.prepareDailyRecommendations();
 
             // then: 미션 사이클 범위로 조회 확인 (0시가 아닌 6시부터)
-            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    eq(TEAM_ID),
+            verify(recommendationRepository).findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), eq(SQUAD_ID),
                     eq(LocalDateTime.parse("2025-01-15T06:00:00")),
                     eq(LocalDateTime.parse("2025-01-15T06:00:00"))
             );
@@ -139,10 +133,10 @@ class ScheduledRecommendationServiceTest {
             Clock clock = fixedClock("2025-01-15T06:30:00");
             setupServiceWithClock(clock);
 
-            Team team = createTeamWithIdAndRecommendationDay(TEAM_ID, DayOfWeek.WEDNESDAY);
-            when(teamRepository.findAll()).thenReturn(List.of(team));
-            when(recommendationRepository.findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    any(), any(), any()
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            when(squadRepository.findActiveSquadsForDay(anyInt())).thenReturn(List.of(squad));
+            when(recommendationRepository.findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    any(), any(), any(), any()
             )).thenReturn(Optional.empty());
 
             // when
@@ -150,8 +144,8 @@ class ScheduledRecommendationServiceTest {
 
             // then
             ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
-            verify(recommendationRepository).findFirstByTeamIdAndCreatedAtBetweenOrderById(
-                    eq(TEAM_ID), fromCaptor.capture(), any()
+            verify(recommendationRepository).findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
+                    eq(TEAM_ID), eq(SQUAD_ID), fromCaptor.capture(), any()
             );
 
             // 핵심: 0시가 아닌 6시부터 조회해야 함
@@ -163,25 +157,35 @@ class ScheduledRecommendationServiceTest {
 
     // === Helper Methods ===
 
-    private Team createTeamWithIdAndRecommendationDay(Long id, DayOfWeek dayOfWeek) {
+    private Squad createSquadWithId(Long squadId, Long teamId, DayOfWeek dayOfWeek) {
         Team team = Team.create("테스트팀", "설명", false);
+        setFieldValue(team, "id", teamId);
+
+        Squad squad = Squad.createDefault(team);
+        setFieldValue(squad, "id", squadId);
+
+        RecommendationDayOfWeek recommendationDay = RecommendationDayOfWeek.from(dayOfWeek);
+        squad.updateRecommendationDays(List.of(recommendationDay));
+
+        return squad;
+    }
+
+    private void setFieldValue(Object target, String fieldName, Object value) {
         try {
-            java.lang.reflect.Field idField = team.getClass().getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(team, id);
-
-            com.ryu.studyhelper.team.domain.RecommendationDayOfWeek recommendationDay =
-                    com.ryu.studyhelper.team.domain.RecommendationDayOfWeek.from(dayOfWeek);
-            team.updateRecommendationDays(List.of(recommendationDay));
-
-            java.lang.reflect.Field teamMembersField = team.getClass().getDeclaredField("teamMembers");
-            teamMembersField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            java.util.List<Object> teamMembers = (java.util.List<Object>) teamMembersField.get(team);
-            teamMembers.add(new Object());
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (NoSuchFieldException e) {
+            // 부모 클래스에서 찾기
+            try {
+                java.lang.reflect.Field field = target.getClass().getSuperclass().getDeclaredField(fieldName);
+                field.setAccessible(true);
+                field.set(target, value);
+            } catch (Exception ex) {
+                throw new RuntimeException(fieldName + " 설정 실패", ex);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Team 설정 실패", e);
+            throw new RuntimeException(fieldName + " 설정 실패", e);
         }
-        return team;
     }
 }
