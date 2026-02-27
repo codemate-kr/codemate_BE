@@ -69,7 +69,7 @@ public class Squad extends BaseEntity {
     public static Squad createDefault(Team team) {
         return Squad.builder()
                 .team(team)
-                .name("기본 스쿼드")
+                .name("스쿼드 A")
                 .isDefault(true)
                 .recommendationStatus(RecommendationStatus.INACTIVE)
                 .recommendationDays(RecommendationDayOfWeek.INACTIVE)
