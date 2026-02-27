@@ -2,7 +2,9 @@ package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Team;
+import com.ryu.studyhelper.team.repository.SquadRepository;
 import com.ryu.studyhelper.team.repository.TeamRepository;
+import com.ryu.studyhelper.team.service.SquadService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,10 +35,16 @@ class ScheduledRecommendationServiceTest {
     private TeamRepository teamRepository;
 
     @Mock
+    private SquadRepository squadRepository;
+
+    @Mock
     private RecommendationRepository recommendationRepository;
 
     @Mock
     private RecommendationCreator recommendationCreator;
+
+    @Mock
+    private SquadService squadService;
 
     private ScheduledRecommendationService scheduledRecommendationService;
 
@@ -53,8 +61,10 @@ class ScheduledRecommendationServiceTest {
         scheduledRecommendationService = new ScheduledRecommendationService(
                 clock,
                 teamRepository,
+                squadRepository,
                 recommendationRepository,
-                recommendationCreator
+                recommendationCreator,
+                squadService
         );
     }
 

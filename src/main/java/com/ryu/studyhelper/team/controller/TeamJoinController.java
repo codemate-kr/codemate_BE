@@ -1,4 +1,4 @@
-package com.ryu.studyhelper.team;
+package com.ryu.studyhelper.team.controller;
 
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;

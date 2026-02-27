@@ -63,6 +63,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/teams/public").permitAll()
                 .requestMatchers("/api/teams/{teamId:\\d+}").permitAll()
                 .requestMatchers("/api/teams/{teamId:\\d+}/activity").permitAll()
+                .requestMatchers("/api/v2/teams/public").permitAll()
+                .requestMatchers("/api/v2/teams/{teamId:\\d+}").permitAll()
 
                 // 랭킹 API (비로그인 허용)
                 .requestMatchers("/api/solve/ranking/**").permitAll()

@@ -1,15 +1,13 @@
-package com.ryu.studyhelper.team;
+package com.ryu.studyhelper.team.controller;
 
 import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.request.CreateTeamRequest;
-import com.ryu.studyhelper.team.dto.request.InviteMemberRequest;
 import com.ryu.studyhelper.team.dto.request.TeamRecommendationSettingsRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
-import com.ryu.studyhelper.team.dto.response.InviteMemberResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
 import com.ryu.studyhelper.team.dto.response.TeamActivityResponse;
@@ -17,6 +15,7 @@ import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamRecommendationSettingsResponse;
 import com.ryu.studyhelper.team.service.TeamActivityService;
+import com.ryu.studyhelper.team.service.TeamRecommendationSettingsService;
 import com.ryu.studyhelper.team.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,7 +23,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -36,6 +34,8 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    // TODO(#172): 2차 배포 시 제거 - TeamRecommendationSettingsService 클래스 전체 삭제 시 함께 제거
+    private final TeamRecommendationSettingsService teamRecommendationSettingsService;
     private final TeamActivityService teamActivityService;
 
     @Operation(
@@ -77,6 +77,7 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - V1 팀 페이지 엔드포인트, TeamControllerV2의 getTeamPageDetailV2로 대체
     @Operation(
             summary = "팀 페이지 통합 조회",
             description = """
@@ -110,65 +111,56 @@ public class TeamController {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 조회, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 설정 조회",
-            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다."
+            description = "특정 팀의 문제 추천 설정(요일, 난이도)을 조회합니다.",
+            deprecated = true
     )
+    @Deprecated(forRemoval = true)
     @GetMapping("/{teamId}/recommendation-settings")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> getRecommendationSettings(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId) {
 
-        TeamRecommendationSettingsResponse response = teamService.getRecommendationSettings(teamId);
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.getRecommendationSettings(teamId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 설정 업데이트, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 설정 업데이트",
-            description = "팀의 문제 추천 요일과 난이도를 설정합니다. 팀장만 설정 가능합니다."
+            description = "팀의 문제 추천 요일과 난이도를 설정합니다. 팀장만 설정 가능합니다.",
+            deprecated = true
     )
+    @Deprecated(forRemoval = true)
     @PutMapping("/{teamId}/recommendation-settings")
-    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> updateRecommendationSettings(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,
             @Valid @RequestBody TeamRecommendationSettingsRequest request,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        TeamRecommendationSettingsResponse response = teamService.updateRecommendationSettings(
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.updateRecommendationSettings(
                 teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
+    // TODO(#172): 2차 배포 시 제거 - 팀 기반 추천 비활성화, SquadController 엔드포인트로 대체됨
     @Operation(
             summary = "팀 추천 비활성화",
-            description = "팀의 문제 추천을 비활성화합니다. 팀장만 설정 가능합니다."
+            description = "팀의 문제 추천을 비활성화합니다. 팀장만 설정 가능합니다.",
+            deprecated = true
     )
+    @Deprecated(forRemoval = true)
     @DeleteMapping("/{teamId}/recommendation-settings")
-    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
     public ResponseEntity<ApiResponse<TeamRecommendationSettingsResponse>> disableRecommendation(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
-        TeamRecommendationSettingsResponse response = teamService.disableRecommendation(
+        TeamRecommendationSettingsResponse response = teamRecommendationSettingsService.disableRecommendation(
                 teamId, principalDetails.getMemberId());
-        return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
-    }
-
-    @Operation(
-            summary = "멤버 초대",
-            description = "선택한 멤버를 팀에 초대합니다. 팀장만 초대 가능합니다. 초대된 멤버는 알림을 받습니다."
-    )
-    @PostMapping("/{teamId}/invite")
-    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
-    public ResponseEntity<ApiResponse<InviteMemberResponse>> inviteMember(
-            @Parameter(description = "팀 ID", example = "1")
-            @PathVariable Long teamId,
-            @Valid @RequestBody InviteMemberRequest request,
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-
-        InviteMemberResponse response = teamService.inviteMember(teamId, request, principalDetails.getMemberId());
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
@@ -222,7 +214,6 @@ public class TeamController {
             description = "팀의 이름, 설명, 공개/비공개 설정을 수정합니다. 팀장만 수정 가능합니다."
     )
     @PostMapping("/{teamId}/updateInfo")
-    @PreAuthorize("@teamService.isTeamLeader(#teamId, authentication.principal.memberId)")
     public ResponseEntity<ApiResponse<Void>> updateTeamInfo(
             @Parameter(description = "팀 ID", example = "1")
             @PathVariable Long teamId,

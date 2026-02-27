@@ -39,6 +39,9 @@ public class MemberRecommendation extends BaseEntity {
     @Column(name = "team_id")
     private Long teamId;
 
+    @Column(name = "squad_id")
+    private Long squadId;
+
     /**
      * denormalized - Team JOIN 없이 조회
      */
@@ -61,6 +64,20 @@ public class MemberRecommendation extends BaseEntity {
                 .recommendation(recommendation)
                 .teamId(team.getId())
                 .teamName(team.getName())
+                .emailSendStatus(EmailSendStatus.PENDING)
+                .build();
+    }
+
+    public static MemberRecommendation createForSquad(Member member, Recommendation recommendation, Team team, Long squadId) {
+        if (team == null) {
+            throw new IllegalArgumentException("Team must not be null");
+        }
+        return MemberRecommendation.builder()
+                .member(member)
+                .recommendation(recommendation)
+                .teamId(team.getId())
+                .teamName(team.getName())
+                .squadId(squadId)
                 .emailSendStatus(EmailSendStatus.PENDING)
                 .build();
     }

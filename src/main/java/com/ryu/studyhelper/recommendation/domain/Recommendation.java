@@ -29,6 +29,9 @@ public class Recommendation extends BaseEntity {
     @Column(name = "team_id")
     private Long teamId;
 
+    @Column(name = "squad_id")
+    private Long squadId;
+
     @OneToMany(mappedBy = "recommendation")
     @Builder.Default
     private List<RecommendationProblem> problems = new ArrayList<>();
@@ -44,6 +47,22 @@ public class Recommendation extends BaseEntity {
         return Recommendation.builder()
                 .teamId(teamId)
                 .type(RecommendationType.MANUAL)
+                .build();
+    }
+
+    public static Recommendation createManualRecommendationForSquad(Long teamId, Long squadId) {
+        return Recommendation.builder()
+                .teamId(teamId)
+                .squadId(squadId)
+                .type(RecommendationType.MANUAL)
+                .build();
+    }
+
+    public static Recommendation createScheduledRecommendationForSquad(Long teamId, Long squadId) {
+        return Recommendation.builder()
+                .teamId(teamId)
+                .squadId(squadId)
+                .type(RecommendationType.SCHEDULED)
                 .build();
     }
 

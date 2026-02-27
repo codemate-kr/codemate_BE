@@ -76,4 +76,58 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
      * @return 개인 추천 목록
      */
     List<MemberRecommendation> findByRecommendationId(Long recommendationId);
+
+    /**
+     * 오늘 미션 사이클 이후 생성된 회원의 MemberRecommendation 조회 (v2 오늘의 문제용)
+     * MemberRecommendation 기반으로 조회하므로 TeamMember JOIN 불필요
+     *
+     * @param memberId         회원 ID
+     * @param missionCycleStart 오늘 미션 사이클 시작 시각 (오전 6시)
+     * @return 오늘의 개인 추천 목록
+     */
+    @Query("SELECT mr FROM MemberRecommendation mr " +
+            "JOIN FETCH mr.recommendation r " +
+            "WHERE mr.member.id = :memberId " +
+            "AND r.createdAt >= :missionCycleStart")
+    List<MemberRecommendation> findTodayByMemberId(
+            @Param("memberId") Long memberId,
+            @Param("missionCycleStart") LocalDateTime missionCycleStart
+    );
+
+    /**
+     * 특정 회원의 MemberRecommendation에 해당 문제가 포함되어 있는지 확인
+     * 스쿼드 간 인증 차단에 사용됩니다. 날짜 조건 없음.
+     *
+     * @param memberId  회원 ID
+     * @param problemId 문제 ID
+     * @return 포함 여부
+     */
+    @Query("SELECT COUNT(mr) > 0 FROM MemberRecommendation mr " +
+            "JOIN mr.recommendation r " +
+            "JOIN r.problems rp " +
+            "WHERE mr.member.id = :memberId " +
+            "AND rp.problem.id = :problemId")
+    boolean existsByMemberIdAndRecommendedProblemId(
+            @Param("memberId") Long memberId,
+            @Param("problemId") Long problemId
+    );
+
+    /**
+     * 현재 팀원의 MemberRecommendation 조회 (팀 활동 현황 V2 / 리더보드용)
+     * TeamMember JOIN으로 현재 팀원 MR만 반환, recommendation·problems·member fetch join으로 N+1 방지
+     * problems 컬렉션 JOIN FETCH로 인한 Cartesian product는 DISTINCT로 제거
+     */
+    @Query("SELECT DISTINCT mr FROM MemberRecommendation mr " +
+            "JOIN TeamMember tm ON tm.member = mr.member AND tm.team.id = :teamId " +
+            "JOIN FETCH mr.recommendation r " +
+            "LEFT JOIN FETCH r.problems rp " +
+            "LEFT JOIN FETCH rp.problem " +
+            "JOIN FETCH mr.member " +
+            "WHERE mr.teamId = :teamId " +
+            "AND r.createdAt BETWEEN :start AND :end")
+    List<MemberRecommendation> findByTeamIdAndCreatedAtBetween(
+            @Param("teamId") Long teamId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }

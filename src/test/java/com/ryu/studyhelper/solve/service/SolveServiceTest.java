@@ -7,6 +7,7 @@ import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.repository.ProblemRepository;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
@@ -49,6 +50,9 @@ class SolveServiceTest {
     private MemberSolvedProblemRepository memberSolvedProblemRepository;
 
     @Mock
+    private MemberRecommendationRepository memberRecommendationRepository;
+
+    @Mock
     private SolvedAcClient solvedAcClient;
 
     @Mock
@@ -86,6 +90,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
@@ -129,6 +134,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(true);
 
             // when & then
@@ -163,6 +169,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(false);
 
@@ -198,6 +205,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
@@ -230,6 +238,7 @@ class SolveServiceTest {
                     memberRepository,
                     problemRepository,
                     memberSolvedProblemRepository,
+                    memberRecommendationRepository,
                     solvedAcClient,
                     clock
             );
@@ -333,7 +342,7 @@ class SolveServiceTest {
         void setUp() {
             service = new SolveService(
                     memberRepository, problemRepository, memberSolvedProblemRepository,
-                    solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
+                    memberRecommendationRepository, solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
             );
         }
 

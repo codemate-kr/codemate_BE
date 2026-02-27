@@ -51,6 +51,8 @@ class TeamJoinServiceTest {
     private InvitationMailBuilder invitationMailBuilder;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private SquadService squadService;
 
     @InjectMocks
     private TeamJoinService teamJoinService;
@@ -175,7 +177,11 @@ class TeamJoinServiceTest {
                     .build();
             ReflectionTestUtils.setField(teamJoin, "id", 1L);
 
+            Squad defaultSquad = Squad.builder().team(team).name("기본 스쿼드").isDefault(true).build();
+            ReflectionTestUtils.setField(defaultSquad, "id", 10L);
+
             given(teamJoinRepository.findById(1L)).willReturn(Optional.of(teamJoin));
+            given(squadService.findDefaultSquad(1L)).willReturn(defaultSquad);
 
             TeamJoinResponse response = teamJoinService.accept(1L, 2L);
 

@@ -31,6 +31,7 @@ public class TeamJoinService {
     private final TeamJoinRepository teamJoinRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final SquadService squadService;
     private final MemberRepository memberRepository;
     private final MailSender mailSender;
     private final InvitationMailBuilder invitationMailBuilder;
@@ -105,7 +106,8 @@ public class TeamJoinService {
         teamJoin.accept();
 
         // 팀 멤버로 추가
-        TeamMember teamMember = TeamMember.createMember(teamJoin.getTeam(), teamJoin.getTargetMember());
+        Long defaultSquadId = squadService.findDefaultSquad(teamJoin.getTeam().getId()).getId();
+        TeamMember teamMember = TeamMember.createMember(teamJoin.getTeam(), teamJoin.getTargetMember(), defaultSquadId);
         teamMemberRepository.save(teamMember);
 
         // 팀장에게 수락 알림
@@ -219,7 +221,8 @@ public class TeamJoinService {
 
         teamJoin.accept();
 
-        TeamMember teamMember = TeamMember.createMember(teamJoin.getTeam(), teamJoin.getRequester());
+        Long defaultSquadId = squadService.findDefaultSquad(teamJoin.getTeam().getId()).getId();
+        TeamMember teamMember = TeamMember.createMember(teamJoin.getTeam(), teamJoin.getRequester(), defaultSquadId);
         teamMemberRepository.save(teamMember);
 
         // 신청자에게 승인 알림

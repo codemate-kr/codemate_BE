@@ -10,6 +10,7 @@ import com.ryu.studyhelper.problem.repository.ProblemRepository;
 import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
+import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +31,7 @@ public class SolveService {
     private final MemberRepository memberRepository;
     private final ProblemRepository problemRepository;
     private final MemberSolvedProblemRepository memberSolvedProblemRepository;
+    private final MemberRecommendationRepository memberRecommendationRepository;
     private final SolvedAcClient solvedAcClient;
     private final Clock clock;
 
@@ -55,19 +55,24 @@ public class SolveService {
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.PROBLEM_NOT_FOUND));
 
-        // 4. 이미 인증된 문제인지 확인
+        // 4. 본인 추천 목록에 포함된 문제인지 확인
+        if (!memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(memberId, problemId)) {
+            throw new CustomException(CustomResponseStatus.PROBLEM_NOT_IN_RECOMMENDATION);
+        }
+
+        // 5. 이미 인증된 문제인지 확인
         if (memberSolvedProblemRepository.existsByMemberIdAndProblemId(memberId, problemId)) {
             throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
         }
 
-        // 5. solved.ac API로 실제 해결 여부 검증
+        // 6. solved.ac API로 실제 해결 여부 검증
         boolean isSolved = solvedAcClient.hasUserSolvedProblem(member.getHandle(), problemId);
 
         if (!isSolved) {
             throw new CustomException(CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);
         }
 
-        // 6. MemberSolvedProblem 레코드 생성
+        // 7. MemberSolvedProblem 레코드 생성
         MemberSolvedProblem memberSolvedProblem = MemberSolvedProblem.create(member, problem);
         try {
             memberSolvedProblemRepository.save(memberSolvedProblem);
@@ -158,6 +163,26 @@ public class SolveService {
             return dateTime.toLocalDate().minusDays(1);
         }
         return dateTime.toLocalDate();
+    }
+
+    /**
+     * 여러 멤버의 특정 문제 풀이 여부 맵 조회
+     * @param memberIds 멤버 ID 목록
+     * @param problemIds 문제 ID 컬렉션
+     * @return memberId → 풀이한 problemId 집합
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Set<Long>> getSolvedProblemIdMap(List<Long> memberIds, Collection<Long> problemIds) {
+        if (memberIds.isEmpty() || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        return memberSolvedProblemRepository
+                .findByMemberIdsAndProblemIds(memberIds, new ArrayList<>(problemIds))
+                .stream()
+                .collect(Collectors.groupingBy(
+                        msp -> msp.getMember().getId(),
+                        Collectors.mapping(msp -> msp.getProblem().getId(), Collectors.toSet())
+                ));
     }
 
     private Member findMemberById(Long memberId) {
