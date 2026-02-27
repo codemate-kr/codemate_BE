@@ -44,7 +44,6 @@ public class RecommendationControllerV2 {
             @AuthenticationPrincipal PrincipalDetails principalDetails) {
 
         Long memberId = principalDetails.getMemberId();
-        log.info("사용자 {}의 오늘의 문제 전체 조회 v2", memberId);
 
         MyTodayProblemsResponse response = recommendationService.getMyTodayProblemsV2(memberId);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
