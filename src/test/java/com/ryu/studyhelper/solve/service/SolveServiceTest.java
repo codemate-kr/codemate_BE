@@ -90,6 +90,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
@@ -133,6 +134,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(true);
 
             // when & then
@@ -167,6 +169,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(false);
 
@@ -202,6 +205,7 @@ class SolveServiceTest {
             // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
             given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
