@@ -104,7 +104,9 @@ public class TeamService {
                     List<PublicTeamResponseV2.SquadInfo> squadInfos =
                             squadRepository.findByTeamIdOrderByIdAsc(team.getId()).stream()
                                     .map(s -> PublicTeamResponseV2.SquadInfo.from(
-                                            s, memberCountBySquad.getOrDefault(s.getId(), 0L).intValue()
+                                            s,
+                                            squadIncludeTagRepository.findTagKeysBySquadId(s.getId()),
+                                            memberCountBySquad.getOrDefault(s.getId(), 0L).intValue()
                                     ))
                                     .toList();
 

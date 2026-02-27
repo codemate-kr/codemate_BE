@@ -49,10 +49,16 @@ public record PublicTeamResponseV2(
             @Schema(description = "추천 난이도 최대값", example = "12")
             Integer maxProblemLevel,
 
-            @Schema(description = "스쿼드 팀원 수", example = "3")
+            @Schema(description = "1일 추천 문제 수", example = "3")
+            int problemCount,
+
+            @Schema(description = "추천 알고리즘 태그 목록 (solved.ac 태그 키)", example = "[\"dp\", \"graph\"]")
+            List<String> includeTags,
+
+            @Schema(description = "스쿼드 소속 인원 수", example = "3")
             int memberCount
     ) {
-        public static SquadInfo from(Squad squad, int memberCount) {
+        public static SquadInfo from(Squad squad, List<String> includeTags, int memberCount) {
             return new SquadInfo(
                     squad.getId(),
                     squad.getName(),
@@ -61,6 +67,8 @@ public record PublicTeamResponseV2(
                     squad.getRecommendationDaysList(),
                     squad.getEffectiveMinProblemLevel(),
                     squad.getEffectiveMaxProblemLevel(),
+                    squad.getProblemCount(),
+                    includeTags != null ? includeTags : List.of(),
                     memberCount
             );
         }
