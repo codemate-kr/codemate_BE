@@ -4,7 +4,7 @@ import com.ryu.studyhelper.common.dto.ApiResponse;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.config.security.PrincipalDetails;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
-import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
+import com.ryu.studyhelper.team.dto.response.PublicTeamResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamActivityResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamLeaderboardResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponseV2;
@@ -43,10 +43,10 @@ public class TeamControllerV2 {
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
-    @Operation(summary = "v2 공개 팀 목록 조회")
+    @Operation(summary = "v2 공개 팀 목록 조회", description = "스쿼드별 추천 설정 포함")
     @GetMapping("/public")
-    public ResponseEntity<ApiResponse<List<PublicTeamResponse>>> getPublicTeams() {
-        List<PublicTeamResponse> response = teamService.getPublicTeams();
+    public ResponseEntity<ApiResponse<List<PublicTeamResponseV2>>> getPublicTeams() {
+        List<PublicTeamResponseV2> response = teamService.getPublicTeamsV2();
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 

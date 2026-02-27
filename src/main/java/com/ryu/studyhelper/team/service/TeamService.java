@@ -23,6 +23,7 @@ import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
+import com.ryu.studyhelper.team.dto.response.PublicTeamResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponseV2;
@@ -81,6 +82,41 @@ public class TeamService {
     public List<PublicTeamResponse> getPublicTeams() {
         return teamRepository.findByIsPrivateFalse().stream()
                 .map(PublicTeamResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublicTeamResponseV2> getPublicTeamsV2() {
+        List<Team> teams = teamRepository.findByIsPrivateFalse();
+
+        return teams.stream()
+                .map(team -> {
+                    String leaderHandle = team.getTeamMembers().stream()
+                            .filter(tm -> tm.getRole() == TeamRole.LEADER)
+                            .findFirst()
+                            .map(tm -> tm.getMember().getHandle())
+                            .orElse(null);
+
+                    Map<Long, Long> memberCountBySquad = team.getTeamMembers().stream()
+                            .filter(tm -> tm.getSquadId() != null)
+                            .collect(Collectors.groupingBy(TeamMember::getSquadId, Collectors.counting()));
+
+                    List<PublicTeamResponseV2.SquadInfo> squadInfos =
+                            squadRepository.findByTeamIdOrderByIdAsc(team.getId()).stream()
+                                    .map(s -> PublicTeamResponseV2.SquadInfo.from(
+                                            s, memberCountBySquad.getOrDefault(s.getId(), 0L).intValue()
+                                    ))
+                                    .toList();
+
+                    return new PublicTeamResponseV2(
+                            team.getId(),
+                            team.getName(),
+                            team.getDescription(),
+                            leaderHandle,
+                            team.getTeamMembers().size(),
+                            squadInfos
+                    );
+                })
                 .toList();
     }
 
