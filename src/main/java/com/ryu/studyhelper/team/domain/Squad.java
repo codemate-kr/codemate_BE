@@ -3,6 +3,8 @@ package com.ryu.studyhelper.team.domain;
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.DayOfWeek;
 import java.util.List;
@@ -39,6 +41,7 @@ public class Squad extends BaseEntity {
     private boolean isDefault = false;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "recommendation_status", nullable = false, length = 16)
     @Builder.Default
     private RecommendationStatus recommendationStatus = RecommendationStatus.INACTIVE;
@@ -48,6 +51,7 @@ public class Squad extends BaseEntity {
     private Integer recommendationDays = RecommendationDayOfWeek.INACTIVE;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "problem_difficulty_preset", length = 16)
     @Builder.Default
     private ProblemDifficultyPreset problemDifficultyPreset = ProblemDifficultyPreset.NORMAL;
