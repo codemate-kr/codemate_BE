@@ -29,7 +29,7 @@ public class GoogleOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
 
-        log.info("Google OAuth2 사용자 정보 로드 시작");
+        log.debug("Google OAuth2 사용자 정보 로드 시작");
 
         // 1. Google로부터 사용자 정보 받아오기
         OAuth2User oAuth2User = super.loadUser(userRequest);
