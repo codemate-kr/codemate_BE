@@ -20,7 +20,6 @@ import com.ryu.studyhelper.team.dto.request.UpdateTeamInfoRequest;
 import com.ryu.studyhelper.team.dto.request.UpdateTeamVisibilityRequest;
 import com.ryu.studyhelper.team.dto.response.CreateTeamResponse;
 import com.ryu.studyhelper.team.dto.response.MyTeamResponse;
-import com.ryu.studyhelper.team.dto.response.PublicTeamResponse;
 import com.ryu.studyhelper.team.dto.response.PublicTeamResponseV2;
 import com.ryu.studyhelper.team.dto.response.TeamMemberResponse;
 import com.ryu.studyhelper.team.dto.response.TeamPageResponseV2;
@@ -70,13 +69,6 @@ public class TeamService {
     public List<MyTeamResponse> getMyTeams(Long memberId) {
         return teamMemberRepository.findByMemberId(memberId).stream()
                 .map(MyTeamResponse::from)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<PublicTeamResponse> getPublicTeams() {
-        return teamRepository.findByIsPrivateFalse().stream()
-                .map(PublicTeamResponse::from)
                 .toList();
     }
 

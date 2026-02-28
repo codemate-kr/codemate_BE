@@ -43,7 +43,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 // 정적 리소스
                 .requestMatchers("/favicon.ico", "/error").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/assets/**", "/html/**").permitAll()
+//                .requestMatchers("/css/**", "/js/**", "/images/**", "/assets/**", "/html/**").permitAll()
 
                 // API 문서
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
@@ -60,15 +60,13 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
                 // 공개 팀 API (비로그인 허용)
-                .requestMatchers("/api/teams/public").permitAll()
-                .requestMatchers("/api/teams/{teamId:\\d+}").permitAll()
-                .requestMatchers("/api/teams/{teamId:\\d+}/activity").permitAll()
                 .requestMatchers("/api/v2/teams/public").permitAll()
                 .requestMatchers("/api/v2/teams/{teamId:\\d+}").permitAll()
+                .requestMatchers("/api/v2/teams/{teamId:\\d+}/activity").permitAll()
+                .requestMatchers("/api/v2/teams/{teamId:\\d+}/leaderboard").permitAll()
 
                 // 랭킹 API (비로그인 허용)
                 .requestMatchers("/api/solve/ranking/**").permitAll()
-                .requestMatchers("/api/ranking/**").permitAll() // TODO: 프론트엔드 마이그레이션 후 제거
 
                 // Swagger 테스트용 - 모든 API 개방
 //                .requestMatchers("/api/**").permitAll()

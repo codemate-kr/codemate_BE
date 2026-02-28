@@ -49,15 +49,15 @@ public class ScheduledRecommendationService {
             try {
                 if (recommendationRepository.findFirstByTeamIdAndSquadIdAndCreatedAtBetweenOrderById(
                         squad.getTeam().getId(), squad.getId(), missionCycleStart, now).isPresent()) {
-                    log.debug("스쿼드 '{}'에 이미 추천 존재 - 스킵", squad.getName());
+                    log.info("[{}] 스쿼드 '{}'에 이미 추천 존재 - 스킵", squad.getTeam().getName(), squad.getName());
                     continue;
                 }
                 recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
                 successCount++;
-                log.info("스쿼드 '{}' 문제 추천 완료", squad.getName());
+                log.info("[{}] 스쿼드 '{}' 문제 추천 완료", squad.getTeam().getName(), squad.getName());
             } catch (Exception e) {
                 failCount++;
-                log.error("스쿼드 '{}' 문제 추천 실패", squad.getName(), e);
+                log.error("[{}] 스쿼드 '{}' 문제 추천 실패", squad.getTeam().getName(), squad.getName(), e);
             }
         }
 

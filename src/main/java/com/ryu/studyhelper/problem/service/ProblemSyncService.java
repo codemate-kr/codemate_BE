@@ -44,7 +44,7 @@ public class ProblemSyncService {
             syncedProblems.add(problem);
         }
 
-        log.info("문제 메타데이터 동기화 완료: {} 개", syncedProblems.size());
+        log.debug("문제 메타데이터 동기화 완료: {} 개", syncedProblems.size());
         return syncedProblems;
     }
 
