@@ -38,3 +38,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 로컬 테스트 전용 컨트롤러
+src/main/java/com/ryu/studyhelper/test/
