@@ -19,8 +19,11 @@ import java.util.Map;
 @Component
 public class SolvedAcRestClient {
     private static final String DEFAULT_BASE_URL = "https://solved.ac/api/v3";
-    private static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 3;
-    private static final int DEFAULT_RESPONSE_TIMEOUT_SECONDS = 10;
+    private static final int CONNECT_TIMEOUT_SECONDS = 3;           // TCP 연결 타임아웃
+    private static final int CONN_REQUEST_TIMEOUT_SECONDS = 3;      // 풀에서 커넥션 대기 타임아웃 (solved.ac 평균 응답 ~1s 고려)
+    private static final int RESPONSE_TIMEOUT_SECONDS = 10;         // 서버 응답 타임아웃
+    private static final int MAX_CONN_PER_ROUTE = 5;                // 비동기 전환 시 동시 실행 수와 맞출 것
+    private static final int MAX_CONN_TOTAL = 10;
 
     private final RestClient rest;
 
@@ -34,16 +37,18 @@ public class SolvedAcRestClient {
 
     private HttpComponentsClientHttpRequestFactory buildRequestFactory() {
         var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                .setMaxConnTotal(MAX_CONN_TOTAL)
                 .setDefaultConnectionConfig(ConnectionConfig.custom()
-                        .setConnectTimeout(Timeout.ofSeconds(DEFAULT_CONNECT_TIMEOUT_SECONDS))
+                        .setConnectTimeout(Timeout.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                         .build())
                 .build();
 
         var httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .setDefaultRequestConfig(RequestConfig.custom()
-                        .setConnectionRequestTimeout(Timeout.ofSeconds(DEFAULT_CONNECT_TIMEOUT_SECONDS))
-                        .setResponseTimeout(Timeout.ofSeconds(DEFAULT_RESPONSE_TIMEOUT_SECONDS))
+                        .setConnectionRequestTimeout(Timeout.ofSeconds(CONN_REQUEST_TIMEOUT_SECONDS))
+                        .setResponseTimeout(Timeout.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
                         .build())
                 .build();
 
