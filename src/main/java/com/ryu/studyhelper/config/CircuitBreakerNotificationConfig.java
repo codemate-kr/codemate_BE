@@ -5,6 +5,7 @@ import com.ryu.studyhelper.infrastructure.discord.DiscordNotifier;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class CircuitBreakerNotificationConfig {
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -23,11 +25,15 @@ public class CircuitBreakerNotificationConfig {
         circuitBreakerRegistry.circuitBreaker("solvedAc")
                 .getEventPublisher()
                 .onStateTransition(event -> {
-                    String from = event.getStateTransition().getFromState().name();
-                    String to   = event.getStateTransition().getToState().name();
-                    discordNotifier.sendInfra(
-                            DiscordMessage.circuitBreakerStateChange("solvedAc", from, to)
-                    );
+                    try {
+                        String from = event.getStateTransition().getFromState().name();
+                        String to   = event.getStateTransition().getToState().name();
+                        discordNotifier.sendInfra(
+                                DiscordMessage.circuitBreakerStateChange("solvedAc", from, to)
+                        );
+                    } catch (Exception e) {
+                        log.warn("서킷브레이커 상태 전이 알림 전송 실패", e);
+                    }
                 });
     }
 }

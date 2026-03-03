@@ -42,6 +42,7 @@ public class SolvedAcRestClient {
         var httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .setDefaultRequestConfig(RequestConfig.custom()
+                        .setConnectionRequestTimeout(Timeout.ofSeconds(DEFAULT_CONNECT_TIMEOUT_SECONDS))
                         .setResponseTimeout(Timeout.ofSeconds(DEFAULT_RESPONSE_TIMEOUT_SECONDS))
                         .build())
                 .build();
