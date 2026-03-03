@@ -5,6 +5,7 @@ import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,7 +25,11 @@ public class SolveFacade {
         if (!isSolved) {
             throw new CustomException(CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);
         }
-        solveService.recordSolved(memberId, problemId); // 새 트랜잭션 → 커넥션 재획득
+        try {
+            solveService.recordSolved(memberId, problemId); // 새 트랜잭션 → 커밋 시점에 flush
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
+        }
     }
 
     public DailySolvedResponse getDailySolved(Long memberId, int days) {
