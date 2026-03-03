@@ -187,12 +187,12 @@ class SolveServiceTest {
         void success() {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
+            given(memberSolvedProblemRepository.saveAndFlush(any(MemberSolvedProblem.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             solveService.recordSolved(1L, 1000L);
 
-            verify(memberSolvedProblemRepository).save(any(MemberSolvedProblem.class));
+            verify(memberSolvedProblemRepository).saveAndFlush(any(MemberSolvedProblem.class));
         }
 
         @Test
@@ -221,7 +221,7 @@ class SolveServiceTest {
         void fail_concurrentDuplicate() {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
+            given(memberSolvedProblemRepository.saveAndFlush(any(MemberSolvedProblem.class)))
                     .willThrow(new DataIntegrityViolationException("duplicate"));
 
             assertThatThrownBy(() -> solveService.recordSolved(1L, 1000L))

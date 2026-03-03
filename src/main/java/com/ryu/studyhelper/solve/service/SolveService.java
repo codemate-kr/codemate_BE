@@ -11,6 +11,7 @@ import com.ryu.studyhelper.solve.domain.MemberSolvedProblem;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.solve.repository.MemberSolvedProblemRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +60,11 @@ public class SolveService {
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.MEMBER_NOT_FOUND));
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.PROBLEM_NOT_FOUND));
-        memberSolvedProblemRepository.save(MemberSolvedProblem.create(member, problem));
+        try {
+            memberSolvedProblemRepository.saveAndFlush(MemberSolvedProblem.create(member, problem));
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(CustomResponseStatus.ALREADY_SOLVED);
+        }
     }
 
     @Transactional(readOnly = true)
