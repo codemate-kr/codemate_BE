@@ -7,6 +7,7 @@ import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,9 @@ public class SolvedAcClient {
         } catch (HttpClientErrorException.NotFound e) {
             log.info("solved.ac user not found: {}", handle);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        } catch (CallNotPermittedException e) {
+            log.warn("solved.ac 서킷브레이커 OPEN — 요청 차단됨");
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_UNAVAILABLE);
         } catch (Exception e) {
             log.error("Failed to fetch user info from solved.ac: {}", handle, e);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
@@ -62,6 +66,9 @@ public class SolvedAcClient {
                     .map(ProblemInfo::withUrl)
                     .limit(count)
                     .toList();
+        } catch (CallNotPermittedException e) {
+            log.warn("solved.ac 서킷브레이커 OPEN — 요청 차단됨");
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_UNAVAILABLE);
         } catch (Exception e) {
             log.error("Failed to recommend problems for handles: {}", handles, e);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
@@ -106,6 +113,9 @@ public class SolvedAcClient {
         } catch (HttpClientErrorException.NotFound e) {
             log.info("solved.ac user not found: {}", handle);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
+        } catch (CallNotPermittedException e) {
+            log.warn("solved.ac 서킷브레이커 OPEN — 요청 차단됨");
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_UNAVAILABLE);
         } catch (Exception e) {
             log.error("Failed to fetch user bio from solved.ac: {}", handle, e);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);
@@ -120,6 +130,9 @@ public class SolvedAcClient {
             String query = "id:" + problemId + "+s@" + handle;
             ProblemSearchResponse response = solvedAcRestClient.searchProblems(query, "id", "asc");
             return response.items() != null && !response.items().isEmpty();
+        } catch (CallNotPermittedException e) {
+            log.warn("solved.ac 서킷브레이커 OPEN — 요청 차단됨");
+            throw new CustomException(CustomResponseStatus.SOLVED_AC_UNAVAILABLE);
         } catch (Exception e) {
             log.error("Failed to check if user {} solved problem {}", handle, problemId, e);
             throw new CustomException(CustomResponseStatus.SOLVED_AC_API_ERROR);

@@ -9,4 +9,6 @@ public interface DiscordNotifier {
     void sendScheduler(DiscordMessage message);
 
     void sendEvent(DiscordMessage message);
+
+    void sendInfra(DiscordMessage message);
 }

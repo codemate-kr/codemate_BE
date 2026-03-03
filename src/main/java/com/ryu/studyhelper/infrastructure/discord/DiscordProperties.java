@@ -9,5 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "discord.webhooks")
 public record DiscordProperties(
         String scheduler,
-        String event
+        String event,
+        String infra
 ) {}

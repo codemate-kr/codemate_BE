@@ -17,6 +17,7 @@ spring:
 
   # JPA 공통 설정
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -47,6 +48,7 @@ discord:
   webhooks:
     scheduler: ${DISCORD_WEBHOOK_SCHEDULER:}
     event: ${DISCORD_WEBHOOK_EVENT:}
+    infra: ${DISCORD_WEBHOOK_INFRA:}
 
 # JWT 공통 설정
 jwt:
@@ -65,6 +67,20 @@ springdoc:
   paths-to-match: /api/**
 
 # Sentry 공통 설정
+resilience4j:
+  circuitbreaker:
+    instances:
+      solvedAc:
+        sliding-window-size: 10                           # 최근 10건 기준으로 실패율 평가
+        failure-rate-threshold: 50                        # 실패율 50% 이상 → OPEN
+        slow-call-duration-threshold: 5s                  # p99(1s)의 5배 — 정상 범위와 장애 구간 명확히 분리
+        slow-call-rate-threshold: 80                      # 느린 호출 비율 80% 이상 → OPEN
+        wait-duration-in-open-state: 30s                  # OPEN 유지 30s 후 HALF-OPEN으로 전환
+        permitted-number-of-calls-in-half-open-state: 5  # HALF-OPEN에서 테스트 호출 5회
+        automatic-transition-from-open-to-half-open-enabled: true
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException$NotFound  # 404는 정상 응답, 실패로 집계 안 함
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:local}

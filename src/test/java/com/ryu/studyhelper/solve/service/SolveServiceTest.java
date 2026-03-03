@@ -2,7 +2,6 @@ package com.ryu.studyhelper.solve.service;
 
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
-import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.member.repository.MemberRepository;
 import com.ryu.studyhelper.problem.domain.Problem;
@@ -19,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -31,7 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SolveService 단위 테스트")
@@ -47,13 +48,10 @@ class SolveServiceTest {
     private ProblemRepository problemRepository;
 
     @Mock
-    private MemberSolvedProblemRepository memberSolvedProblemRepository;
-
-    @Mock
     private MemberRecommendationRepository memberRecommendationRepository;
 
     @Mock
-    private SolvedAcClient solvedAcClient;
+    private MemberSolvedProblemRepository memberSolvedProblemRepository;
 
     @Mock
     private Clock clock;
@@ -81,36 +79,28 @@ class SolveServiceTest {
     }
 
     @Nested
-    @DisplayName("verifyProblemSolved 메서드")
-    class VerifyProblemSolvedTest {
+    @DisplayName("validateAndGetHandle 메서드")
+    class ValidateAndGetHandleTest {
 
         @Test
-        @DisplayName("성공 - 문제 해결 인증")
+        @DisplayName("성공 - 핸들 반환")
         void success() {
-            // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
             given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
-            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
-            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
-            // when
-            solveService.verifyProblemSolved(1L, 1000L);
+            String handle = solveService.validateAndGetHandle(1L, 1000L);
 
-            // then
-            verify(memberSolvedProblemRepository).save(any(MemberSolvedProblem.class));
+            assertThat(handle).isEqualTo("testuser");
         }
 
         @Test
         @DisplayName("실패 - 회원을 찾을 수 없음")
         void fail_memberNotFound() {
-            // given
             given(memberRepository.findById(1L)).willReturn(Optional.empty());
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.MEMBER_NOT_FOUND);
         }
@@ -118,12 +108,10 @@ class SolveServiceTest {
         @Test
         @DisplayName("실패 - 문제를 찾을 수 없음")
         void fail_problemNotFound() {
-            // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.empty());
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.PROBLEM_NOT_FOUND);
         }
@@ -131,14 +119,12 @@ class SolveServiceTest {
         @Test
         @DisplayName("실패 - 이미 인증된 문제")
         void fail_alreadySolved() {
-            // given
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
             given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
             given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(true);
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.ALREADY_SOLVED);
         }
@@ -146,7 +132,6 @@ class SolveServiceTest {
         @Test
         @DisplayName("실패 - 핸들이 등록되지 않음")
         void fail_handleNotRegistered() {
-            // given
             Member memberWithoutHandle = Member.builder()
                     .id(1L)
                     .provider("google")
@@ -157,32 +142,14 @@ class SolveServiceTest {
 
             given(memberRepository.findById(1L)).willReturn(Optional.of(memberWithoutHandle));
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
         }
 
         @Test
-        @DisplayName("실패 - solved.ac에서 해결 확인 안됨")
-        void fail_notSolvedYet() {
-            // given
-            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
-            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
-            given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
-            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(false);
-
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
-                    .isInstanceOf(CustomException.class)
-                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.PROBLEM_NOT_SOLVED_YET);
-        }
-
-        @Test
         @DisplayName("실패 - 빈 핸들")
         void fail_emptyHandle() {
-            // given
             Member memberWithEmptyHandle = Member.builder()
                     .id(1L)
                     .provider("google")
@@ -193,26 +160,71 @@ class SolveServiceTest {
 
             given(memberRepository.findById(1L)).willReturn(Optional.of(memberWithEmptyHandle));
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.SOLVED_AC_USER_NOT_FOUND);
         }
 
         @Test
-        @DisplayName("실패 - 동시 요청으로 인한 중복 저장 (TOCTOU)")
-        void fail_concurrentDuplicate() {
-            // given
+        @DisplayName("실패 - 추천 목록에 없는 문제")
+        void fail_problemNotInRecommendation() {
             given(memberRepository.findById(1L)).willReturn(Optional.of(member));
             given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
-            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(true);
-            given(memberSolvedProblemRepository.existsByMemberIdAndProblemId(1L, 1000L)).willReturn(false);
-            given(solvedAcClient.hasUserSolvedProblem("testuser", 1000L)).willReturn(true);
-            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
-                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate"));
+            given(memberRecommendationRepository.existsByMemberIdAndRecommendedProblemId(1L, 1000L)).willReturn(false);
 
-            // when & then
-            assertThatThrownBy(() -> solveService.verifyProblemSolved(1L, 1000L))
+            assertThatThrownBy(() -> solveService.validateAndGetHandle(1L, 1000L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.PROBLEM_NOT_IN_RECOMMENDATION);
+        }
+    }
+
+    @Nested
+    @DisplayName("recordSolved 메서드")
+    class RecordSolvedTest {
+
+        @Test
+        @DisplayName("성공 - 풀이 저장")
+        void success() {
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
+                    .willAnswer(invocation -> invocation.getArgument(0));
+
+            solveService.recordSolved(1L, 1000L);
+
+            verify(memberSolvedProblemRepository).save(any(MemberSolvedProblem.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 회원을 찾을 수 없음")
+        void fail_memberNotFound() {
+            given(memberRepository.findById(1L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> solveService.recordSolved(1L, 1000L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.MEMBER_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 문제를 찾을 수 없음")
+        void fail_problemNotFound() {
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(problemRepository.findById(1000L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> solveService.recordSolved(1L, 1000L))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.PROBLEM_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("실패 - 동시 요청으로 인한 중복 저장")
+        void fail_concurrentDuplicate() {
+            given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+            given(problemRepository.findById(1000L)).willReturn(Optional.of(problem));
+            given(memberSolvedProblemRepository.save(any(MemberSolvedProblem.class)))
+                    .willThrow(new DataIntegrityViolationException("duplicate"));
+
+            assertThatThrownBy(() -> solveService.recordSolved(1L, 1000L))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("status", CustomResponseStatus.ALREADY_SOLVED);
         }
@@ -223,53 +235,47 @@ class SolveServiceTest {
     class GetDailySolvedTest {
 
         @Mock
-        private Clock clock;
+        private Clock fixedClock;
 
         private SolveService solveServiceWithClock;
 
         @BeforeEach
         void setUp() {
-            // 2024-11-28 14:00 (오후 2시)으로 고정
             ZonedDateTime fixedTime = ZonedDateTime.of(2024, 11, 28, 14, 0, 0, 0, ZoneId.of("Asia/Seoul"));
-            given(clock.instant()).willReturn(fixedTime.toInstant());
-            given(clock.getZone()).willReturn(ZoneId.of("Asia/Seoul"));
+            given(fixedClock.instant()).willReturn(fixedTime.toInstant());
+            given(fixedClock.getZone()).willReturn(ZoneId.of("Asia/Seoul"));
 
             solveServiceWithClock = new SolveService(
                     memberRepository,
                     problemRepository,
-                    memberSolvedProblemRepository,
                     memberRecommendationRepository,
-                    solvedAcClient,
-                    clock
+                    memberSolvedProblemRepository,
+                    fixedClock
             );
         }
 
         @Test
         @DisplayName("성공 - 7일간 일별 풀이 현황 조회")
         void success_getDailySolved() {
-            // given
             Problem problem1 = Problem.builder().id(1000L).title("A+B").titleKo("A+B").level(1).build();
             Problem problem2 = Problem.builder().id(7576L).title("토마토").titleKo("토마토").level(11).build();
 
             MemberSolvedProblem solved1 = mock(MemberSolvedProblem.class);
-            given(solved1.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 10, 0)); // 11/28 10:00
+            given(solved1.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 10, 0));
             given(solved1.getProblem()).willReturn(problem1);
 
             MemberSolvedProblem solved2 = mock(MemberSolvedProblem.class);
-            given(solved2.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 15, 0)); // 11/28 15:00
+            given(solved2.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 15, 0));
             given(solved2.getProblem()).willReturn(problem2);
 
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(any(), any(), any()))
                     .willReturn(List.of(solved1, solved2));
 
-            // when
             DailySolvedResponse response = solveServiceWithClock.getDailySolved(1L, 7);
 
-            // then
             assertThat(response.totalCount()).isEqualTo(2);
             assertThat(response.dailySolved()).hasSize(7);
 
-            // 11/28에 2문제
             DailySolvedResponse.DailySolved nov28 = response.dailySolved().stream()
                     .filter(d -> d.date().equals("2024-11-28"))
                     .findFirst()
@@ -281,29 +287,23 @@ class SolveServiceTest {
         @Test
         @DisplayName("성공 - 오전 6시 이전은 전날로 계산")
         void success_before6am_countAsPreviousDay() {
-            // given
             Problem problem1 = Problem.builder().id(1000L).title("A+B").titleKo("A+B").level(1).build();
 
             MemberSolvedProblem solved = mock(MemberSolvedProblem.class);
-            // 11/28 05:30 → 11/27로 계산되어야 함
             given(solved.getSolvedAt()).willReturn(LocalDateTime.of(2024, 11, 28, 5, 30));
             given(solved.getProblem()).willReturn(problem1);
 
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(any(), any(), any()))
                     .willReturn(List.of(solved));
 
-            // when
             DailySolvedResponse response = solveServiceWithClock.getDailySolved(1L, 7);
 
-            // then
-            // 11/27에 1문제
             DailySolvedResponse.DailySolved nov27 = response.dailySolved().stream()
                     .filter(d -> d.date().equals("2024-11-27"))
                     .findFirst()
                     .orElseThrow();
             assertThat(nov27.count()).isEqualTo(1);
 
-            // 11/28에 0문제
             DailySolvedResponse.DailySolved nov28 = response.dailySolved().stream()
                     .filter(d -> d.date().equals("2024-11-28"))
                     .findFirst()
@@ -314,14 +314,11 @@ class SolveServiceTest {
         @Test
         @DisplayName("성공 - 풀이가 없는 경우 빈 리스트")
         void success_noSolved() {
-            // given
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(any(), any(), any()))
                     .willReturn(List.of());
 
-            // when
             DailySolvedResponse response = solveServiceWithClock.getDailySolved(1L, 7);
 
-            // then
             assertThat(response.totalCount()).isEqualTo(0);
             assertThat(response.dailySolved()).hasSize(7);
             response.dailySolved().forEach(daily -> {
@@ -329,7 +326,6 @@ class SolveServiceTest {
                 assertThat(daily.problems()).isEmpty();
             });
         }
-
     }
 
     @Nested
@@ -341,8 +337,11 @@ class SolveServiceTest {
         @BeforeEach
         void setUp() {
             service = new SolveService(
-                    memberRepository, problemRepository, memberSolvedProblemRepository,
-                    memberRecommendationRepository, solvedAcClient, Clock.system(ZoneId.of("Asia/Seoul"))
+                    memberRepository,
+                    problemRepository,
+                    memberRecommendationRepository,
+                    memberSolvedProblemRepository,
+                    Clock.system(ZoneId.of("Asia/Seoul"))
             );
         }
 
@@ -365,28 +364,22 @@ class SolveServiceTest {
         @Test
         @DisplayName("성공 - 최소 경계값 days=1")
         void success_minBoundary() {
-            // given
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(any(), any(), any()))
                     .willReturn(List.of());
 
-            // when
             DailySolvedResponse response = service.getDailySolved(1L, 1);
 
-            // then
             assertThat(response.dailySolved()).hasSize(1);
         }
 
         @Test
         @DisplayName("성공 - 최대 경계값 days=730")
         void success_maxBoundary() {
-            // given
             given(memberSolvedProblemRepository.findByMemberIdAndSolvedAtGreaterThanEqualAndSolvedAtLessThanOrderBySolvedAtAsc(any(), any(), any()))
                     .willReturn(List.of());
 
-            // when
             DailySolvedResponse response = service.getDailySolved(1L, 730);
 
-            // then
             assertThat(response.dailySolved()).hasSize(730);
         }
     }
