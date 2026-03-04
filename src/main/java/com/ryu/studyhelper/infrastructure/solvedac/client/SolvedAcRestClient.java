@@ -17,13 +17,13 @@ import org.springframework.web.client.RestClient;
 import java.util.Map;
 
 @Component
-public class SolvedAcRestClient {
+public class SolvedAcRestClient implements SolvedAcHttpClient {
     private static final String DEFAULT_BASE_URL = "https://solved.ac/api/v3";
-    private static final int CONNECT_TIMEOUT_SECONDS = 3;           // TCP 연결 타임아웃
-    private static final int CONN_REQUEST_TIMEOUT_SECONDS = 3;      // 풀에서 커넥션 대기 타임아웃 (solved.ac 평균 응답 ~1s 고려)
-    private static final int RESPONSE_TIMEOUT_SECONDS = 10;         // 서버 응답 타임아웃
-    private static final int MAX_CONN_PER_ROUTE = 5;                // 비동기 전환 시 동시 실행 수와 맞출 것
-    private static final int MAX_CONN_TOTAL = 10;
+    private static final int CONNECT_TIMEOUT_SECONDS = 3;            // TCP 연결 타임아웃
+    private static final int CONN_REQUEST_TIMEOUT_SECONDS = 30;     // 풀에서 커넥션 대기 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
+    private static final int RESPONSE_TIMEOUT_SECONDS = 30;         // 서버 응답 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
+    private static final int MAX_CONN_PER_ROUTE = 5;                // Apache HttpClient5 기본값
+    private static final int MAX_CONN_TOTAL = 25;                   // Apache HttpClient5 기본값
 
     private final RestClient rest;
 

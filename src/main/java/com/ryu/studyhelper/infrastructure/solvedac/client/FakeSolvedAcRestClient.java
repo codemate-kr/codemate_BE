@@ -14,14 +14,14 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 로컬 테스트용 SolvedAcRestClient
+ * 로컬 테스트용 SolvedAcHttpClient
  * 실제 API 호출 대신 지연 + 더미 데이터 반환
  */
 @Component
 @Profile("local")
 @Primary
 @Slf4j
-public class FakeSolvedAcRestClient extends SolvedAcRestClient {
+public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
 
     private static final long DELAY_MS = 20_000;
     private static final boolean FAIL_IMMEDIATELY = false; // true → 즉시 RuntimeException (failure-rate-threshold 트리거)
