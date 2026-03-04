@@ -3,21 +3,56 @@ package com.ryu.studyhelper.infrastructure.solvedac.client;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 
 @Component
-public class SolvedAcRestClient {
+public class SolvedAcRestClient implements SolvedAcHttpClient {
+    private static final String DEFAULT_BASE_URL = "https://solved.ac/api/v3";
+    private static final int CONNECT_TIMEOUT_SECONDS = 3;            // TCP 연결 타임아웃
+    private static final int CONN_REQUEST_TIMEOUT_SECONDS = 30;     // 풀에서 커넥션 대기 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
+    private static final int RESPONSE_TIMEOUT_SECONDS = 30;         // 서버 응답 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
+    private static final int MAX_CONN_PER_ROUTE = 5;                // Apache HttpClient5 기본값
+    private static final int MAX_CONN_TOTAL = 25;                   // Apache HttpClient5 기본값
+
     private final RestClient rest;
 
     public SolvedAcRestClient() {
         this.rest = RestClient.builder()
-                .baseUrl("https://solved.ac/api/v3")
-                .defaultHeader("User-Agent", "studyhelper/1.0")
+                .baseUrl(DEFAULT_BASE_URL)
+                .defaultHeader("User-Agent", "codemate/1.0")
+                .requestFactory(buildRequestFactory())
                 .build();
+    }
+
+    private HttpComponentsClientHttpRequestFactory buildRequestFactory() {
+        var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                .setMaxConnTotal(MAX_CONN_TOTAL)
+                .setDefaultConnectionConfig(ConnectionConfig.custom()
+                        .setConnectTimeout(Timeout.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+                        .build())
+                .build();
+
+        var httpClient = HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .setDefaultRequestConfig(RequestConfig.custom()
+                        .setConnectionRequestTimeout(Timeout.ofSeconds(CONN_REQUEST_TIMEOUT_SECONDS))
+                        .setResponseTimeout(Timeout.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
+                        .build())
+                .build();
+
+        return new HttpComponentsClientHttpRequestFactory(httpClient);
     }
 
 
@@ -35,6 +70,7 @@ public class SolvedAcRestClient {
     }
 
 
+    @CircuitBreaker(name = "solvedAc")
     public SolvedAcUserResponse getUserInfo(String handle) {
         return get("/user/show", Map.of("handle", handle), SolvedAcUserResponse.class);
     }
@@ -47,6 +83,7 @@ public class SolvedAcRestClient {
      * @param direction 정렬 방향 (asc, desc)
      * @return API 응답 원본
      */
+    @CircuitBreaker(name = "solvedAc")
     public ProblemSearchResponse searchProblems(String query, String sort, String direction) {
         return get("/search/problem", Map.of(
                 "query", query,
@@ -60,6 +97,7 @@ public class SolvedAcRestClient {
      * @param handle 백준 핸들
      * @return 핸들과 bio 정보
      */
+    @CircuitBreaker(name = "solvedAc")
     public SolvedAcUserBioResponse getUserBio(String handle) {
         return get("/user/show", Map.of("handle", handle), SolvedAcUserBioResponse.class);
     }

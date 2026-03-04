@@ -82,6 +82,10 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'
 
+    // Resilience4j 서킷브레이커
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
     // CSS Inliner for email templates
     implementation 'org.jsoup:jsoup:1.21.2'
 

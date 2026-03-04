@@ -59,6 +59,26 @@ public record DiscordMessage(List<Embed> embeds) {
         return create(title, COLOR_INFO, fields);
     }
 
+    /**
+     * 서킷브레이커 상태 전이 알림
+     * OPEN=빨간색, HALF_OPEN=파란색, CLOSED=초록색
+     */
+    public static DiscordMessage circuitBreakerStateChange(String circuitBreakerName, String fromState, String toState) {
+        int color = switch (toState) {
+            case "OPEN"      -> COLOR_ERROR;
+            case "HALF_OPEN" -> COLOR_INFO;
+            case "CLOSED"    -> COLOR_SUCCESS;
+            default          -> COLOR_INFO;
+        };
+        return new DiscordMessage(List.of(new Embed(
+                "🔌 서킷브레이커 상태 변경",
+                String.format("`%s` : **%s** → **%s**", circuitBreakerName, fromState, toState),
+                color,
+                List.of(),
+                Instant.now().toString()
+        )));
+    }
+
     private static DiscordMessage create(String title, int color, List<Field> fields) {
         return new DiscordMessage(List.of(
                 new Embed(title, null, color, fields, Instant.now().toString())

@@ -42,6 +42,11 @@ public class DiscordWebhookNotifier implements DiscordNotifier {
         send(properties.event(), message);
     }
 
+    @Override
+    public void sendInfra(DiscordMessage message) {
+        send(properties.infra(), message);
+    }
+
     private void send(String webhookUrl, DiscordMessage message) {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             log.debug("Discord webhook URL이 설정되지 않아 알림을 건너뜁니다");

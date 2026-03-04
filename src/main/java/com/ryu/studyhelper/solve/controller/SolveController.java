@@ -8,7 +8,7 @@ import com.ryu.studyhelper.infrastructure.ratelimit.RateLimitType;
 import com.ryu.studyhelper.solve.dto.response.DailySolvedResponse;
 import com.ryu.studyhelper.solve.dto.response.GlobalRankingResponse;
 import com.ryu.studyhelper.solve.service.RankingService;
-import com.ryu.studyhelper.solve.service.SolveService;
+import com.ryu.studyhelper.solve.service.SolveFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Solve", description = "풀이 인증/랭킹 API")
 public class SolveController {
 
-    private final SolveService solveService;
+    private final SolveFacade solveFacade;
     private final RankingService rankingService;
 
     @Operation(
@@ -37,7 +37,7 @@ public class SolveController {
             @PathVariable Long problemId,
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
-        solveService.verifyProblemSolved(principalDetails.getMemberId(), problemId);
+        solveFacade.verifyProblemSolved(principalDetails.getMemberId(), problemId);
         return ResponseEntity.ok(ApiResponse.createSuccess(null, CustomResponseStatus.SUCCESS));
     }
 
@@ -51,7 +51,7 @@ public class SolveController {
             @RequestParam(defaultValue = "7") int days,
             @AuthenticationPrincipal PrincipalDetails principalDetails
     ) {
-        DailySolvedResponse response = solveService.getDailySolved(principalDetails.getMemberId(), days);
+        DailySolvedResponse response = solveFacade.getDailySolved(principalDetails.getMemberId(), days);
         return ResponseEntity.ok(ApiResponse.createSuccess(response, CustomResponseStatus.SUCCESS));
     }
 
