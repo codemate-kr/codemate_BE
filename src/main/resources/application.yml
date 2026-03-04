@@ -72,6 +72,7 @@ resilience4j:
     instances:
       solvedAc:
         sliding-window-size: 20                           # 최근 20건 기준 (지연 위주 장애 특성상 오탐 방지)
+        minimum-number-of-calls: 20                       # 기본값(100) 재정의 — sliding-window-size와 맞춰야 CB가 정상 동작
         failure-rate-threshold: 50                        # 실패율 50% 이상 → OPEN
         slow-call-duration-threshold: 15s                 # 실측 최대 응답 10s 초과분만 slow로 집계
         slow-call-rate-threshold: 80                      # 느린 호출 비율 80% 이상 → OPEN
