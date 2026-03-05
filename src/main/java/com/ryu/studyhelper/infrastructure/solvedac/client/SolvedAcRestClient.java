@@ -4,6 +4,7 @@ import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -70,6 +71,7 @@ public class SolvedAcRestClient implements SolvedAcHttpClient {
     }
 
 
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     public SolvedAcUserResponse getUserInfo(String handle) {
         return get("/user/show", Map.of("handle", handle), SolvedAcUserResponse.class);
@@ -83,6 +85,7 @@ public class SolvedAcRestClient implements SolvedAcHttpClient {
      * @param direction 정렬 방향 (asc, desc)
      * @return API 응답 원본
      */
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     public ProblemSearchResponse searchProblems(String query, String sort, String direction) {
         return get("/search/problem", Map.of(
@@ -97,6 +100,7 @@ public class SolvedAcRestClient implements SolvedAcHttpClient {
      * @param handle 백준 핸들
      * @return 핸들과 bio 정보
      */
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     public SolvedAcUserBioResponse getUserBio(String handle) {
         return get("/user/show", Map.of("handle", handle), SolvedAcUserBioResponse.class);

@@ -68,6 +68,17 @@ springdoc:
 
 # Sentry 공통 설정
 resilience4j:
+  retry:
+    instances:
+      solvedAc:
+        max-attempts: 3                           # 최초 1회 + 재시도 2회
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2         # 1s → 2s → 4s
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException   # 타임아웃, 네트워크
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException  # 4xx (429 포함)
   circuitbreaker:
     instances:
       solvedAc:
