@@ -66,12 +66,6 @@ public record TodayProblemResponse(
     }
 
     /**
-     * 프로젝션과 태그 정보를 병합하여 응답 생성
-     * @param recommendation 추천 엔티티
-     * @param projections 문제 + 해결 상태 프로젝션
-     * @param tagProjections 문제별 태그 프로젝션
-     */
-    /**
      * PENDING/FAILED 상태 — 미션 생성중 응답
      */
     public static TodayProblemResponse inProgress(Recommendation recommendation) {
@@ -83,6 +77,12 @@ public record TodayProblemResponse(
         );
     }
 
+    /**
+     * 프로젝션과 태그 정보를 병합하여 응답 생성
+     * @param recommendation 추천 엔티티
+     * @param projections 문제 + 해결 상태 프로젝션
+     * @param tagProjections 문제별 태그 프로젝션
+     */
     public static TodayProblemResponse from(
             Recommendation recommendation,
             List<ProblemWithSolvedStatusProjection> projections,

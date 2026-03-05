@@ -43,8 +43,10 @@ class RecommendationSaver {
     }
 
     /**
-     * 수동 추천용 PENDING 생성 또는 FAILED → PENDING 리셋.
-     * 오늘 날짜에 FAILED 레코드가 있으면 재사용, 없으면 신규 INSERT.
+     * 수동 추천용 레코드 조회/생성.
+     * - 오늘 날짜 레코드가 없으면 PENDING 신규 생성
+     * - FAILED면 PENDING으로 리셋 후 재사용
+     * - SUCCESS/PENDING이면 기존 레코드를 그대로 반환
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     Recommendation createOrResetPending(Squad squad, LocalDate date, RecommendationType type) {

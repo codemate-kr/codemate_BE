@@ -80,6 +80,7 @@ public class RecommendationBatchService {
                 Recommendation pending = recommendationSaver.createPending(squad, missionDate, RecommendationType.SCHEDULED);
                 pendingList.add(new PendingEntry(pending, squad));
             } catch (DataIntegrityViolationException e) {
+                skipCount++;
                 log.info("[{}] 스쿼드 '{}' PENDING 생성 스킵 — 이미 선점됨", squad.getTeam().getName(), squad.getName());
             }
         }
