@@ -2,6 +2,8 @@ package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -185,6 +188,30 @@ class RecommendationCreatorTest {
                     .isSameAs(apiException);
 
             verify(recommendationSaver).saveFailed(pending);
+        }
+    }
+
+    @Nested
+    @DisplayName("중복 추천 방지")
+    class DuplicatePrevention {
+
+        @Test
+        @DisplayName("createOrResetPending에서 중복 예외가 발생하면 외부 API 호출 없이 전파한다")
+        void duplicatePending_throwsAndSkipsApiCall() {
+            // given
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of("handle1"));
+            when(recommendationSaver.createOrResetPending(any(), any(), any()))
+                    .thenThrow(new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY));
+
+            // when & then
+            assertThatThrownBy(() -> recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("status", CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
+
+            verify(solvedAcClient, never()).recommendUnsolvedProblems(any(), anyInt(), anyInt(), anyInt(), any());
+            verify(recommendationSaver, never()).saveSuccess(any(), any(), any(), any());
         }
     }
 

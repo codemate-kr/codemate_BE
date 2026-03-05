@@ -1,5 +1,7 @@
 package com.ryu.studyhelper.recommendation.service;
 
+import com.ryu.studyhelper.common.enums.CustomResponseStatus;
+import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
@@ -46,7 +48,7 @@ class RecommendationSaver {
      * 수동 추천용 레코드 조회/생성.
      * - 오늘 날짜 레코드가 없으면 PENDING 신규 생성
      * - FAILED면 PENDING으로 리셋 후 재사용
-     * - SUCCESS/PENDING이면 기존 레코드를 그대로 반환
+     * - SUCCESS/PENDING이면 중복 생성 방지를 위해 예외 발생
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     Recommendation createOrResetPending(Squad squad, LocalDate date, RecommendationType type) {
@@ -54,7 +56,7 @@ class RecommendationSaver {
                 .findByTeamIdAndSquadIdAndDate(squad.getTeam().getId(), squad.getId(), date)
                 .map(existing -> {
                     if (existing.getStatus() != RecommendationStatus.FAILED) {
-                        return existing;
+                        throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                     }
                     existing.updateStatus(RecommendationStatus.PENDING);
                     return recommendationRepository.save(existing);
