@@ -4,6 +4,7 @@ import com.ryu.studyhelper.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class Recommendation extends BaseEntity {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 16, nullable = false)
+    @Column(name = "type", nullable = false, columnDefinition = "varchar(16)")
     private RecommendationType type;
 
     @Column(name = "team_id")
@@ -32,45 +33,31 @@ public class Recommendation extends BaseEntity {
     @Column(name = "squad_id")
     private Long squadId;
 
+    @Column(name = "date", nullable = false)
+    private LocalDate date;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(16)")
+    private RecommendationStatus status;
+
     @OneToMany(mappedBy = "recommendation")
     @Builder.Default
     private List<RecommendationProblem> problems = new ArrayList<>();
 
-    public static Recommendation createScheduledRecommendation(Long teamId) {
-        return Recommendation.builder()
-                .teamId(teamId)
-                .type(RecommendationType.SCHEDULED)
-                .build();
-    }
-
-    public static Recommendation createManualRecommendation(Long teamId) {
-        return Recommendation.builder()
-                .teamId(teamId)
-                .type(RecommendationType.MANUAL)
-                .build();
-    }
-
-    public static Recommendation createManualRecommendationForSquad(Long teamId, Long squadId) {
-        return Recommendation.builder()
-                .teamId(teamId)
-                .squadId(squadId)
-                .type(RecommendationType.MANUAL)
-                .build();
-    }
-
-    public static Recommendation createScheduledRecommendationForSquad(Long teamId, Long squadId) {
-        return Recommendation.builder()
-                .teamId(teamId)
-                .squadId(squadId)
-                .type(RecommendationType.SCHEDULED)
-                .build();
-    }
-
     /**
-     * 양방향 연관관계 편의 메서드
+     * PENDING 상태로 새 추천 레코드 생성
      */
-    public void addProblem(RecommendationProblem problem) {
-        problems.add(problem);
-        problem.setRecommendation(this);
+    public static Recommendation createPending(Long teamId, Long squadId, RecommendationType type, LocalDate date) {
+        return Recommendation.builder()
+                .teamId(teamId)
+                .squadId(squadId)
+                .type(type)
+                .date(date)
+                .status(RecommendationStatus.PENDING)
+                .build();
+    }
+
+    public void updateStatus(RecommendationStatus status) {
+        this.status = status;
     }
 }

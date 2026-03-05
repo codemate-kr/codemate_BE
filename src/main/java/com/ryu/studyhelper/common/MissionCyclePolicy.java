@@ -23,6 +23,14 @@ public class MissionCyclePolicy {
     }
 
     /**
+     * 현재 미션 날짜를 반환한다.
+     * 오전 6시 이전이면 어제, 이후면 오늘.
+     */
+    public static LocalDate getMissionDate(Clock clock) {
+        return toMissionDate(LocalDateTime.now(clock));
+    }
+
+    /**
      * 주어진 시각이 속하는 미션 날짜를 반환한다.
      * 오전 6시 이전이면 전날로 취급한다.
      */
