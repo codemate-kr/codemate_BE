@@ -48,7 +48,7 @@ class RecommendationCreator {
         Long teamId = squad.getTeam().getId();
         List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
         if (handles.isEmpty()) {
-            log.warn("스쿼드 '{}'에 인증된 핸들이 없습니다", squad.getName());
+            log.info("스쿼드 '{}'에 인증된 핸들이 없어 추천을 스킵합니다", squad.getName());
             return Optional.empty();
         }
 
