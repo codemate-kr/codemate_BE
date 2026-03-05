@@ -6,45 +6,40 @@ import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
-import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
-import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
-import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
-import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Squad;
-import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * 스쿼드 1개에 대한 추천 생성 공통 로직
- * RecommendationService(수동)와 ScheduledRecommendationService(배치) 모두 사용
+ * 스쿼드 추천 생성 공통 로직
+ * - createForSquad: 수동 추천 (핸들 체크 포함, FAILED 레코드 재사용)
+ * - process: 배치/재시도 배치 (기존 PENDING 레코드 처리)
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class RecommendationCreator {
+public class RecommendationCreator {
 
     private final TeamMemberRepository teamMemberRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
     private final SolvedAcClient solvedAcClient;
     private final ProblemSyncService problemSyncService;
-    private final RecommendationRepository recommendationRepository;
-    private final RecommendationProblemRepository recommendationProblemRepository;
-    private final MemberRecommendationRepository memberRecommendationRepository;
+    private final RecommendationSaver recommendationSaver;
 
     /**
-     * 스쿼드 추천 생성.
-     * 인증된 핸들이 없으면 {@link Optional#empty()} 를 반환(스킵).
+     * 수동 추천 생성.
+     * 인증된 핸들이 없으면 {@link Optional#empty()} 반환.
+     * API 실패 시 FAILED로 저장 후 예외 전파.
      */
-    Optional<Recommendation> createForSquad(Squad squad, RecommendationType type) {
+    public Optional<Recommendation> createForSquad(Squad squad, RecommendationType type, LocalDate date) {
         Long teamId = squad.getTeam().getId();
         List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
         if (handles.isEmpty()) {
@@ -52,30 +47,38 @@ class RecommendationCreator {
             return Optional.empty();
         }
 
-        Recommendation base = (type == RecommendationType.MANUAL)
-                ? Recommendation.createManualRecommendationForSquad(squad.getTeam().getId(), squad.getId())
-                : Recommendation.createScheduledRecommendationForSquad(squad.getTeam().getId(), squad.getId());
-        Recommendation recommendation = recommendationRepository.save(base);
-        List<Problem> problems = recommendProblemsForSquad(squad, handles);
-        for (Problem problem : problems) {
-            RecommendationProblem rp = RecommendationProblem.create(problem);
-            recommendation.addProblem(rp);
-            recommendationProblemRepository.save(rp);
-        }
-        createMemberRecommendationsForSquad(recommendation, squad);
-
-        log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 타입: {}, 문제: {}개",
-                squad.getTeam().getName(), squad.getName(), type, problems.size());
-
-        return Optional.of(recommendation);
+        Recommendation pending = recommendationSaver.createOrResetPending(squad, date, type);
+        processInternal(pending, squad, handles);
+        return Optional.of(pending);
     }
 
-    private void createMemberRecommendationsForSquad(Recommendation recommendation, Squad squad) {
-        Team team = squad.getTeam();
-        List<Member> squadMembers = teamMemberRepository.findMembersByTeamIdAndSquadId(team.getId(), squad.getId());
-        for (Member member : squadMembers) {
-            MemberRecommendation mr = MemberRecommendation.createForSquad(member, recommendation, team, squad.getId());
-            memberRecommendationRepository.save(mr);
+    /**
+     * 배치/재시도 배치용 처리.
+     * 기존 PENDING 레코드를 받아 API 호출 → SUCCESS or FAILED 업데이트.
+     * 실패 시 FAILED로 저장 후 예외 전파.
+     */
+    public void process(Recommendation pending, Squad squad) {
+        Long teamId = squad.getTeam().getId();
+        List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
+        if (handles.isEmpty()) {
+            log.warn("스쿼드 '{}'의 인증된 핸들이 없어 FAILED 처리합니다", squad.getName());
+            recommendationSaver.saveFailed(pending);
+            throw new IllegalStateException("인증된 핸들 없음: " + squad.getName());
+        }
+        processInternal(pending, squad, handles);
+    }
+
+    private void processInternal(Recommendation pending, Squad squad, List<String> handles) {
+        try {
+            List<Problem> problems = recommendProblemsForSquad(squad, handles);
+            Long teamId = squad.getTeam().getId();
+            List<Member> members = teamMemberRepository.findMembersByTeamIdAndSquadId(teamId, squad.getId());
+            recommendationSaver.saveSuccess(pending, problems, members, squad);
+            log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 문제: {}개",
+                    squad.getTeam().getName(), squad.getName(), problems.size());
+        } catch (Exception e) {
+            recommendationSaver.saveFailed(pending);
+            throw e;
         }
     }
 

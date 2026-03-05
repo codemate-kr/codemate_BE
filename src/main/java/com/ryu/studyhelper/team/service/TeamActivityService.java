@@ -64,7 +64,7 @@ public class TeamActivityService {
         }
 
         List<MemberRecommendation> memberRecs = memberRecommendationRepository
-                .findByTeamIdAndCreatedAtBetween(teamId, period.startDateTime(), period.endDateTime());
+                .findByTeamIdAndDateBetween(teamId, period.startDate(), period.endDate());
 
         Map<Long, Set<Long>> solvedMap = Map.of();
         if (!memberRecs.isEmpty()) {
@@ -153,7 +153,7 @@ public class TeamActivityService {
         Map<Long, Squad> squadMap = squads.stream().collect(Collectors.toMap(Squad::getId, s -> s));
 
         List<MemberRecommendation> memberRecs = memberRecommendationRepository
-                .findByTeamIdAndCreatedAtBetween(teamId, period.startDateTime(), period.endDateTime());
+                .findByTeamIdAndDateBetween(teamId, period.startDate(), period.endDate());
 
         Map<Long, Set<Long>> solvedMap = Map.of();
         if (!memberRecs.isEmpty()) {
@@ -192,7 +192,7 @@ public class TeamActivityService {
                     Map<LocalDate, List<MemberRecommendation>> byDate =
                             recsByMember.getOrDefault(memberId, List.of()).stream()
                                     .collect(Collectors.groupingBy(
-                                            mr -> MissionCyclePolicy.toMissionDate(mr.getRecommendation().getCreatedAt())
+                                            mr -> mr.getRecommendation().getDate()
                                     ));
 
                     List<TeamActivityResponseV2.DailyRecommendation> dailyRecs =

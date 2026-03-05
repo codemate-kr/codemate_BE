@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -36,12 +36,11 @@ public class RecommendationEmailService {
      * 미션 사이클 기준(06:00~06:00)으로 조회
      */
     public BatchResult sendAll() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
-        log.info("이메일 발송 배치 시작: {} (미션 사이클: {} 06:00 ~)", now.toLocalDate(), missionCycleStart.toLocalDate());
+        LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
+        log.info("이메일 발송 배치 시작: {}", missionDate);
 
         List<MemberRecommendation> pendingRecommendations = memberRecommendationRepository
-                .findPendingRecommendationsByCreatedAtBetween(missionCycleStart, now, EmailSendStatus.PENDING);
+                .findByRecommendationDateAndEmailSendStatus(missionDate, EmailSendStatus.PENDING);
 
         int successCount = 0;
         int failCount = 0;
@@ -54,7 +53,7 @@ public class RecommendationEmailService {
             }
         }
 
-        log.info("이메일 발송 배치 완료 - 대상: {}개, 성공: {}개, 실패: {}개",
+        log.info("이메일 발송 배치 완료 — 대상: {}개, 성공: {}개, 실패: {}개",
                 pendingRecommendations.size(), successCount, failCount);
         return new BatchResult(pendingRecommendations.size(), successCount, 0, failCount);
     }
