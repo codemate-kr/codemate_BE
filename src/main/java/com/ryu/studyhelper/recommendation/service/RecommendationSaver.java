@@ -51,6 +51,9 @@ class RecommendationSaver {
         return recommendationRepository
                 .findByTeamIdAndSquadIdAndDate(squad.getTeam().getId(), squad.getId(), date)
                 .map(existing -> {
+                    if (existing.getStatus() != RecommendationStatus.FAILED) {
+                        return existing;
+                    }
                     existing.updateStatus(RecommendationStatus.PENDING);
                     return recommendationRepository.save(existing);
                 })

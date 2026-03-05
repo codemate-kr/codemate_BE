@@ -91,7 +91,7 @@ class RecommendationBatchServiceTest {
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of("handle1"));
 
-            Recommendation pending = createPending(LocalDate.parse("2025-01-15"));
+            Recommendation pending = createPending(SQUAD_ID, LocalDate.parse("2025-01-15"));
             when(recommendationSaver.createPending(eq(squad), any(LocalDate.class), eq(RecommendationType.SCHEDULED)))
                     .thenReturn(pending);
 
@@ -175,8 +175,8 @@ class RecommendationBatchServiceTest {
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(any(), any()))
                     .thenReturn(List.of("handle1"));
 
-            Recommendation pending1 = createPending(LocalDate.parse("2025-01-15"));
-            Recommendation pending2 = createPending(LocalDate.parse("2025-01-15"));
+            Recommendation pending1 = createPending(10L, LocalDate.parse("2025-01-15"));
+            Recommendation pending2 = createPending(11L, LocalDate.parse("2025-01-15"));
             when(recommendationSaver.createPending(eq(squad1), any(), any())).thenReturn(pending1);
             when(recommendationSaver.createPending(eq(squad2), any(), any())).thenReturn(pending2);
 
@@ -208,8 +208,8 @@ class RecommendationBatchServiceTest {
         return squad;
     }
 
-    private Recommendation createPending(LocalDate date) {
-        return Recommendation.createPending(TEAM_ID, SQUAD_ID, RecommendationType.SCHEDULED, date);
+    private Recommendation createPending(Long squadId, LocalDate date) {
+        return Recommendation.createPending(TEAM_ID, squadId, RecommendationType.SCHEDULED, date);
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) {

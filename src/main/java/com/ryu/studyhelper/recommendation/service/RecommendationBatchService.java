@@ -62,6 +62,11 @@ public class RecommendationBatchService {
 
         for (Squad rawSquad : activeSquads) {
             Squad squad = squadWithTeam.get(rawSquad.getId());
+            if (squad == null || squad.getTeam() == null) {
+                skipCount++;
+                log.warn("스쿼드 ID {}의 팀 정보를 찾을 수 없어 스킵합니다", rawSquad.getId());
+                continue;
+            }
             Long teamId = squad.getTeam().getId();
             List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
 

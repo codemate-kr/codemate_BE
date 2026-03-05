@@ -26,7 +26,7 @@ import java.util.List;
 public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
 
     private static final long DELAY_MS = 20_000;
-    private static final boolean FAIL_IMMEDIATELY = true; // true → 즉시 RuntimeException (failure-rate-threshold 트리거)
+    private static final boolean FAIL_IMMEDIATELY = false; // true → 즉시 RuntimeException (failure-rate-threshold 트리거)
 
     @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
