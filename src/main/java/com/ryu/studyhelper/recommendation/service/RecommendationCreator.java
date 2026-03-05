@@ -1,7 +1,5 @@
 package com.ryu.studyhelper.recommendation.service;
 
-import com.ryu.studyhelper.common.enums.CustomResponseStatus;
-import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.member.domain.Member;
@@ -23,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 스쿼드 1개에 대한 추천 생성 공통 로직
@@ -41,28 +40,34 @@ class RecommendationCreator {
     private final RecommendationProblemRepository recommendationProblemRepository;
     private final MemberRecommendationRepository memberRecommendationRepository;
 
-    Recommendation createForSquad(Squad squad, RecommendationType type) {
+    /**
+     * 스쿼드 추천 생성.
+     * 인증된 핸들이 없으면 {@link Optional#empty()} 를 반환(스킵).
+     */
+    Optional<Recommendation> createForSquad(Squad squad, RecommendationType type) {
+        Long teamId = squad.getTeam().getId();
+        List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
+        if (handles.isEmpty()) {
+            log.info("스쿼드 '{}'에 인증된 핸들이 없어 추천을 스킵합니다", squad.getName());
+            return Optional.empty();
+        }
+
         Recommendation base = (type == RecommendationType.MANUAL)
                 ? Recommendation.createManualRecommendationForSquad(squad.getTeam().getId(), squad.getId())
                 : Recommendation.createScheduledRecommendationForSquad(squad.getTeam().getId(), squad.getId());
         Recommendation recommendation = recommendationRepository.save(base);
-        List<Problem> problems = createRecommendationProblemsForSquad(recommendation, squad);
-        createMemberRecommendationsForSquad(recommendation, squad);
-
-        log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 타입: {}, 문제: {}개",
-                squad.getTeam().getName(), squad.getName(), type, problems.size());
-
-        return recommendation;
-    }
-
-    private List<Problem> createRecommendationProblemsForSquad(Recommendation recommendation, Squad squad) {
-        List<Problem> problems = recommendProblemsForSquad(squad);
+        List<Problem> problems = recommendProblemsForSquad(squad, handles);
         for (Problem problem : problems) {
             RecommendationProblem rp = RecommendationProblem.create(problem);
             recommendation.addProblem(rp);
             recommendationProblemRepository.save(rp);
         }
-        return problems;
+        createMemberRecommendationsForSquad(recommendation, squad);
+
+        log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 타입: {}, 문제: {}개",
+                squad.getTeam().getName(), squad.getName(), type, problems.size());
+
+        return Optional.of(recommendation);
     }
 
     private void createMemberRecommendationsForSquad(Recommendation recommendation, Squad squad) {
@@ -74,14 +79,7 @@ class RecommendationCreator {
         }
     }
 
-    private List<Problem> recommendProblemsForSquad(Squad squad) {
-        Long teamId = squad.getTeam().getId();
-        List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
-        if (handles.isEmpty()) {
-            log.warn("스쿼드 '{}'에 인증된 핸들이 없습니다", squad.getName());
-            throw new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE);
-        }
-
+    private List<Problem> recommendProblemsForSquad(Squad squad, List<String> handles) {
         List<String> tagKeys = squadIncludeTagRepository.findTagKeysBySquadId(squad.getId());
 
         List<ProblemInfo> problemInfos = solvedAcClient.recommendUnsolvedProblems(

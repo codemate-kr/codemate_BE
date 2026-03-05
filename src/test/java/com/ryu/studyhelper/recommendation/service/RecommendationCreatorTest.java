@@ -1,7 +1,5 @@
 package com.ryu.studyhelper.recommendation.service;
 
-import com.ryu.studyhelper.common.enums.CustomResponseStatus;
-import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.infrastructure.solvedac.SolvedAcClient;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemInfo;
 import com.ryu.studyhelper.member.domain.Member;
@@ -25,9 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -88,12 +86,12 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of(member));
 
             // when
-            Recommendation result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
+            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
 
             // then
-            assertThat(result).isNotNull();
-            assertThat(result.getType()).isEqualTo(RecommendationType.MANUAL);
-            assertThat(result.getProblems()).hasSize(2);
+            assertThat(result).isPresent();
+            assertThat(result.get().getType()).isEqualTo(RecommendationType.MANUAL);
+            assertThat(result.get().getProblems()).hasSize(2);
             verify(recommendationProblemRepository, times(2)).save(any());
             verify(memberRecommendationRepository, times(1)).save(any());
         }
@@ -118,10 +116,11 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of(member));
 
             // when
-            Recommendation result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
 
             // then
-            assertThat(result.getType()).isEqualTo(RecommendationType.SCHEDULED);
+            assertThat(result).isPresent();
+            assertThat(result.get().getType()).isEqualTo(RecommendationType.SCHEDULED);
         }
 
         @Test
@@ -152,27 +151,25 @@ class RecommendationCreatorTest {
     }
 
     @Nested
-    @DisplayName("추천 생성 실패")
-    class CreateFailure {
+    @DisplayName("추천 생성 스킵")
+    class CreateSkip {
 
         @Test
-        @DisplayName("인증된 핸들이 없으면 CustomException을 던진다")
-        void noVerifiedHandle_throwsException() {
+        @DisplayName("인증된 핸들이 없으면 Optional.empty()를 반환한다")
+        void noVerifiedHandle_returnsEmpty() {
             // given
             Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
 
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of());
-            when(recommendationRepository.save(any(Recommendation.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
 
-            // when & then
-            assertThatThrownBy(() -> recommendationCreator.createForSquad(squad, RecommendationType.MANUAL))
-                    .isInstanceOf(CustomException.class)
-                    .satisfies(ex -> {
-                        CustomException customEx = (CustomException) ex;
-                        assertThat(customEx.getStatus()).isEqualTo(CustomResponseStatus.NO_VERIFIED_HANDLE);
-                    });
+            // when
+            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+
+            // then
+            assertThat(result).isEmpty();
+            verify(recommendationRepository, never()).save(any());
+            verify(solvedAcClient, never()).recommendUnsolvedProblems(any(), anyInt(), anyInt(), anyInt(), any());
         }
     }
 

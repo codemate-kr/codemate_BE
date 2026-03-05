@@ -47,7 +47,7 @@ public class ProblemRecommendationScheduler {
             } else {
                 String title = result.failCount() > 0 ? "문제 추천 배치 실패" : "문제 추천 배치 완료";
                 discordNotifier.sendScheduler(DiscordMessage.batchResult(
-                        title, result.totalCount(), result.successCount(), result.failCount(), elapsed));
+                        title, result.totalCount(), result.successCount(), result.skipCount(), result.failCount(), elapsed));
             }
         } catch (Exception e) {
             log.warn("Discord 알림 전송 실패", e);

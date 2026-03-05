@@ -2,6 +2,7 @@ package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
+import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.RecommendationDayOfWeek;
@@ -16,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 배치 문제 추천 오케스트레이션
@@ -43,6 +45,7 @@ public class ScheduledRecommendationService {
 
         List<Squad> activeSquads = getActiveSquads(now.toLocalDate());
         int successCount = 0;
+        int skipCount = 0;
         int failCount = 0;
 
         for (Squad squad : activeSquads) {
@@ -52,18 +55,23 @@ public class ScheduledRecommendationService {
                     log.info("[{}] 스쿼드 '{}'에 이미 추천 존재 - 스킵", squad.getTeam().getName(), squad.getName());
                     continue;
                 }
-                recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
-                successCount++;
-                log.info("[{}] 스쿼드 '{}' 문제 추천 완료", squad.getTeam().getName(), squad.getName());
+                Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+                if (result.isEmpty()) {
+                    skipCount++;
+                    log.info("[{}] 스쿼드 '{}' 추천 스킵 - 인증된 핸들 없음", squad.getTeam().getName(), squad.getName());
+                } else {
+                    successCount++;
+                    log.info("[{}] 스쿼드 '{}' 문제 추천 완료", squad.getTeam().getName(), squad.getName());
+                }
             } catch (Exception e) {
                 failCount++;
                 log.error("[{}] 스쿼드 '{}' 문제 추천 실패", squad.getTeam().getName(), squad.getName(), e);
             }
         }
 
-        log.info("문제 추천 배치 완료 - 대상: {}개, 성공: {}개, 실패: {}개",
-                activeSquads.size(), successCount, failCount);
-        return new BatchResult(activeSquads.size(), successCount, failCount);
+        log.info("문제 추천 배치 완료 - 대상: {}개, 성공: {}개, 스킵: {}개, 실패: {}개",
+                activeSquads.size(), successCount, skipCount, failCount);
+        return new BatchResult(activeSquads.size(), successCount, skipCount, failCount);
     }
 
     private List<Squad> getActiveSquads(LocalDate date) {

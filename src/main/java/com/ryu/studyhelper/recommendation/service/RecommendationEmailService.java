@@ -56,7 +56,7 @@ public class RecommendationEmailService {
 
         log.info("이메일 발송 배치 완료 - 대상: {}개, 성공: {}개, 실패: {}개",
                 pendingRecommendations.size(), successCount, failCount);
-        return new BatchResult(pendingRecommendations.size(), successCount, failCount);
+        return new BatchResult(pendingRecommendations.size(), successCount, 0, failCount);
     }
 
     /**

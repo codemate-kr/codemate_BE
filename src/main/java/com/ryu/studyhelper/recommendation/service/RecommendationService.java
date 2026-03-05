@@ -63,7 +63,8 @@ public class RecommendationService {
 
         validateNoSquadRecommendationToday(teamId, squadId);
 
-        Recommendation recommendation = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
+        Recommendation recommendation = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL)
+                .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
         List<MemberRecommendation> memberRecommendations =
                 memberRecommendationRepository.findByRecommendationId(recommendation.getId());
