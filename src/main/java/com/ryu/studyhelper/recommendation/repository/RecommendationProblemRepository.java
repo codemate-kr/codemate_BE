@@ -32,6 +32,7 @@ public interface RecommendationProblemRepository extends JpaRepository<Recommend
             "ORDER BY rp.id ASC")
     List<RecommendationProblem> findByRecommendationIdOrderById(@Param("recommendationId") Long recommendationId);
 
+
     /**
      * 특정 추천의 문제들과 회원의 해결 여부를 함께 조회 (OUTER JOIN)
      * @param recommendationId 추천 ID
