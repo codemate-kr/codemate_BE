@@ -131,7 +131,7 @@ class RecommendationServiceTest {
             when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any()))
-                    .thenReturn(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now()));
+                    .thenReturn(Optional.of(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now())));
             when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
 
             // when: 시간 검증 통과하여 정상 실행
@@ -190,7 +190,7 @@ class RecommendationServiceTest {
             when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
                     .thenReturn(Optional.of(oldRecommendation));
             when(recommendationCreator.createForSquad(any(), any()))
-                    .thenReturn(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now()));
+                    .thenReturn(Optional.of(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now())));
             when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
 
             // when: 사이클 검증 통과하여 정상 실행

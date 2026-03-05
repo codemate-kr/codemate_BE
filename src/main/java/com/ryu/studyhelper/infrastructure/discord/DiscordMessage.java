@@ -26,11 +26,12 @@ public record DiscordMessage(List<Embed> embeds) {
      * 배치 작업 결과
      * 실패가 있으면 빨간색, 없으면 초록색
      */
-    public static DiscordMessage batchResult(String title, int totalCount, int successCount, int failCount, long elapsedMs) {
+    public static DiscordMessage batchResult(String title, int totalCount, int successCount, int skipCount, int failCount, long elapsedMs) {
         int color = failCount > 0 ? COLOR_ERROR : COLOR_SUCCESS;
         return create(title, color, List.of(
                 new Field("대상", totalCount + "건", true),
                 new Field("성공", successCount + "건", true),
+                new Field("스킵", skipCount + "건", true),
                 new Field("실패", failCount + "건", true),
                 new Field("소요시간", elapsedMs + "ms", true)
         ));
