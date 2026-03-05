@@ -41,7 +41,7 @@ public class RecommendationMailBuilder {
      */
     public MailMessage build(MemberRecommendation mr) {
         String to = mr.getMember().getEmail();
-        String date = mr.getRecommendation().getCreatedAt().format(DATE_FORMATTER);
+        String date = mr.getRecommendation().getDate().format(DATE_FORMATTER);
         Long teamId = mr.getTeamId();
 
         return new MailMessage(

@@ -42,7 +42,7 @@ public record RecommendationDetailResponse(
         return new RecommendationDetailResponse(
                 recommendation.getId(),
                 team.getName(),
-                recommendation.getCreatedAt().toLocalDate(),
+                recommendation.getDate(),
                 recommendation.getType(),
                 "SENT",
                 LocalDateTime.now(),
