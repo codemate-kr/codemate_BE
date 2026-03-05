@@ -57,3 +57,4 @@ logging:
     com.ryu.studyhelper: DEBUG  # 프로젝트 로그 레벨
     org.springframework.security: DEBUG  # 보안 관련 로그
     org.hibernate.SQL: DEBUG    # SQL 로그
+    io.github.resilience4j.retry: DEBUG  # Retry 이벤트 로그

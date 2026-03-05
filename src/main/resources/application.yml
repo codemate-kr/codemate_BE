@@ -2,6 +2,8 @@
 spring:
   config:
     import: optional:file:.env[.properties]
+  jackson:
+    time-zone: Asia/Seoul
   data:
     redis:
       repositories:
@@ -21,6 +23,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
 
   # OAuth2 공통 설정
   security:
@@ -68,6 +72,17 @@ springdoc:
 
 # Sentry 공통 설정
 resilience4j:
+  retry:
+    instances:
+      solvedAc:
+        max-attempts: 3                           # 최초 1회 + 재시도 2회
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2         # max-attempts:3 기준 대기 1s → 2s
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException   # 타임아웃, 네트워크
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException  # 4xx (429 포함)
   circuitbreaker:
     instances:
       solvedAc:
@@ -95,4 +110,3 @@ sentry:
   ignored-exceptions-for-type:
     - io.jsonwebtoken.JwtException
     - org.springframework.security.core.AuthenticationException
-

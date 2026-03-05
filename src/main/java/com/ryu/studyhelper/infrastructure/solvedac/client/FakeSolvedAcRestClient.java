@@ -6,8 +6,10 @@ import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcTagInfo;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserBioResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +28,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     private static final long DELAY_MS = 20_000;
     private static final boolean FAIL_IMMEDIATELY = false; // true → 즉시 RuntimeException (failure-rate-threshold 트리거)
 
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     @Override
     public SolvedAcUserResponse getUserInfo(String handle) {
@@ -33,6 +36,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
         return new SolvedAcUserResponse(handle, 15, 200, 100, 1500);
     }
 
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     @Override
     public ProblemSearchResponse searchProblems(String query, String sort, String direction) {
@@ -46,6 +50,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
         ));
     }
 
+    @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
     @Override
     public SolvedAcUserBioResponse getUserBio(String handle) {
@@ -56,7 +61,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     private void simulate(String method, String param) {
         if (FAIL_IMMEDIATELY) {
             log.debug("[FAKE] {} 즉시 에러 시뮬레이션 - param: {}", method, param);
-            throw new RuntimeException("[FAKE] SolvedAC 즉시 에러");
+            throw new ResourceAccessException("[FAKE] SolvedAC 즉시 에러");
         }
         log.debug("[FAKE] {} {}ms 지연 시뮬레이션 - param: {}", method, DELAY_MS, param);
         try {

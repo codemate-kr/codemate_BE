@@ -4,6 +4,7 @@ import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
@@ -22,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -128,27 +130,27 @@ class RecommendationServiceTest {
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
             when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
-            when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
+            when(recommendationRepository.findByTeamIdAndSquadIdAndDate(eq(TEAM_ID), eq(SQUAD_ID), any(LocalDate.class)))
                     .thenReturn(Optional.empty());
-            when(recommendationCreator.createForSquad(any(), any()))
-                    .thenReturn(Optional.of(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now())));
+            when(recommendationCreator.createForSquad(any(), any(), any()))
+                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
             when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
 
-            // when: 시간 검증 통과하여 정상 실행
+            // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
 
             // then: Creator가 호출되었음을 검증 (시간 검증 통과)
-            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL));
+            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL), any(LocalDate.class));
         }
     }
 
     @Nested
-    @DisplayName("미션 사이클 기반 중복 추천 검증")
-    class MissionCycleValidation {
+    @DisplayName("미션 날짜 기반 중복 추천 검증")
+    class MissionDateValidation {
 
         @Test
-        @DisplayName("현재 미션 사이클 내 추천이 있으면 스쿼드 수동 추천이 금지된다")
-        void existingRecommendationInCycle_throwsException() {
+        @DisplayName("오늘 PENDING 추천이 있으면 스쿼드 수동 추천이 금지된다")
+        void existingPendingInDate_throwsException() {
             // given: 오전 10시
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
@@ -157,10 +159,8 @@ class RecommendationServiceTest {
             Squad squad = createSquadWithId(SQUAD_ID, team);
             when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
-            Recommendation existingRecommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID, LocalDateTime.parse("2025-01-15T06:30:00")
-            );
-            when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
+            Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-15"));
+            when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
                     .thenReturn(Optional.of(existingRecommendation));
 
             // when & then
@@ -173,9 +173,9 @@ class RecommendationServiceTest {
         }
 
         @Test
-        @DisplayName("이전 미션 사이클의 추천은 현재 사이클에 영향을 주지 않는다")
-        void previousCycleRecommendation_allowsNewRecommendation() {
-            // given: 오전 10시 (2025-01-15), 미션 사이클: 01-15 06:00 ~
+        @DisplayName("오늘 FAILED 추천은 수동 추천을 허용한다")
+        void existingFailedInDate_allowsNewRecommendation() {
+            // given: 오전 10시
             Clock clock = fixedClock("2025-01-15T10:00:00");
             setupServiceWithClock(clock);
 
@@ -183,27 +183,51 @@ class RecommendationServiceTest {
             Squad squad = createSquadWithId(SQUAD_ID, team);
             when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
-            // 어제 추천 (이전 사이클)
-            Recommendation oldRecommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID, LocalDateTime.parse("2025-01-14T10:00:00")
-            );
-            when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
-                    .thenReturn(Optional.of(oldRecommendation));
-            when(recommendationCreator.createForSquad(any(), any()))
-                    .thenReturn(Optional.of(createRecommendationWithCreatedAt(TEAM_ID, LocalDateTime.now())));
+            // FAILED 상태 추천
+            Recommendation failedRecommendation = createRecommendationWithDateAndStatus(
+                    TEAM_ID, LocalDate.parse("2025-01-15"), RecommendationStatus.FAILED);
+            when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
+                    .thenReturn(Optional.of(failedRecommendation));
+            when(recommendationCreator.createForSquad(any(), any(), any()))
+                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
             when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
 
-            // when: 사이클 검증 통과하여 정상 실행
+            // when: 예외 없이 정상 실행
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
 
             // then
-            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL));
+            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL), any(LocalDate.class));
         }
 
         @Test
-        @DisplayName("오전 6시 전에는 전날 06:00부터가 미션 사이클이다")
-        void before6AM_usesYesterdayCycleStart() {
-            // given: 새벽 3시 30분 (2025-01-15)
+        @DisplayName("이전 날짜의 추천은 오늘 수동 추천에 영향을 주지 않는다")
+        void previousDateRecommendation_allowsNewRecommendation() {
+            // given: 오전 10시 (2025-01-15)
+            Clock clock = fixedClock("2025-01-15T10:00:00");
+            setupServiceWithClock(clock);
+
+            Team team = createTeamWithId(TEAM_ID);
+            Squad squad = createSquadWithId(SQUAD_ID, team);
+            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+
+            // 오늘 날짜에 해당하는 레코드 없음
+            when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
+                    .thenReturn(Optional.empty());
+            when(recommendationCreator.createForSquad(any(), any(), any()))
+                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
+            when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
+
+            // when
+            recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
+
+            // then
+            verify(recommendationCreator).createForSquad(any(), eq(RecommendationType.MANUAL), any(LocalDate.class));
+        }
+
+        @Test
+        @DisplayName("오전 6시 전에는 어제 날짜가 미션 날짜다")
+        void before6AM_usesYesterdayMissionDate() {
+            // given: 새벽 3시 30분 (2025-01-15) → 미션 날짜 = 2025-01-14
             Clock clock = fixedClock("2025-01-15T03:30:00");
             setupServiceWithClock(clock);
 
@@ -211,38 +235,9 @@ class RecommendationServiceTest {
             Squad squad = createSquadWithId(SQUAD_ID, team);
             when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
-            // 2025-01-14 07:00에 생성된 추천 (현재 사이클)
-            Recommendation existingRecommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID, LocalDateTime.parse("2025-01-14T07:00:00")
-            );
-            when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
-                    .thenReturn(Optional.of(existingRecommendation));
-
-            // when & then
-            assertThatThrownBy(() -> recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID))
-                    .isInstanceOf(CustomException.class)
-                    .satisfies(ex -> {
-                        CustomException customEx = (CustomException) ex;
-                        assertThat(customEx.getStatus()).isEqualTo(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
-                    });
-        }
-
-        @Test
-        @DisplayName("정확히 06:00에 생성된 추천도 현재 사이클에 포함된다")
-        void exactlyAt6AM_isIncludedInCurrentCycle() {
-            // given: 오전 10시
-            Clock clock = fixedClock("2025-01-15T10:00:00");
-            setupServiceWithClock(clock);
-
-            Team team = createTeamWithId(TEAM_ID);
-            Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
-
-            // 정확히 오늘 06:00:00에 생성된 추천
-            Recommendation existingRecommendation = createRecommendationWithCreatedAt(
-                    TEAM_ID, LocalDateTime.parse("2025-01-15T06:00:00")
-            );
-            when(recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(TEAM_ID, SQUAD_ID))
+            // 어제(2025-01-14) 날짜로 PENDING 추천 존재
+            Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-14"));
+            when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-14")))
                     .thenReturn(Optional.of(existingRecommendation));
 
             // when & then
@@ -269,25 +264,25 @@ class RecommendationServiceTest {
         return squad;
     }
 
-    private Recommendation createRecommendationWithCreatedAt(Long teamId, LocalDateTime createdAt) {
-        Recommendation recommendation = Recommendation.createScheduledRecommendation(teamId);
-        setFieldValue(recommendation, "createdAt", createdAt, true);
+    private Recommendation createRecommendationWithDate(Long teamId, LocalDate date) {
+        return createRecommendationWithDateAndStatus(teamId, date, RecommendationStatus.PENDING);
+    }
+
+    private Recommendation createRecommendationWithDateAndStatus(Long teamId, LocalDate date, RecommendationStatus status) {
+        Recommendation recommendation = Recommendation.createPending(teamId, SQUAD_ID, RecommendationType.SCHEDULED, date);
+        if (status != RecommendationStatus.PENDING) {
+            recommendation.updateStatus(status);
+        }
         return recommendation;
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) {
-        setFieldValue(target, fieldName, value, false);
-    }
-
-    private void setFieldValue(Object target, String fieldName, Object value, boolean superClass) {
         try {
-            Class<?> clazz = superClass ? target.getClass().getSuperclass() : target.getClass();
-            java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
             field.setAccessible(true);
             field.set(target, value);
         } catch (Exception e) {
             throw new RuntimeException(fieldName + " 설정 실패", e);
         }
     }
-
 }

@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 public record TodayProblemResponse(
         Long recommendationId,
         LocalDateTime createdAt,
+        boolean inProgress,
         List<ProblemWithSolvedStatus> problems
 ) {
     /**
@@ -65,6 +66,18 @@ public record TodayProblemResponse(
     }
 
     /**
+     * PENDING/FAILED 상태 — 미션 생성중 응답
+     */
+    public static TodayProblemResponse inProgress(Recommendation recommendation) {
+        return new TodayProblemResponse(
+                recommendation.getId(),
+                recommendation.getCreatedAt(),
+                true,
+                List.of()
+        );
+    }
+
+    /**
      * 프로젝션과 태그 정보를 병합하여 응답 생성
      * @param recommendation 추천 엔티티
      * @param projections 문제 + 해결 상태 프로젝션
@@ -89,6 +102,6 @@ public record TodayProblemResponse(
                 ))
                 .toList();
 
-        return new TodayProblemResponse(recommendation.getId(), recommendation.getCreatedAt(), problems);
+        return new TodayProblemResponse(recommendation.getId(), recommendation.getCreatedAt(), false, problems);
     }
 }

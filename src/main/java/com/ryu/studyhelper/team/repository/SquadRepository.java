@@ -22,9 +22,14 @@ public interface SquadRepository extends JpaRepository<Squad, Long> {
 
     /**
      * 추천 활성 상태이고 특정 요일 비트가 설정된 스쿼드 목록 조회
-     * 2차 배포 시 ScheduledRecommendationService의 getActiveTeams() 대체용
      */
     @Query(value = "SELECT * FROM squad WHERE recommendation_status = 'ACTIVE' AND (recommendation_days & :dayBit) > 0",
            nativeQuery = true)
     List<Squad> findActiveSquadsForDay(@Param("dayBit") int dayBit);
+
+    /**
+     * ID 목록으로 스쿼드를 팀과 함께 조회 (LazyInitializationException 방지)
+     */
+    @Query("SELECT s FROM Squad s JOIN FETCH s.team WHERE s.id IN :ids")
+    List<Squad> findByIdsWithTeam(@Param("ids") List<Long> ids);
 }

@@ -7,6 +7,7 @@ import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
@@ -26,7 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -61,9 +62,9 @@ public class RecommendationService {
         Squad squad = squadRepository.findByIdAndTeamId(squadId, teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.SQUAD_NOT_FOUND));
 
-        validateNoSquadRecommendationToday(teamId, squadId);
+        LocalDate missionDate = validateNoSquadRecommendationToday(teamId, squadId);
 
-        Recommendation recommendation = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL)
+        Recommendation recommendation = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
         List<MemberRecommendation> memberRecommendations =
@@ -80,14 +81,18 @@ public class RecommendationService {
 
     /**
      * 특정 팀/스쿼드의 오늘 추천 조회 (Optional 반환)
+     * PENDING/FAILED → inProgress 응답, SUCCESS → 문제 목록 응답
      */
     @Transactional(readOnly = true)
     public Optional<TodayProblemResponse> findTodayRecommendationBySquad(Long teamId, Long squadId, Long memberId) {
-        LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
+        LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
 
-        return recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(teamId, squadId)
-                .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
+        return recommendationRepository.findByTeamIdAndSquadIdAndDate(teamId, squadId, missionDate)
                 .map(recommendation -> {
+                    if (recommendation.getStatus() != RecommendationStatus.SUCCESS) {
+                        return TodayProblemResponse.inProgress(recommendation);
+                    }
+
                     List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
                             .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
 
@@ -104,15 +109,14 @@ public class RecommendationService {
 
     /**
      * 로그인한 유저의 오늘 추천 문제 조회 (MemberRecommendation 기반)
-     * TeamMember가 아닌 MemberRecommendation 기반으로 조회하므로
-     * 팀 탈퇴/해산 이후에도 오늘 받은 추천은 조회된다.
+     * MemberRecommendation은 SUCCESS 시에만 생성되므로 PENDING/FAILED는 조회되지 않음
      */
     @Transactional(readOnly = true)
     public MyTodayProblemsResponse getMyTodayProblemsV2(Long memberId) {
-        LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
+        LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
 
         List<MemberRecommendation> memberRecommendations =
-                memberRecommendationRepository.findTodayByMemberId(memberId, missionCycleStart);
+                memberRecommendationRepository.findByMemberIdAndRecommendationDate(memberId, missionDate);
 
         List<MyTodayProblemsResponse.TeamTodayProblems> teamProblems = memberRecommendations.stream()
                 .map(mr -> {
@@ -140,18 +144,26 @@ public class RecommendationService {
         return MyTodayProblemsResponse.from(teamProblems);
     }
 
-    private void validateNoSquadRecommendationToday(Long teamId, Long squadId) {
+    /**
+     * 수동 추천 금지 시간 + 중복 체크.
+     * PENDING/SUCCESS가 오늘 존재하면 예외. FAILED는 재시도 허용.
+     *
+     * @return 오늘의 미션 날짜
+     */
+    private LocalDate validateNoSquadRecommendationToday(Long teamId, Long squadId) {
         LocalTime now = LocalTime.now(clock);
 
         if (!now.isBefore(BLOCKED_START_TIME) && now.isBefore(BLOCKED_END_TIME)) {
             throw new CustomException(CustomResponseStatus.RECOMMENDATION_BLOCKED_TIME);
         }
 
-        LocalDateTime missionCycleStart = MissionCyclePolicy.getMissionCycleStart(clock);
-        recommendationRepository.findFirstByTeamIdAndSquadIdOrderByCreatedAtDesc(teamId, squadId)
-                .filter(recommendation -> !recommendation.getCreatedAt().isBefore(missionCycleStart))
-                .ifPresent(recommendation -> {
+        LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
+        recommendationRepository.findByTeamIdAndSquadIdAndDate(teamId, squadId, missionDate)
+                .filter(rec -> rec.getStatus() != RecommendationStatus.FAILED)
+                .ifPresent(rec -> {
                     throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                 });
+
+        return missionDate;
     }
 }

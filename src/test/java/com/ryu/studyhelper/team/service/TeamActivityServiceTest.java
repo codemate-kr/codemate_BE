@@ -146,7 +146,7 @@ class TeamActivityServiceTest {
             given(teamMemberRepository.findByTeamIdWithMember(TEAM_ID))
                     .willReturn(List.of(teamMember1, teamMember2));
             given(squadRepository.findByTeamIdOrderByIdAsc(TEAM_ID)).willReturn(List.of());
-            given(memberRecommendationRepository.findByTeamIdAndCreatedAtBetween(eq(TEAM_ID), any(), any()))
+            given(memberRecommendationRepository.findByTeamIdAndDateBetween(eq(TEAM_ID), any(), any()))
                     .willReturn(List.of());
 
             // when

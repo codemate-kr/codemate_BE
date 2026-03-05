@@ -4,6 +4,7 @@ import com.ryu.studyhelper.infrastructure.mail.sender.MailMessage;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.mailbuilder.RecommendationMailBuilder;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -66,8 +68,8 @@ class RecommendationEmailServiceTest {
             setupClock("2025-01-15T09:00:00");
 
             MemberRecommendation mr = createMemberRecommendation(1L, "user@test.com");
-            when(memberRecommendationRepository.findPendingRecommendationsByCreatedAtBetween(
-                    any(), any(), eq(EmailSendStatus.PENDING)))
+            when(memberRecommendationRepository.findByRecommendationDateAndEmailSendStatus(
+                    any(LocalDate.class), eq(EmailSendStatus.PENDING)))
                     .thenReturn(List.of(mr));
             when(recommendationMailBuilder.build(mr))
                     .thenReturn(new MailMessage("user@test.com", "제목", "<html>"));
@@ -87,8 +89,8 @@ class RecommendationEmailServiceTest {
             // given
             setupClock("2025-01-15T09:00:00");
 
-            when(memberRecommendationRepository.findPendingRecommendationsByCreatedAtBetween(
-                    any(), any(), eq(EmailSendStatus.PENDING)))
+            when(memberRecommendationRepository.findByRecommendationDateAndEmailSendStatus(
+                    any(LocalDate.class), eq(EmailSendStatus.PENDING)))
                     .thenReturn(List.of());
 
             // when
@@ -107,8 +109,8 @@ class RecommendationEmailServiceTest {
             MemberRecommendation mr1 = createMemberRecommendation(1L, "fail@test.com");
             MemberRecommendation mr2 = createMemberRecommendation(2L, "success@test.com");
 
-            when(memberRecommendationRepository.findPendingRecommendationsByCreatedAtBetween(
-                    any(), any(), eq(EmailSendStatus.PENDING)))
+            when(memberRecommendationRepository.findByRecommendationDateAndEmailSendStatus(
+                    any(LocalDate.class), eq(EmailSendStatus.PENDING)))
                     .thenReturn(List.of(mr1, mr2));
 
             MailMessage msg1 = new MailMessage("fail@test.com", "제목", "<html>");
@@ -198,8 +200,7 @@ class RecommendationEmailServiceTest {
         Team team = Team.create("테스트팀", "설명", false);
         setFieldValue(team, "id", 1L);
 
-        Recommendation recommendation = Recommendation.createScheduledRecommendation(1L);
-        setFieldValue(recommendation, "createdAt", LocalDateTime.now(), true);
+        Recommendation recommendation = Recommendation.createPending(1L, 1L, RecommendationType.SCHEDULED, LocalDate.now());
 
         MemberRecommendation mr = MemberRecommendation.create(member, recommendation, team);
         setFieldValue(mr, "id", id);
