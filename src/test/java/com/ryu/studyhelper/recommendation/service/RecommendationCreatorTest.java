@@ -6,10 +6,8 @@ import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
-import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
-import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
-import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
@@ -22,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,19 +47,14 @@ class RecommendationCreatorTest {
     private ProblemSyncService problemSyncService;
 
     @Mock
-    private RecommendationRepository recommendationRepository;
-
-    @Mock
-    private RecommendationProblemRepository recommendationProblemRepository;
-
-    @Mock
-    private MemberRecommendationRepository memberRecommendationRepository;
+    private RecommendationSaver recommendationSaver;
 
     @InjectMocks
     private RecommendationCreator recommendationCreator;
 
     private static final Long TEAM_ID = 1L;
     private static final Long SQUAD_ID = 10L;
+    private static final LocalDate TODAY = LocalDate.of(2025, 1, 15);
 
     @Nested
     @DisplayName("추천 생성 성공")
@@ -73,36 +67,34 @@ class RecommendationCreatorTest {
             Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L), createProblem(1001L));
             Member member = createMember(100L);
+            Recommendation pending = createPendingRecommendation();
 
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of("handle1"));
+            when(recommendationSaver.createOrResetPending(any(), any(), any())).thenReturn(pending);
             when(squadIncludeTagRepository.findTagKeysBySquadId(SQUAD_ID)).thenReturn(List.of());
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
-            when(recommendationRepository.save(any(Recommendation.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
             when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of(member));
 
             // when
-            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
+            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isPresent();
-            assertThat(result.get().getType()).isEqualTo(RecommendationType.MANUAL);
-            assertThat(result.get().getProblems()).hasSize(2);
-            verify(recommendationProblemRepository, times(2)).save(any());
-            verify(memberRecommendationRepository, times(1)).save(any());
+            verify(recommendationSaver).saveSuccess(eq(pending), eq(problems), eq(List.of(member)), eq(squad));
         }
 
         @Test
-        @DisplayName("SCHEDULED 타입으로 추천을 생성한다")
-        void createScheduledRecommendation() {
+        @DisplayName("SCHEDULED 타입으로 process를 실행한다")
+        void processScheduledRecommendation() {
             // given
             Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L));
             Member member = createMember(100L);
+            Recommendation pending = createPendingRecommendation();
 
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of("handle1"));
@@ -110,26 +102,24 @@ class RecommendationCreatorTest {
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
-            when(recommendationRepository.save(any(Recommendation.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
             when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of(member));
 
             // when
-            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+            recommendationCreator.process(pending, squad);
 
             // then
-            assertThat(result).isPresent();
-            assertThat(result.get().getType()).isEqualTo(RecommendationType.SCHEDULED);
+            verify(recommendationSaver).saveSuccess(eq(pending), eq(problems), eq(List.of(member)), eq(squad));
         }
 
         @Test
-        @DisplayName("스쿼드 멤버 수만큼 MemberRecommendation을 생성한다")
-        void createsMemberRecommendationsForAllSquadMembers() {
+        @DisplayName("스쿼드 멤버 수만큼 saveSuccess에 전달된다")
+        void passesAllMembersToSaveSuccess() {
             // given
             Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
             List<Problem> problems = List.of(createProblem(1000L));
             List<Member> members = List.of(createMember(100L), createMember(101L), createMember(102L));
+            Recommendation pending = createPendingRecommendation();
 
             when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(List.of("handle1"));
@@ -137,16 +127,14 @@ class RecommendationCreatorTest {
             when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
                     .thenReturn(List.of(mock(ProblemInfo.class)));
             when(problemSyncService.syncProblems(anyList())).thenReturn(problems);
-            when(recommendationRepository.save(any(Recommendation.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
             when(teamMemberRepository.findMembersByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
                     .thenReturn(members);
 
             // when
-            recommendationCreator.createForSquad(squad, RecommendationType.MANUAL);
+            recommendationCreator.process(pending, squad);
 
             // then
-            verify(memberRecommendationRepository, times(3)).save(any());
+            verify(recommendationSaver).saveSuccess(eq(pending), any(), eq(members), eq(squad));
         }
     }
 
@@ -164,12 +152,39 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of());
 
             // when
-            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.SCHEDULED);
+            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isEmpty();
-            verify(recommendationRepository, never()).save(any());
+            verify(recommendationSaver, never()).createOrResetPending(any(), any(), any());
             verify(solvedAcClient, never()).recommendUnsolvedProblems(any(), anyInt(), anyInt(), anyInt(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("API 실패 처리")
+    class ApiFailure {
+
+        @Test
+        @DisplayName("API 실패 시 saveFailed를 호출하고 예외를 전파한다")
+        void apiFailure_callsSaveFailedAndRethrows() {
+            // given
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID);
+            Recommendation pending = createPendingRecommendation();
+            RuntimeException apiException = new RuntimeException("API 오류");
+
+            when(teamMemberRepository.findHandlesByTeamIdAndSquadId(TEAM_ID, SQUAD_ID))
+                    .thenReturn(List.of("handle1"));
+            when(squadIncludeTagRepository.findTagKeysBySquadId(SQUAD_ID)).thenReturn(List.of());
+            when(solvedAcClient.recommendUnsolvedProblems(anyList(), anyInt(), anyInt(), anyInt(), anyList()))
+                    .thenThrow(apiException);
+
+            // when & then
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> recommendationCreator.process(pending, squad))
+                    .isSameAs(apiException);
+
+            verify(recommendationSaver).saveFailed(pending);
         }
     }
 
@@ -182,6 +197,10 @@ class RecommendationCreatorTest {
         Squad squad = Squad.createDefault(team);
         setFieldValue(squad, "id", squadId);
         return squad;
+    }
+
+    private Recommendation createPendingRecommendation() {
+        return Recommendation.createPending(TEAM_ID, SQUAD_ID, RecommendationType.SCHEDULED, TODAY);
     }
 
     private Problem createProblem(Long id) {
