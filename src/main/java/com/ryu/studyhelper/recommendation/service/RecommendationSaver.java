@@ -75,11 +75,7 @@ class RecommendationSaver {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     List<MemberRecommendation> saveSuccess(Recommendation rec, List<Problem> problems, List<Member> members, Squad squad) {
         for (Problem problem : problems) {
-            RecommendationProblem rp = RecommendationProblem.builder()
-                    .recommendation(rec)
-                    .problem(problem)
-                    .build();
-            recommendationProblemRepository.save(rp);
+            recommendationProblemRepository.save(RecommendationProblem.create(problem, rec));
         }
         List<MemberRecommendation> memberRecommendations = members.stream()
                 .map(member -> memberRecommendationRepository.save(
