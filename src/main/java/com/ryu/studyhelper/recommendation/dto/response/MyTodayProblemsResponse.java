@@ -40,17 +40,7 @@ public record MyTodayProblemsResponse(
         }
     }
 
-    public static MyTodayProblemsResponse from(List<TeamTodayProblems> teams) {
-        int totalProblemCount = teams.stream()
-                .mapToInt(team -> team.problems().size())
-                .sum();
-
-        int solvedCount = teams.stream()
-                .flatMap(team -> team.problems().stream())
-                .filter(problem -> Boolean.TRUE.equals(problem.isSolved()))
-                .mapToInt(problem -> 1)
-                .sum();
-
+    public static MyTodayProblemsResponse from(List<TeamTodayProblems> teams, int totalProblemCount, int solvedCount) {
         return new MyTodayProblemsResponse(teams, totalProblemCount, solvedCount);
     }
 }

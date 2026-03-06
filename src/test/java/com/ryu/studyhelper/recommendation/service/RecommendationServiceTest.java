@@ -8,6 +8,7 @@ import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
+import com.ryu.studyhelper.recommendation.dto.internal.CreationResult;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
@@ -104,7 +105,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // when & then
             assertThatThrownBy(() -> recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID))
@@ -130,12 +131,12 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(eq(TEAM_ID), eq(SQUAD_ID), any(LocalDate.class)))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
+                    .thenReturn(Optional.of(new CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now(clock)), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -158,7 +159,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-15"));
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
@@ -182,7 +183,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // FAILED 상태 추천
             Recommendation failedRecommendation = createRecommendationWithDateAndStatus(
@@ -190,8 +191,8 @@ class RecommendationServiceTest {
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
                     .thenReturn(Optional.of(failedRecommendation));
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
+                    .thenReturn(Optional.of(new CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now(clock)), List.of(), List.of())));
 
             // when: 예외 없이 정상 실행
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -209,14 +210,14 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // 오늘 날짜에 해당하는 레코드 없음
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
+                    .thenReturn(Optional.of(new CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now(clock)), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -234,7 +235,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // 어제(2025-01-14) 날짜로 PENDING 추천 존재
             Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-14"));
@@ -271,8 +272,10 @@ class RecommendationServiceTest {
 
     private Recommendation createRecommendationWithDateAndStatus(Long teamId, LocalDate date, RecommendationStatus status) {
         Recommendation recommendation = Recommendation.createPending(teamId, SQUAD_ID, RecommendationType.SCHEDULED, date);
-        if (status != RecommendationStatus.PENDING) {
-            recommendation.updateStatus(status);
+        if (status == RecommendationStatus.FAILED) {
+            recommendation.markAsFailed();
+        } else if (status == RecommendationStatus.SUCCESS) {
+            recommendation.markAsSuccess();
         }
         return recommendation;
     }

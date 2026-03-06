@@ -8,6 +8,7 @@ import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.dto.internal.CreationResult;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.dto.response.RecommendationDetailResponse;
@@ -35,7 +36,6 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class RecommendationService {
 
@@ -56,12 +56,12 @@ public class RecommendationService {
      * 즉시 이메일 발송
      */
     public RecommendationDetailResponse createManualRecommendationForSquad(Long teamId, Long squadId) {
-        Squad squad = squadRepository.findByIdAndTeamId(squadId, teamId)
+        Squad squad = squadRepository.findByIdAndTeamIdWithTeam(squadId, teamId)
                 .orElseThrow(() -> new CustomException(CustomResponseStatus.SQUAD_NOT_FOUND));
 
         LocalDate missionDate = validateNoSquadRecommendationToday(teamId, squadId);
 
-        RecommendationCreator.CreationResult result =
+        CreationResult result =
                 recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
                         .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
@@ -83,18 +83,7 @@ public class RecommendationService {
                     if (recommendation.getStatus() != RecommendationStatus.SUCCESS) {
                         return TodayProblemResponse.inProgress(recommendation);
                     }
-
-                    List<ProblemWithSolvedStatusProjection> problemsWithStatus = recommendationProblemRepository
-                            .findProblemsWithSolvedStatus(recommendation.getId(), memberId);
-
-                    List<Long> problemIds = problemsWithStatus.stream()
-                            .map(ProblemWithSolvedStatusProjection::getProblemId)
-                            .toList();
-                    List<ProblemTagProjection> tagProjections = problemIds.isEmpty()
-                            ? List.of()
-                            : problemTagRepository.findTagsByProblemIds(problemIds);
-
-                    return TodayProblemResponse.from(recommendation, problemsWithStatus, tagProjections);
+                    return buildTodayProblemResponse(recommendation, memberId);
                 });
     }
 
@@ -111,28 +100,38 @@ public class RecommendationService {
 
         List<MyTodayProblemsResponse.TeamTodayProblems> teamProblems = memberRecommendations.stream()
                 .map(mr -> {
-                    Recommendation recommendation = mr.getRecommendation();
-
-                    List<ProblemWithSolvedStatusProjection> problemsWithStatus =
-                            recommendationProblemRepository.findProblemsWithSolvedStatus(recommendation.getId(), memberId);
-
-                    List<Long> problemIds = problemsWithStatus.stream()
-                            .map(ProblemWithSolvedStatusProjection::getProblemId)
-                            .toList();
-                    List<ProblemTagProjection> tagProjections = problemIds.isEmpty()
-                            ? List.of()
-                            : problemTagRepository.findTagsByProblemIds(problemIds);
-
                     TodayProblemResponse todayProblemResponse =
-                            TodayProblemResponse.from(recommendation, problemsWithStatus, tagProjections);
-
+                            buildTodayProblemResponse(mr.getRecommendation(), memberId);
                     return MyTodayProblemsResponse.TeamTodayProblems.from(
                             mr.getTeamId(), mr.getTeamName(), todayProblemResponse
                     );
                 })
                 .toList();
 
-        return MyTodayProblemsResponse.from(teamProblems);
+        int totalProblemCount = teamProblems.stream()
+                .mapToInt(team -> team.problems().size())
+                .sum();
+        int solvedCount = teamProblems.stream()
+                .flatMap(team -> team.problems().stream())
+                .filter(problem -> Boolean.TRUE.equals(problem.isSolved()))
+                .mapToInt(problem -> 1)
+                .sum();
+
+        return MyTodayProblemsResponse.from(teamProblems, totalProblemCount, solvedCount);
+    }
+
+    private TodayProblemResponse buildTodayProblemResponse(Recommendation recommendation, Long memberId) {
+        List<ProblemWithSolvedStatusProjection> problemsWithStatus =
+                recommendationProblemRepository.findProblemsWithSolvedStatus(recommendation.getId(), memberId);
+
+        List<Long> problemIds = problemsWithStatus.stream()
+                .map(ProblemWithSolvedStatusProjection::getProblemId)
+                .toList();
+        List<ProblemTagProjection> tagProjections = problemIds.isEmpty()
+                ? List.of()
+                : problemTagRepository.findTagsByProblemIds(problemIds);
+
+        return TodayProblemResponse.from(recommendation, problemsWithStatus, tagProjections);
     }
 
     /**

@@ -1,12 +1,10 @@
 package com.ryu.studyhelper.recommendation.dto.response;
 
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.team.domain.Team;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import com.ryu.studyhelper.problem.domain.Problem;
 
 import java.util.List;
@@ -21,7 +19,6 @@ public record RecommendationDetailResponse(
         LocalDate recommendationDate,
         RecommendationType type,
         String status,
-        LocalDateTime sentAt,
         List<RecommendedProblemDetail> problems
 ) {
     /**
@@ -44,8 +41,7 @@ public record RecommendationDetailResponse(
                 team.getName(),
                 recommendation.getDate(),
                 recommendation.getType(),
-                "SENT",
-                LocalDateTime.now(),
+                recommendation.getStatus().name(),
                 IntStream.range(0, problems.size())
                         .mapToObj(i -> {
                             Problem p = problems.get(i);

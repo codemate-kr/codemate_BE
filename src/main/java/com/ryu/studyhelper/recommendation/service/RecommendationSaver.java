@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -58,13 +60,24 @@ class RecommendationSaver {
                     if (existing.getStatus() != RecommendationStatus.FAILED) {
                         throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                     }
-                    existing.updateStatus(RecommendationStatus.PENDING);
-                    return recommendationRepository.save(existing);
+                    // CAS: 다른 워커(배치 재시도·동시 수동 요청)가 이미 PENDING으로 전이했을 경우 0 반환
+                    int updated = recommendationRepository.compareAndUpdateStatus(
+                            existing.getId(), RecommendationStatus.PENDING, RecommendationStatus.FAILED);
+                    if (updated == 0) {
+                        throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
+                    }
+                    existing.retryAsPending(); // in-memory 동기화
+                    return existing;
                 })
                 .orElseGet(() -> {
                     Recommendation pending = Recommendation.createPending(
                             squad.getTeam().getId(), squad.getId(), type, date);
-                    return recommendationRepository.save(pending);
+                    try {
+                        return recommendationRepository.save(pending);
+                    } catch (DataIntegrityViolationException e) {
+                        // 동시 요청이 먼저 INSERT — 중복으로 처리
+                        throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
+                    }
                 });
     }
 
@@ -75,17 +88,13 @@ class RecommendationSaver {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     List<MemberRecommendation> saveSuccess(Recommendation rec, List<Problem> problems, List<Member> members, Squad squad) {
         for (Problem problem : problems) {
-            RecommendationProblem rp = RecommendationProblem.builder()
-                    .recommendation(rec)
-                    .problem(problem)
-                    .build();
-            recommendationProblemRepository.save(rp);
+            recommendationProblemRepository.save(RecommendationProblem.create(problem, rec));
         }
         List<MemberRecommendation> memberRecommendations = members.stream()
                 .map(member -> memberRecommendationRepository.save(
                         MemberRecommendation.createForSquad(member, rec, squad.getTeam(), squad.getId())))
                 .toList();
-        rec.updateStatus(RecommendationStatus.SUCCESS);
+        rec.markAsSuccess();
         recommendationRepository.save(rec);
         return memberRecommendations;
     }
@@ -95,7 +104,24 @@ class RecommendationSaver {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     void saveFailed(Recommendation rec) {
-        rec.updateStatus(RecommendationStatus.FAILED);
+        rec.markAsFailed();
         recommendationRepository.save(rec);
+    }
+
+    /**
+     * FAILED → PENDING 조건부 원자 업데이트 (배치 재시도 진입점)
+     * stale 엔티티 기반 저장 대신 DB 조건부 UPDATE로 점유 성공 여부 반환.
+     * claimedCount=0이면 다른 워커가 이미 선점했거나 SUCCESS로 전이된 것.
+     *
+     * @return true: 점유 성공, false: 다른 워커가 선점
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    boolean tryPrepareForRetry(Recommendation recommendation) {
+        int claimedCount = recommendationRepository.compareAndUpdateStatus(
+                recommendation.getId(), RecommendationStatus.PENDING, RecommendationStatus.FAILED);
+        if (claimedCount > 0) {
+            recommendation.retryAsPending(); // 후속 markAsSuccess() 가드 통과용 in-memory 동기화
+        }
+        return claimedCount > 0;
     }
 }

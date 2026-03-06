@@ -10,7 +10,7 @@ import com.ryu.studyhelper.recommendation.repository.MemberRecommendationReposit
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -22,7 +22,6 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class RecommendationEmailService {
 
@@ -59,7 +58,7 @@ public class RecommendationEmailService {
     }
 
     /**
-     * 수동 추천: 해당 추천의 팀원들에게 이메일 즉시 발송
+     * 수동 추천: 해당 추천의 팀원들에게 이메일 즉시 발송.
      */
     public void send(List<MemberRecommendation> memberRecommendations) {
         for (MemberRecommendation mr : memberRecommendations) {

@@ -1,6 +1,7 @@
 package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
@@ -193,6 +194,132 @@ class RecommendationBatchServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("retryFailed")
+    class RetryFailed {
+
+        @Test
+        @DisplayName("FAILED 레코드를 PENDING으로 전이 후 처리한다")
+        void failedRecord_tryPrepareForRetryAndProcess() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            Recommendation failedRec = createFailed(SQUAD_ID, LocalDate.parse("2025-01-15"));
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), eq(List.of(RecommendationStatus.FAILED))))
+                    .thenReturn(List.of(failedRec));
+            when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad));
+            when(recommendationSaver.tryPrepareForRetry(failedRec)).thenReturn(true);
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationSaver).tryPrepareForRetry(failedRec);
+            verify(recommendationCreator).process(eq(failedRec), eq(squad));
+            assertThat(result.successCount()).isEqualTo(1);
+            assertThat(result.failCount()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("점유 실패(다른 워커 선점) 시 process 미호출 + totalCount에서 제외")
+        void alreadyClaimed_excludesFromTotal() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            Recommendation failedRec = createFailed(SQUAD_ID, LocalDate.parse("2025-01-15"));
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), eq(List.of(RecommendationStatus.FAILED))))
+                    .thenReturn(List.of(failedRec));
+            when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad));
+            when(recommendationSaver.tryPrepareForRetry(failedRec)).thenReturn(false); // 다른 워커가 선점
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationCreator, never()).process(any(), any());
+            assertThat(result.totalCount()).isEqualTo(0); // 선점된 항목은 이 워커의 대상에서 제외
+            assertThat(result.skipCount()).isEqualTo(0);
+            assertThat(result.successCount()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("재시도 대상이 없으면 처리 없이 반환한다")
+        void noTargets_returnsEmptyResult() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), any()))
+                    .thenReturn(List.of());
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationSaver, never()).tryPrepareForRetry(any());
+            verify(recommendationCreator, never()).process(any(), any());
+            assertThat(result.successCount()).isEqualTo(0);
+            assertThat(result.totalCount()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("스쿼드 정보가 없으면 해당 레코드는 스킵한다")
+        void missingSquad_skips() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            Recommendation failedRec = createFailed(SQUAD_ID, LocalDate.parse("2025-01-15"));
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), any()))
+                    .thenReturn(List.of(failedRec));
+            when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of());
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationSaver, never()).tryPrepareForRetry(any());
+            verify(recommendationCreator, never()).process(any(), any());
+            assertThat(result.skipCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("재시도 중 예외 발생 시 failCount가 증가하고 다음 레코드는 계속 처리된다")
+        void retryFailure_incrementsFailCount() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            Squad squad1 = createSquadWithId(10L, TEAM_ID, DayOfWeek.WEDNESDAY);
+            Squad squad2 = createSquadWithId(11L, TEAM_ID, DayOfWeek.WEDNESDAY);
+            Recommendation failed1 = createFailed(10L, LocalDate.parse("2025-01-15"));
+            Recommendation failed2 = createFailed(11L, LocalDate.parse("2025-01-15"));
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), any()))
+                    .thenReturn(List.of(failed1, failed2));
+            when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad1, squad2));
+            when(recommendationSaver.tryPrepareForRetry(any())).thenReturn(true);
+
+            org.mockito.Mockito.doThrow(new RuntimeException("API 오류"))
+                    .when(recommendationCreator).process(eq(failed1), eq(squad1));
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationCreator).process(eq(failed2), eq(squad2));
+            assertThat(result.failCount()).isEqualTo(1);
+            assertThat(result.successCount()).isEqualTo(1);
+        }
+    }
+
     // === Helper Methods ===
 
     private Squad createSquadWithId(Long squadId, Long teamId, DayOfWeek dayOfWeek) {
@@ -210,6 +337,12 @@ class RecommendationBatchServiceTest {
 
     private Recommendation createPending(Long squadId, LocalDate date) {
         return Recommendation.createPending(TEAM_ID, squadId, RecommendationType.SCHEDULED, date);
+    }
+
+    private Recommendation createFailed(Long squadId, LocalDate date) {
+        Recommendation rec = Recommendation.createPending(TEAM_ID, squadId, RecommendationType.SCHEDULED, date);
+        rec.markAsFailed();
+        return rec;
     }
 
     private void setFieldValue(Object target, String fieldName, Object value) {

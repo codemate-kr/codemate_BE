@@ -3,7 +3,11 @@ package com.ryu.studyhelper.recommendation.domain;
 import com.ryu.studyhelper.common.entity.BaseEntity;
 import com.ryu.studyhelper.problem.domain.Problem;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 추천에 포함된 문제들을 저장하는 엔티티
@@ -34,7 +38,6 @@ public class RecommendationProblem extends BaseEntity {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recommendation_id", nullable = false)
-    @Setter
     private Recommendation recommendation;
 
     /**
@@ -47,13 +50,11 @@ public class RecommendationProblem extends BaseEntity {
     /**
      * 추천 문제 생성을 위한 팩토리 메서드
      * 문제 순서는 삽입 순서(id 순서)로 자동 보장됩니다.
-     *
-     * @param problem 추천할 문제
-     * @return 생성된 RecommendationProblem 엔티티
      */
-    public static RecommendationProblem create(Problem problem) {
+    public static RecommendationProblem create(Problem problem, Recommendation recommendation) {
         return RecommendationProblem.builder()
                 .problem(problem)
+                .recommendation(recommendation)
                 .build();
     }
 }

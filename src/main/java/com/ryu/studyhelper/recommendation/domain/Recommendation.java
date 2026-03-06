@@ -57,7 +57,30 @@ public class Recommendation extends BaseEntity {
                 .build();
     }
 
-    public void updateStatus(RecommendationStatus status) {
-        this.status = status;
+    /**
+     * PENDING → SUCCESS 전이 (terminal)
+     */
+    public void markAsSuccess() {
+        if (this.status != RecommendationStatus.PENDING)
+            throw new IllegalStateException("PENDING 상태에서만 SUCCESS로 전이 가능. 현재: " + this.status);
+        this.status = RecommendationStatus.SUCCESS;
+    }
+
+    /**
+     * PENDING → FAILED 전이
+     */
+    public void markAsFailed() {
+        if (this.status != RecommendationStatus.PENDING)
+            throw new IllegalStateException("PENDING 상태에서만 FAILED로 전이 가능. 현재: " + this.status);
+        this.status = RecommendationStatus.FAILED;
+    }
+
+    /**
+     * FAILED → PENDING 전이 (재시도 진입)
+     */
+    public void retryAsPending() {
+        if (this.status != RecommendationStatus.FAILED)
+            throw new IllegalStateException("FAILED 상태에서만 재시도 가능. 현재: " + this.status);
+        this.status = RecommendationStatus.PENDING;
     }
 }

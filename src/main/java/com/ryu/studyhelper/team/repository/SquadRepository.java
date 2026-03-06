@@ -32,4 +32,11 @@ public interface SquadRepository extends JpaRepository<Squad, Long> {
      */
     @Query("SELECT s FROM Squad s JOIN FETCH s.team WHERE s.id IN :ids")
     List<Squad> findByIdsWithTeam(@Param("ids") List<Long> ids);
+
+    /**
+     * 스쿼드 단건 조회 + 팀 fetch join
+     * TX 없는 환경에서 squad.getTeam() lazy loading 방지
+     */
+    @Query("SELECT s FROM Squad s JOIN FETCH s.team WHERE s.id = :squadId AND s.team.id = :teamId")
+    Optional<Squad> findByIdAndTeamIdWithTeam(@Param("squadId") Long squadId, @Param("teamId") Long teamId);
 }

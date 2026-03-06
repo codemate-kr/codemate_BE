@@ -202,7 +202,7 @@ class RecommendationEmailServiceTest {
 
         Recommendation recommendation = Recommendation.createPending(1L, 1L, RecommendationType.SCHEDULED, LocalDate.now());
 
-        MemberRecommendation mr = MemberRecommendation.create(member, recommendation, team);
+        MemberRecommendation mr = MemberRecommendation.createForSquad(member, recommendation, team, 1L);
         setFieldValue(mr, "id", id);
         return mr;
     }
