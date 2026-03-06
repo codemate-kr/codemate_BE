@@ -105,7 +105,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // when & then
             assertThatThrownBy(() -> recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID))
@@ -131,7 +131,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(eq(TEAM_ID), eq(SQUAD_ID), any(LocalDate.class)))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
@@ -159,7 +159,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-15"));
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
@@ -183,7 +183,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // FAILED 상태 추천
             Recommendation failedRecommendation = createRecommendationWithDateAndStatus(
@@ -210,7 +210,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // 오늘 날짜에 해당하는 레코드 없음
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
@@ -235,7 +235,7 @@ class RecommendationServiceTest {
 
             Team team = createTeamWithId(TEAM_ID);
             Squad squad = createSquadWithId(SQUAD_ID, team);
-            when(squadRepository.findByIdAndTeamId(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
+            when(squadRepository.findByIdAndTeamIdWithTeam(SQUAD_ID, TEAM_ID)).thenReturn(Optional.of(squad));
 
             // 어제(2025-01-14) 날짜로 PENDING 추천 존재
             Recommendation existingRecommendation = createRecommendationWithDate(TEAM_ID, LocalDate.parse("2025-01-14"));
