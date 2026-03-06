@@ -43,7 +43,7 @@ public class RecommendationCreator {
      * 수동 추천 생성.
      * 인증된 핸들이 없으면 {@link Optional#empty()} 반환.
      * API 실패 시 FAILED로 저장 후 예외 전파.
-     * <p>
+     *
      * saveSuccess는 REQUIRES_NEW로 독립 커밋되므로, 호출자 트랜잭션의 REPEATABLE_READ 스냅샷에서
      * 새로 커밋된 문제 행이 보이지 않는 문제를 방지하기 위해 문제 목록을 함께 반환한다.
      */
