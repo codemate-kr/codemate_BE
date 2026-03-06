@@ -200,7 +200,7 @@ class RecommendationBatchServiceTest {
 
         @Test
         @DisplayName("FAILED 레코드를 PENDING으로 전이 후 처리한다")
-        void failedRecord_resetToPendingAndProcess() {
+        void failedRecord_tryPrepareForRetryAndProcess() {
             // given
             Clock clock = fixedClock("2025-01-15T07:00:00");
             setupServiceWithClock(clock);
@@ -211,15 +211,40 @@ class RecommendationBatchServiceTest {
             when(recommendationRepository.findByDateAndStatusIn(any(), eq(List.of(RecommendationStatus.FAILED))))
                     .thenReturn(List.of(failedRec));
             when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad));
+            when(recommendationSaver.tryPrepareForRetry(failedRec)).thenReturn(true);
 
             // when
             BatchResult result = scheduledRecommendationService.retryFailed();
 
             // then
-            verify(recommendationSaver).resetToPending(failedRec);
+            verify(recommendationSaver).tryPrepareForRetry(failedRec);
             verify(recommendationCreator).process(eq(failedRec), eq(squad));
             assertThat(result.successCount()).isEqualTo(1);
             assertThat(result.failCount()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("점유 실패(다른 워커 선점) 시 process 미호출 + skipCount 증가")
+        void alreadyClaimed_skipsWithoutProcess() {
+            // given
+            Clock clock = fixedClock("2025-01-15T07:00:00");
+            setupServiceWithClock(clock);
+
+            Squad squad = createSquadWithId(SQUAD_ID, TEAM_ID, DayOfWeek.WEDNESDAY);
+            Recommendation failedRec = createFailed(SQUAD_ID, LocalDate.parse("2025-01-15"));
+
+            when(recommendationRepository.findByDateAndStatusIn(any(), eq(List.of(RecommendationStatus.FAILED))))
+                    .thenReturn(List.of(failedRec));
+            when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad));
+            when(recommendationSaver.tryPrepareForRetry(failedRec)).thenReturn(false); // 다른 워커가 선점
+
+            // when
+            BatchResult result = scheduledRecommendationService.retryFailed();
+
+            // then
+            verify(recommendationCreator, never()).process(any(), any());
+            assertThat(result.skipCount()).isEqualTo(1);
+            assertThat(result.successCount()).isEqualTo(0);
         }
 
         @Test
@@ -236,7 +261,7 @@ class RecommendationBatchServiceTest {
             BatchResult result = scheduledRecommendationService.retryFailed();
 
             // then
-            verify(recommendationSaver, never()).resetToPending(any());
+            verify(recommendationSaver, never()).tryPrepareForRetry(any());
             verify(recommendationCreator, never()).process(any(), any());
             assertThat(result.successCount()).isEqualTo(0);
             assertThat(result.totalCount()).isEqualTo(0);
@@ -259,7 +284,7 @@ class RecommendationBatchServiceTest {
             BatchResult result = scheduledRecommendationService.retryFailed();
 
             // then
-            verify(recommendationSaver, never()).resetToPending(any());
+            verify(recommendationSaver, never()).tryPrepareForRetry(any());
             verify(recommendationCreator, never()).process(any(), any());
             assertThat(result.skipCount()).isEqualTo(1);
         }
@@ -279,6 +304,7 @@ class RecommendationBatchServiceTest {
             when(recommendationRepository.findByDateAndStatusIn(any(), any()))
                     .thenReturn(List.of(failed1, failed2));
             when(squadRepository.findByIdsWithTeam(any())).thenReturn(List.of(squad1, squad2));
+            when(recommendationSaver.tryPrepareForRetry(any())).thenReturn(true);
 
             org.mockito.Mockito.doThrow(new RuntimeException("API 오류"))
                     .when(recommendationCreator).process(eq(failed1), eq(squad1));
