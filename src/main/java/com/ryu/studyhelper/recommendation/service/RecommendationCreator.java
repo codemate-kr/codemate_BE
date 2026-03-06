@@ -7,6 +7,7 @@ import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
+import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
@@ -29,9 +30,9 @@ import java.util.Optional;
 public class RecommendationCreator {
 
     /**
-     * 수동 추천 생성 결과 (REQUIRES_NEW 커밋 후 DB 재조회 없이 문제 목록 전달)
+     * 수동 추천 생성 결과 (REQUIRES_NEW 커밋 후 DB 재조회 없이 문제/멤버 목록 전달)
      */
-    public record CreationResult(Recommendation recommendation, List<Problem> problems) {}
+    public record CreationResult(Recommendation recommendation, List<Problem> problems, List<MemberRecommendation> memberRecommendations) {}
 
     private final TeamMemberRepository teamMemberRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
@@ -56,8 +57,8 @@ public class RecommendationCreator {
         }
 
         Recommendation pending = recommendationSaver.createOrResetPending(squad, date, type);
-        List<Problem> problems = processInternal(pending, squad, handles);
-        return Optional.of(new CreationResult(pending, problems));
+        CreationResult result = processInternal(pending, squad, handles);
+        return Optional.of(result);
     }
 
     /**
@@ -76,15 +77,15 @@ public class RecommendationCreator {
         processInternal(pending, squad, handles);
     }
 
-    private List<Problem> processInternal(Recommendation pending, Squad squad, List<String> handles) {
+    private CreationResult processInternal(Recommendation pending, Squad squad, List<String> handles) {
         try {
             List<Problem> problems = recommendProblemsForSquad(squad, handles);
             Long teamId = squad.getTeam().getId();
             List<Member> members = teamMemberRepository.findMembersByTeamIdAndSquadId(teamId, squad.getId());
-            recommendationSaver.saveSuccess(pending, problems, members, squad);
+            List<MemberRecommendation> memberRecommendations = recommendationSaver.saveSuccess(pending, problems, members, squad);
             log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 문제: {}개",
                     squad.getTeam().getName(), squad.getName(), problems.size());
-            return problems;
+            return new CreationResult(pending, problems, memberRecommendations);
         } catch (Exception e) {
             recommendationSaver.saveFailed(pending);
             throw e;

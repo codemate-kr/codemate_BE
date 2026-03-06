@@ -70,9 +70,10 @@ class RecommendationSaver {
 
     /**
      * API 호출 성공 시 — 문제·멤버 저장 후 SUCCESS로 업데이트.
+     * 저장된 MemberRecommendation 목록을 반환하여 호출자가 DB 재조회 없이 사용할 수 있도록 한다.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    void saveSuccess(Recommendation rec, List<Problem> problems, List<Member> members, Squad squad) {
+    List<MemberRecommendation> saveSuccess(Recommendation rec, List<Problem> problems, List<Member> members, Squad squad) {
         for (Problem problem : problems) {
             RecommendationProblem rp = RecommendationProblem.builder()
                     .recommendation(rec)
@@ -80,13 +81,13 @@ class RecommendationSaver {
                     .build();
             recommendationProblemRepository.save(rp);
         }
-        for (Member member : members) {
-            MemberRecommendation mr = MemberRecommendation.createForSquad(
-                    member, rec, squad.getTeam(), squad.getId());
-            memberRecommendationRepository.save(mr);
-        }
+        List<MemberRecommendation> memberRecommendations = members.stream()
+                .map(member -> memberRecommendationRepository.save(
+                        MemberRecommendation.createForSquad(member, rec, squad.getTeam(), squad.getId())))
+                .toList();
         rec.updateStatus(RecommendationStatus.SUCCESS);
         recommendationRepository.save(rec);
+        return memberRecommendations;
     }
 
     /**
