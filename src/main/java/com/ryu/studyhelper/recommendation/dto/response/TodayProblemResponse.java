@@ -3,9 +3,10 @@ package com.ryu.studyhelper.recommendation.dto.response;
 import com.ryu.studyhelper.common.util.ProblemUrlUtils;
 import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,8 +16,8 @@ import java.util.stream.Collectors;
  */
 public record TodayProblemResponse(
         Long recommendationId,
-        LocalDateTime createdAt,
-        boolean inProgress,
+        LocalDate date,
+        RecommendationStatus status,
         List<ProblemWithSolvedStatus> problems
 ) {
     /**
@@ -71,8 +72,8 @@ public record TodayProblemResponse(
     public static TodayProblemResponse inProgress(Recommendation recommendation) {
         return new TodayProblemResponse(
                 recommendation.getId(),
-                recommendation.getCreatedAt(),
-                true,
+                recommendation.getDate(),
+                recommendation.getStatus(),
                 List.of()
         );
     }
@@ -102,6 +103,6 @@ public record TodayProblemResponse(
                 ))
                 .toList();
 
-        return new TodayProblemResponse(recommendation.getId(), recommendation.getCreatedAt(), false, problems);
+        return new TodayProblemResponse(recommendation.getId(), recommendation.getDate(), RecommendationStatus.SUCCESS, problems);
     }
 }

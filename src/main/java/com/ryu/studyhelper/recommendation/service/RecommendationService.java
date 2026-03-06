@@ -4,9 +4,7 @@ import com.ryu.studyhelper.common.MissionCyclePolicy;
 import com.ryu.studyhelper.common.enums.CustomResponseStatus;
 import com.ryu.studyhelper.common.exception.CustomException;
 import com.ryu.studyhelper.problem.dto.projection.ProblemTagProjection;
-import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
@@ -19,7 +17,6 @@ import com.ryu.studyhelper.recommendation.repository.RecommendationProblemReposi
 import com.ryu.studyhelper.recommendation.repository.RecommendationRepository;
 import com.ryu.studyhelper.problem.repository.ProblemTagRepository;
 import com.ryu.studyhelper.team.domain.Squad;
-import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,19 +61,15 @@ public class RecommendationService {
 
         LocalDate missionDate = validateNoSquadRecommendationToday(teamId, squadId);
 
-        Recommendation recommendation = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
-                .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
+        RecommendationCreator.CreationResult result =
+                recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
+                        .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
         List<MemberRecommendation> memberRecommendations =
-                memberRecommendationRepository.findByRecommendationId(recommendation.getId());
+                memberRecommendationRepository.findByRecommendationId(result.recommendation().getId());
         recommendationEmailService.send(memberRecommendations);
 
-        Team team = squad.getTeam();
-
-        List<Problem> problems = recommendation.getProblems().stream()
-                .map(RecommendationProblem::getProblem)
-                .toList();
-        return RecommendationDetailResponse.from(recommendation, team, problems);
+        return RecommendationDetailResponse.from(result.recommendation(), squad.getTeam(), result.problems());
     }
 
     /**

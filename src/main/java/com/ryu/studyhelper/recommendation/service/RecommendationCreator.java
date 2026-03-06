@@ -28,6 +28,11 @@ import java.util.Optional;
 @Slf4j
 public class RecommendationCreator {
 
+    /**
+     * 수동 추천 생성 결과 (REQUIRES_NEW 커밋 후 DB 재조회 없이 문제 목록 전달)
+     */
+    public record CreationResult(Recommendation recommendation, List<Problem> problems) {}
+
     private final TeamMemberRepository teamMemberRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
     private final SolvedAcClient solvedAcClient;
@@ -38,8 +43,11 @@ public class RecommendationCreator {
      * 수동 추천 생성.
      * 인증된 핸들이 없으면 {@link Optional#empty()} 반환.
      * API 실패 시 FAILED로 저장 후 예외 전파.
+     * <p>
+     * saveSuccess는 REQUIRES_NEW로 독립 커밋되므로, 호출자 트랜잭션의 REPEATABLE_READ 스냅샷에서
+     * 새로 커밋된 문제 행이 보이지 않는 문제를 방지하기 위해 문제 목록을 함께 반환한다.
      */
-    public Optional<Recommendation> createForSquad(Squad squad, RecommendationType type, LocalDate date) {
+    public Optional<CreationResult> createForSquad(Squad squad, RecommendationType type, LocalDate date) {
         Long teamId = squad.getTeam().getId();
         List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
         if (handles.isEmpty()) {
@@ -48,8 +56,8 @@ public class RecommendationCreator {
         }
 
         Recommendation pending = recommendationSaver.createOrResetPending(squad, date, type);
-        processInternal(pending, squad, handles);
-        return Optional.of(pending);
+        List<Problem> problems = processInternal(pending, squad, handles);
+        return Optional.of(new CreationResult(pending, problems));
     }
 
     /**
@@ -68,7 +76,7 @@ public class RecommendationCreator {
         processInternal(pending, squad, handles);
     }
 
-    private void processInternal(Recommendation pending, Squad squad, List<String> handles) {
+    private List<Problem> processInternal(Recommendation pending, Squad squad, List<String> handles) {
         try {
             List<Problem> problems = recommendProblemsForSquad(squad, handles);
             Long teamId = squad.getTeam().getId();
@@ -76,6 +84,7 @@ public class RecommendationCreator {
             recommendationSaver.saveSuccess(pending, problems, members, squad);
             log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 문제: {}개",
                     squad.getTeam().getName(), squad.getName(), problems.size());
+            return problems;
         } catch (Exception e) {
             recommendationSaver.saveFailed(pending);
             throw e;

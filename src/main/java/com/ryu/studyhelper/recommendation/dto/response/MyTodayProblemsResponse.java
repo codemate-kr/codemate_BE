@@ -1,6 +1,8 @@
 package com.ryu.studyhelper.recommendation.dto.response;
 
-import java.time.LocalDateTime;
+import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -18,7 +20,8 @@ public record MyTodayProblemsResponse(
             Long teamId,
             String teamName,
             Long recommendationId,
-            LocalDateTime createdAt,
+            LocalDate date,
+            RecommendationStatus status,
             List<TodayProblemResponse.ProblemWithSolvedStatus> problems
     ) {
         public static TeamTodayProblems from(
@@ -30,7 +33,8 @@ public record MyTodayProblemsResponse(
                     teamId,
                     teamName,
                     todayProblemResponse.recommendationId(),
-                    todayProblemResponse.createdAt(),
+                    todayProblemResponse.date(),
+                    todayProblemResponse.status(),
                     todayProblemResponse.problems()
             );
         }
