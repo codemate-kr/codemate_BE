@@ -134,7 +134,7 @@ class RecommendationServiceTest {
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
                     .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), java.util.List.of(), java.util.List.of())));
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -190,7 +190,7 @@ class RecommendationServiceTest {
                     .thenReturn(Optional.of(failedRecommendation));
             when(recommendationCreator.createForSquad(any(), any(), any()))
                     .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), java.util.List.of(), java.util.List.of())));
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when: 예외 없이 정상 실행
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -215,7 +215,7 @@ class RecommendationServiceTest {
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
                     .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
-                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), java.util.List.of(), java.util.List.of())));
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
