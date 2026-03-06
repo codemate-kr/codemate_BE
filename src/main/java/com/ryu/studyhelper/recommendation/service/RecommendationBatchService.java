@@ -123,6 +123,7 @@ public class RecommendationBatchService {
         Map<Long, Squad> squadByIdWithTeam = squadRepository.findByIdsWithTeam(squadIds).stream()
                 .collect(Collectors.toMap(Squad::getId, s -> s));
 
+        int totalCount = failedRecommendations.size();
         int successCount = 0, failCount = 0, skipCount = 0;
 
         for (Recommendation recommendation : failedRecommendations) {
@@ -135,7 +136,7 @@ public class RecommendationBatchService {
             try {
                 if (!recommendationSaver.tryPrepareForRetry(recommendation)) {
                     log.info("[{}] 스쿼드 '{}' 재시도 스킵 — 다른 워커가 선점함", squad.getTeam().getName(), squad.getName());
-                    skipCount++;
+                    totalCount--; // 다른 워커가 선점 — 이 워커의 처리 대상에서 제외
                     continue;
                 }
                 recommendationCreator.process(recommendation, squad);
@@ -147,8 +148,8 @@ public class RecommendationBatchService {
         }
 
         log.info("재시도 완료 — 대상: {}개, 성공: {}개, 스킵: {}개, 실패: {}개",
-                failedRecommendations.size(), successCount, skipCount, failCount);
-        return new BatchResult(failedRecommendations.size(), successCount, skipCount, failCount);
+                totalCount, successCount, skipCount, failCount);
+        return new BatchResult(totalCount, successCount, skipCount, failCount);
     }
 
     private List<Squad> getActiveSquads(LocalDate date) {

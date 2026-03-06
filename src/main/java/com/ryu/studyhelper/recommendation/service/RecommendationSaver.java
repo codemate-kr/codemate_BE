@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -58,13 +60,24 @@ class RecommendationSaver {
                     if (existing.getStatus() != RecommendationStatus.FAILED) {
                         throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                     }
-                    existing.retryAsPending();
-                    return recommendationRepository.save(existing);
+                    // CAS: 다른 워커(배치 재시도·동시 수동 요청)가 이미 PENDING으로 전이했을 경우 0 반환
+                    int updated = recommendationRepository.compareAndUpdateStatus(
+                            existing.getId(), RecommendationStatus.PENDING, RecommendationStatus.FAILED);
+                    if (updated == 0) {
+                        throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
+                    }
+                    existing.retryAsPending(); // in-memory 동기화
+                    return existing;
                 })
                 .orElseGet(() -> {
                     Recommendation pending = Recommendation.createPending(
                             squad.getTeam().getId(), squad.getId(), type, date);
-                    return recommendationRepository.save(pending);
+                    try {
+                        return recommendationRepository.save(pending);
+                    } catch (DataIntegrityViolationException e) {
+                        // 동시 요청이 먼저 INSERT — 중복으로 처리
+                        throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
+                    }
                 });
     }
 

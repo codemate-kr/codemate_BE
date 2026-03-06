@@ -224,8 +224,8 @@ class RecommendationBatchServiceTest {
         }
 
         @Test
-        @DisplayName("점유 실패(다른 워커 선점) 시 process 미호출 + skipCount 증가")
-        void alreadyClaimed_skipsWithoutProcess() {
+        @DisplayName("점유 실패(다른 워커 선점) 시 process 미호출 + totalCount에서 제외")
+        void alreadyClaimed_excludesFromTotal() {
             // given
             Clock clock = fixedClock("2025-01-15T07:00:00");
             setupServiceWithClock(clock);
@@ -243,7 +243,8 @@ class RecommendationBatchServiceTest {
 
             // then
             verify(recommendationCreator, never()).process(any(), any());
-            assertThat(result.skipCount()).isEqualTo(1);
+            assertThat(result.totalCount()).isEqualTo(0); // 선점된 항목은 이 워커의 대상에서 제외
+            assertThat(result.skipCount()).isEqualTo(0);
             assertThat(result.successCount()).isEqualTo(0);
         }
 
