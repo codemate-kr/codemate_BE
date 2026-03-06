@@ -104,12 +104,14 @@ public class RecommendationBatchService {
     }
 
     /**
-     * 실패(status = FAILED) 미션 대상 배치 작업
-     * */
+     * 실패(status = FAILED) 미션 재시도 배치 작업.
+     * FAILED 레코드를 PENDING으로 전이한 후 추천 생성을 다시 시도한다.
+     * PENDING은 누군가 작업 중임을 의미하므로 재시도 대상에서 제외한다.
+     */
     public BatchResult retryFailed() {
         LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
         List<Recommendation> targets = recommendationRepository.findByDateAndStatusIn(
-                missionDate, List.of(RecommendationStatus.PENDING, RecommendationStatus.FAILED));
+                missionDate, List.of(RecommendationStatus.FAILED));
 
         log.info("재시도 대상: {}개 (date={})", targets.size(), missionDate);
 
@@ -131,6 +133,7 @@ public class RecommendationBatchService {
                 continue;
             }
             try {
+                recommendationSaver.resetToPending(rec);
                 recommendationCreator.process(rec, squad);
                 successCount++;
             } catch (Exception e) {

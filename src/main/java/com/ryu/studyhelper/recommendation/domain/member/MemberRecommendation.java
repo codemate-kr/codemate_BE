@@ -55,19 +55,6 @@ public class MemberRecommendation extends BaseEntity {
     @Column(name = "email_sent_at")
     private LocalDateTime emailSentAt;
 
-    public static MemberRecommendation create(Member member, Recommendation recommendation, Team team) {
-        if (team == null) {
-            throw new IllegalArgumentException("Team must not be null");
-        }
-        return MemberRecommendation.builder()
-                .member(member)
-                .recommendation(recommendation)
-                .teamId(team.getId())
-                .teamName(team.getName())
-                .emailSendStatus(EmailSendStatus.PENDING)
-                .build();
-    }
-
     public static MemberRecommendation createForSquad(Member member, Recommendation recommendation, Team team, Long squadId) {
         if (team == null) {
             throw new IllegalArgumentException("Team must not be null");

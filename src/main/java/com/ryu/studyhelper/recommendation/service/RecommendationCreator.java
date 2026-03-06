@@ -8,6 +8,7 @@ import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.dto.internal.CreationResult;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
 import com.ryu.studyhelper.team.repository.TeamMemberRepository;
@@ -28,11 +29,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class RecommendationCreator {
-
-    /**
-     * 수동 추천 생성 결과 (REQUIRES_NEW 커밋 후 DB 재조회 없이 문제/멤버 목록 전달)
-     */
-    public record CreationResult(Recommendation recommendation, List<Problem> problems, List<MemberRecommendation> memberRecommendations) {}
 
     private final TeamMemberRepository teamMemberRepository;
     private final SquadIncludeTagRepository squadIncludeTagRepository;
@@ -63,31 +59,31 @@ public class RecommendationCreator {
 
     /**
      * 배치/재시도 배치용 처리.
-     * 기존 PENDING 레코드를 받아 API 호출 → SUCCESS or FAILED 업데이트.
+     * PENDING 상태 레코드를 받아 API 호출 → SUCCESS or FAILED 업데이트.
      * 실패 시 FAILED로 저장 후 예외 전파.
      */
-    public void process(Recommendation pending, Squad squad) {
+    public void process(Recommendation rec, Squad squad) {
         Long teamId = squad.getTeam().getId();
         List<String> handles = teamMemberRepository.findHandlesByTeamIdAndSquadId(teamId, squad.getId());
         if (handles.isEmpty()) {
             log.warn("스쿼드 '{}'의 인증된 핸들이 없어 FAILED 처리합니다", squad.getName());
-            recommendationSaver.saveFailed(pending);
+            recommendationSaver.saveFailed(rec);
             throw new IllegalStateException("인증된 핸들 없음: " + squad.getName());
         }
-        processInternal(pending, squad, handles);
+        processInternal(rec, squad, handles);
     }
 
-    private CreationResult processInternal(Recommendation pending, Squad squad, List<String> handles) {
+    private CreationResult processInternal(Recommendation rec, Squad squad, List<String> handles) {
         try {
             List<Problem> problems = recommendProblemsForSquad(squad, handles);
             Long teamId = squad.getTeam().getId();
             List<Member> members = teamMemberRepository.findMembersByTeamIdAndSquadId(teamId, squad.getId());
-            List<MemberRecommendation> memberRecommendations = recommendationSaver.saveSuccess(pending, problems, members, squad);
+            List<MemberRecommendation> memberRecommendations = recommendationSaver.saveSuccess(rec, problems, members, squad);
             log.info("추천 생성 완료 - 팀: {}, 스쿼드: {}, 문제: {}개",
                     squad.getTeam().getName(), squad.getName(), problems.size());
-            return new CreationResult(pending, problems, memberRecommendations);
+            return new CreationResult(rec, problems, memberRecommendations);
         } catch (Exception e) {
-            recommendationSaver.saveFailed(pending);
+            recommendationSaver.saveFailed(rec);
             throw e;
         }
     }

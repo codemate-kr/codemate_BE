@@ -10,6 +10,7 @@ import com.ryu.studyhelper.problem.service.ProblemSyncService;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
+import com.ryu.studyhelper.recommendation.dto.internal.CreationResult;
 import com.ryu.studyhelper.team.domain.Squad;
 import com.ryu.studyhelper.team.domain.Team;
 import com.ryu.studyhelper.team.repository.SquadIncludeTagRepository;
@@ -83,7 +84,7 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of(member));
 
             // when
-            Optional<RecommendationCreator.CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
+            Optional<CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isPresent();
@@ -156,7 +157,7 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of());
 
             // when
-            Optional<RecommendationCreator.CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
+            Optional<CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isEmpty();

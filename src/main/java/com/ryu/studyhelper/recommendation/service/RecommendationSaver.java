@@ -58,7 +58,7 @@ class RecommendationSaver {
                     if (existing.getStatus() != RecommendationStatus.FAILED) {
                         throw new CustomException(CustomResponseStatus.RECOMMENDATION_ALREADY_EXISTS_TODAY);
                     }
-                    existing.updateStatus(RecommendationStatus.PENDING);
+                    existing.retryAsPending();
                     return recommendationRepository.save(existing);
                 })
                 .orElseGet(() -> {
@@ -85,7 +85,7 @@ class RecommendationSaver {
                 .map(member -> memberRecommendationRepository.save(
                         MemberRecommendation.createForSquad(member, rec, squad.getTeam(), squad.getId())))
                 .toList();
-        rec.updateStatus(RecommendationStatus.SUCCESS);
+        rec.markAsSuccess();
         recommendationRepository.save(rec);
         return memberRecommendations;
     }
@@ -95,7 +95,16 @@ class RecommendationSaver {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     void saveFailed(Recommendation rec) {
-        rec.updateStatus(RecommendationStatus.FAILED);
+        rec.markAsFailed();
+        recommendationRepository.save(rec);
+    }
+
+    /**
+     * FAILED → PENDING 전이 후 저장 (배치 재시도 진입점)
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    void resetToPending(Recommendation rec) {
+        rec.retryAsPending();
         recommendationRepository.save(rec);
     }
 }

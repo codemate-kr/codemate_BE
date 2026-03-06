@@ -8,6 +8,7 @@ import com.ryu.studyhelper.recommendation.domain.Recommendation;
 import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.dto.internal.CreationResult;
 import com.ryu.studyhelper.recommendation.dto.projection.ProblemWithSolvedStatusProjection;
 import com.ryu.studyhelper.recommendation.dto.response.MyTodayProblemsResponse;
 import com.ryu.studyhelper.recommendation.dto.response.RecommendationDetailResponse;
@@ -61,7 +62,7 @@ public class RecommendationService {
 
         LocalDate missionDate = validateNoSquadRecommendationToday(teamId, squadId);
 
-        RecommendationCreator.CreationResult result =
+        CreationResult result =
                 recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
                         .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
