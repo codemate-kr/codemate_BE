@@ -83,10 +83,11 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of(member));
 
             // when
-            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
+            Optional<RecommendationCreator.CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isPresent();
+            assertThat(result.get().problems()).isEqualTo(problems);
             verify(recommendationSaver).saveSuccess(eq(pending), eq(problems), eq(List.of(member)), eq(squad));
         }
 
@@ -155,7 +156,7 @@ class RecommendationCreatorTest {
                     .thenReturn(List.of());
 
             // when
-            Optional<Recommendation> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
+            Optional<RecommendationCreator.CreationResult> result = recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, TODAY);
 
             // then
             assertThat(result).isEmpty();

@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -133,8 +134,8 @@ class RecommendationServiceTest {
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(eq(TEAM_ID), eq(SQUAD_ID), any(LocalDate.class)))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
-            when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
+                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -189,8 +190,8 @@ class RecommendationServiceTest {
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
                     .thenReturn(Optional.of(failedRecommendation));
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
-            when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
+                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when: 예외 없이 정상 실행
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
@@ -214,8 +215,8 @@ class RecommendationServiceTest {
             when(recommendationRepository.findByTeamIdAndSquadIdAndDate(TEAM_ID, SQUAD_ID, LocalDate.parse("2025-01-15")))
                     .thenReturn(Optional.empty());
             when(recommendationCreator.createForSquad(any(), any(), any()))
-                    .thenReturn(Optional.of(createRecommendationWithDate(TEAM_ID, LocalDate.now())));
-            when(memberRecommendationRepository.findByRecommendationId(any())).thenReturn(java.util.List.of());
+                    .thenReturn(Optional.of(new RecommendationCreator.CreationResult(
+                            createRecommendationWithDate(TEAM_ID, LocalDate.now()), List.of(), List.of())));
 
             // when
             recommendationService.createManualRecommendationForSquad(TEAM_ID, SQUAD_ID);
