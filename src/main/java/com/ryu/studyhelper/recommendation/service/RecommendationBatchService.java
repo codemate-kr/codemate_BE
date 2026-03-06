@@ -110,31 +110,35 @@ public class RecommendationBatchService {
      */
     public BatchResult retryFailed() {
         LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
-        List<Recommendation> targets = recommendationRepository.findByDateAndStatusIn(
+        List<Recommendation> failedRecommendations = recommendationRepository.findByDateAndStatusIn(
                 missionDate, List.of(RecommendationStatus.FAILED));
 
-        log.info("재시도 대상: {}개 (date={})", targets.size(), missionDate);
+        log.info("재시도 대상: {}개 (date={})", failedRecommendations.size(), missionDate);
 
-        if (targets.isEmpty()) {
+        if (failedRecommendations.isEmpty()) {
             return new BatchResult(0, 0, 0, 0);
         }
 
-        List<Long> squadIds = targets.stream().map(Recommendation::getSquadId).toList();
-        Map<Long, Squad> squadMap = squadRepository.findByIdsWithTeam(squadIds).stream()
+        List<Long> squadIds = failedRecommendations.stream().map(Recommendation::getSquadId).toList();
+        Map<Long, Squad> squadByIdWithTeam = squadRepository.findByIdsWithTeam(squadIds).stream()
                 .collect(Collectors.toMap(Squad::getId, s -> s));
 
         int successCount = 0, failCount = 0, skipCount = 0;
 
-        for (Recommendation rec : targets) {
-            Squad squad = squadMap.get(rec.getSquadId());
+        for (Recommendation recommendation : failedRecommendations) {
+            Squad squad = squadByIdWithTeam.get(recommendation.getSquadId());
             if (squad == null) {
-                log.warn("스쿼드 ID {}를 찾을 수 없어 스킵합니다", rec.getSquadId());
+                log.warn("스쿼드 ID {}를 찾을 수 없어 스킵합니다", recommendation.getSquadId());
                 skipCount++;
                 continue;
             }
             try {
-                recommendationSaver.resetToPending(rec);
-                recommendationCreator.process(rec, squad);
+                if (!recommendationSaver.tryPrepareForRetry(recommendation)) {
+                    log.info("[{}] 스쿼드 '{}' 재시도 스킵 — 다른 워커가 선점함", squad.getTeam().getName(), squad.getName());
+                    skipCount++;
+                    continue;
+                }
+                recommendationCreator.process(recommendation, squad);
                 successCount++;
             } catch (Exception e) {
                 failCount++;
@@ -143,8 +147,8 @@ public class RecommendationBatchService {
         }
 
         log.info("재시도 완료 — 대상: {}개, 성공: {}개, 스킵: {}개, 실패: {}개",
-                targets.size(), successCount, skipCount, failCount);
-        return new BatchResult(targets.size(), successCount, skipCount, failCount);
+                failedRecommendations.size(), successCount, skipCount, failCount);
+        return new BatchResult(failedRecommendations.size(), successCount, skipCount, failCount);
     }
 
     private List<Squad> getActiveSquads(LocalDate date) {

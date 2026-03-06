@@ -96,11 +96,19 @@ class RecommendationSaver {
     }
 
     /**
-     * FAILED → PENDING 전이 후 저장 (배치 재시도 진입점)
+     * FAILED → PENDING 조건부 원자 업데이트 (배치 재시도 진입점)
+     * stale 엔티티 기반 저장 대신 DB 조건부 UPDATE로 점유 성공 여부 반환.
+     * claimedCount=0이면 다른 워커가 이미 선점했거나 SUCCESS로 전이된 것.
+     *
+     * @return true: 점유 성공, false: 다른 워커가 선점
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    void resetToPending(Recommendation rec) {
-        rec.retryAsPending();
-        recommendationRepository.save(rec);
+    boolean tryPrepareForRetry(Recommendation recommendation) {
+        int claimedCount = recommendationRepository.compareAndUpdateStatus(
+                recommendation.getId(), RecommendationStatus.PENDING, RecommendationStatus.FAILED);
+        if (claimedCount > 0) {
+            recommendation.retryAsPending(); // 후속 markAsSuccess() 가드 통과용 in-memory 동기화
+        }
+        return claimedCount > 0;
     }
 }
