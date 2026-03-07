@@ -58,6 +58,34 @@ public class RecommendationEmailService {
     }
 
     /**
+     * FAILED 이메일 재발송 배치.
+     * 수동 발송(send)은 추천 생성 시점에만 실행되어 이 배치와 동시 실행될 수 없으므로
+     * PENDING 경유 없이 FAILED → SENT 직접 전이한다.
+     */
+    public BatchResult retryFailed() {
+        LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
+        log.info("이메일 재발송 배치 시작: {}", missionDate);
+
+        List<MemberRecommendation> failedRecommendations = memberRecommendationRepository
+                .findByRecommendationDateAndEmailSendStatus(missionDate, EmailSendStatus.FAILED);
+
+        int successCount = 0;
+        int failCount = 0;
+
+        for (MemberRecommendation mr : failedRecommendations) {
+            if (sendEmail(mr)) {
+                successCount++;
+            } else {
+                failCount++;
+            }
+        }
+
+        log.info("이메일 재발송 배치 완료 — 대상: {}개, 성공: {}개, 실패: {}개",
+                failedRecommendations.size(), successCount, failCount);
+        return new BatchResult(failedRecommendations.size(), successCount, 0, failCount);
+    }
+
+    /**
      * 수동 추천: 해당 추천의 팀원들에게 이메일 즉시 발송.
      */
     public void send(List<MemberRecommendation> memberRecommendations) {

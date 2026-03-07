@@ -37,9 +37,11 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
      * 특정 날짜 + 이메일 발송 상태의 개인 추천 조회
      * 이메일 발송 배치에서 오늘 대상 조회 시 사용
      */
-    @Query("SELECT mr FROM MemberRecommendation mr " +
+    @Query("SELECT DISTINCT mr FROM MemberRecommendation mr " +
             "JOIN FETCH mr.recommendation r " +
             "JOIN FETCH mr.member m " +
+            "LEFT JOIN FETCH r.problems rp " +
+            "LEFT JOIN FETCH rp.problem " +
             "WHERE r.date = :date " +
             "AND mr.emailSendStatus = :status")
     List<MemberRecommendation> findByRecommendationDateAndEmailSendStatus(
