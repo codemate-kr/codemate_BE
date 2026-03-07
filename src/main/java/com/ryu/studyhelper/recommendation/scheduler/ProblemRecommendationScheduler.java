@@ -10,8 +10,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * 매일 오전 6시에 팀별 문제 추천을 준비하는 스케줄러
- * solved.ac API 호출 및 DB 저장만 수행 (이메일 발송 X)
+ * 문제 추천 스케줄러
+ * - 06:00: 팀별 문제 추천 생성
+ * - 07:00: FAILED 스쿼드 1회 재시도
  */
 @Component
 @RequiredArgsConstructor
@@ -37,10 +38,29 @@ public class ProblemRecommendationScheduler {
             log.error("=== 문제 추천 배치 작업 실패 === (소요시간: {}ms)", System.currentTimeMillis() - startTime, e);
         }
 
-        notifyDiscord(result, failure, System.currentTimeMillis() - startTime);
+        notifyMain(result, failure, System.currentTimeMillis() - startTime);
     }
 
-    private void notifyDiscord(BatchResult result, Exception failure, long elapsed) {
+    @Scheduled(cron = "0 0 7 * * *", zone = "Asia/Seoul")
+    public void retryFailed() {
+        log.info("=== 추천 재시도 배치 작업 시작 ===");
+
+        long startTime = System.currentTimeMillis();
+        BatchResult result = null;
+        Exception failure = null;
+
+        try {
+            result = scheduledRecommendationService.retryFailed();
+            log.info("=== 추천 재시도 배치 작업 완료 === (소요시간: {}ms)", System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            failure = e;
+            log.error("=== 추천 재시도 배치 작업 실패 === (소요시간: {}ms)", System.currentTimeMillis() - startTime, e);
+        }
+
+        notifyRetry(result, failure, System.currentTimeMillis() - startTime);
+    }
+
+    private void notifyMain(BatchResult result, Exception failure, long elapsed) {
         try {
             if (failure != null) {
                 discordNotifier.sendScheduler(DiscordMessage.error("문제 추천 배치 실패", failure, elapsed));
@@ -49,6 +69,23 @@ public class ProblemRecommendationScheduler {
                 discordNotifier.sendScheduler(DiscordMessage.batchResult(
                         title, result.totalCount(), result.successCount(), result.skipCount(), result.failCount(), elapsed));
             }
+        } catch (Exception e) {
+            log.warn("Discord 알림 전송 실패", e);
+        }
+    }
+
+    private void notifyRetry(BatchResult result, Exception failure, long elapsed) {
+        try {
+            if (failure != null) {
+                discordNotifier.sendScheduler(DiscordMessage.error("추천 재시도 배치 실패", failure, elapsed));
+                return;
+            }
+            if (result.totalCount() == 0) {
+                return;
+            }
+            String title = result.failCount() > 0 ? "추천 재시도 배치 완료 (실패 있음)" : "추천 재시도 배치 완료";
+            discordNotifier.sendScheduler(DiscordMessage.batchResult(
+                    title, result.totalCount(), result.successCount(), result.skipCount(), result.failCount(), elapsed));
         } catch (Exception e) {
             log.warn("Discord 알림 전송 실패", e);
         }
