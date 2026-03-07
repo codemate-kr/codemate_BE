@@ -59,8 +59,8 @@ public class RecommendationEmailService {
 
     /**
      * FAILED 이메일 재발송 배치.
-     * 수동 발송(send)은 추천 생성 시점에만 실행되어 이 배치와 동시 실행될 수 없으므로
-     * PENDING 경유 없이 FAILED → SENT 직접 전이한다.
+     * 수동 트리거와 배치가 동시에 실행될 수 있어 FAILED → PENDING CAS로 선점 후 발송한다.
+     * 문제 추천 재시도(RecommendationBatchService.retryFailed)와 동일한 패턴이다.
      */
     public BatchResult retryFailed() {
         LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
@@ -73,6 +73,13 @@ public class RecommendationEmailService {
         int failCount = 0;
 
         for (MemberRecommendation mr : failedRecommendations) {
+            int claimed = memberRecommendationRepository.compareAndUpdateEmailSendStatus(
+                    mr.getId(), EmailSendStatus.PENDING, EmailSendStatus.FAILED);
+            if (claimed == 0) {
+                log.info("회원 ID {} 재발송 스킵 — 다른 워커가 선점함", mr.getMember().getId());
+                continue;
+            }
+            mr.retryAsPending();
             if (sendEmail(mr)) {
                 successCount++;
             } else {

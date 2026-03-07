@@ -106,6 +106,7 @@ public class RecommendationBatchService {
     /**
      * FAILED 미션 재시도 배치.
      * 수동 추천 API(createManual)와 동시 실행될 수 있어 FAILED → PENDING CAS로 선점 후 처리한다.
+     * 이메일 재시도(RecommendationEmailService.retryFailed)도 동일한 패턴을 사용한다.
      */
     public BatchResult retryFailed() {
         LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);

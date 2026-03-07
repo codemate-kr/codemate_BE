@@ -3,9 +3,11 @@ package com.ryu.studyhelper.recommendation.repository;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -48,6 +50,18 @@ public interface MemberRecommendationRepository extends JpaRepository<MemberReco
             @Param("date") LocalDate date,
             @Param("status") EmailSendStatus status
     );
+
+    /**
+     * 이메일 상태 CAS 업데이트
+     * UPDATE ... SET email_send_status = :newStatus WHERE id = :id AND email_send_status = :expectedStatus
+     * 반환값이 1이면 선점 성공, 0이면 다른 워커가 이미 상태를 변경한 것
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE MemberRecommendation mr SET mr.emailSendStatus = :newStatus WHERE mr.id = :id AND mr.emailSendStatus = :expectedStatus")
+    int compareAndUpdateEmailSendStatus(@Param("id") Long id,
+                                        @Param("newStatus") EmailSendStatus newStatus,
+                                        @Param("expectedStatus") EmailSendStatus expectedStatus);
 
     /**
      * 특정 추천에 연결된 모든 개인 추천 조회

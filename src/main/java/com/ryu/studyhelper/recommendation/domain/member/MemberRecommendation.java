@@ -77,4 +77,9 @@ public class MemberRecommendation extends BaseEntity {
     public void markEmailAsFailed() {
         this.emailSendStatus = EmailSendStatus.FAILED;
     }
+
+    // 재시도 CAS 선점 후 in-memory 상태 동기화용
+    public void retryAsPending() {
+        this.emailSendStatus = EmailSendStatus.PENDING;
+    }
 }
