@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
  * 실제 SES 호출 대신 지연 + 로그 출력
  */
 @Component
-@Profile("local")
-@Primary
+@Profile("!prod")
 @Slf4j
 public class FakeMailSender implements MailSender {
 
@@ -19,13 +18,14 @@ public class FakeMailSender implements MailSender {
 
     @Override
     public void send(MailMessage message) {
-        log.debug("[FAKE] 메일 발송 시작 - to: {}, subject: {} ({}ms 지연 시뮬레이션)",
-                message.to(), message.subject(), DELAY_MS);
+        log.debug("[FAKE] 메일 발송 시작 ({}ms 지연 시뮬레이션)\n  to     : {}\n  subject: {}\n  body   : {}자",
+                DELAY_MS, message.to(), message.subject(),
+                message.html() != null ? message.html().length() : 0);
         try {
             Thread.sleep(DELAY_MS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        log.debug("[FAKE] 메일 발송 완료 - to: {}", message.to());
+        log.debug("[FAKE] 메일 발송 완료 - to: {}, subject: {}", message.to(), message.subject());
     }
 }
