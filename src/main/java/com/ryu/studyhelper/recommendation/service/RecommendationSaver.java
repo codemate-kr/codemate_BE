@@ -88,7 +88,8 @@ class RecommendationSaver {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     List<MemberRecommendation> saveSuccess(Recommendation rec, List<Problem> problems, List<Member> members, Squad squad) {
         for (Problem problem : problems) {
-            recommendationProblemRepository.save(RecommendationProblem.create(problem, rec));
+            RecommendationProblem rp = recommendationProblemRepository.save(RecommendationProblem.create(problem, rec));
+            rec.getProblems().add(rp); // 수동 추천 시 in-memory 동기화 (메일 빌더가 재조회 없이 사용)
         }
         List<MemberRecommendation> memberRecommendations = members.stream()
                 .map(member -> memberRecommendationRepository.save(
