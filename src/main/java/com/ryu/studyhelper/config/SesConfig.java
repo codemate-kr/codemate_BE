@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.ses.SesClient;
  * 2. DefaultCredentialsProvider - EC2 IAM 역할 등
  */
 @Configuration
-@Profile("!test")
+@Profile("prod")
 public class SesConfig {
 
     @Value("${aws.ses.region}")

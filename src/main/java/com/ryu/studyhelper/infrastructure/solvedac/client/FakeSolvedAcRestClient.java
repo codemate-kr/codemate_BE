@@ -33,7 +33,10 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     @Override
     public SolvedAcUserResponse getUserInfo(String handle) {
         simulate("getUserInfo", handle);
-        return new SolvedAcUserResponse(handle, 15, 200, 100, 1500);
+        SolvedAcUserResponse response = new SolvedAcUserResponse(handle, 15, 200, 100, 1500);
+        log.debug("[FAKE] getUserInfo 반환\n  handle: {}, tier: {}, solvedCount: {}, rating: {}",
+                response.handle(), response.tier(), response.solvedCount(), response.rating());
+        return response;
     }
 
     @Retry(name = "solvedAc")
@@ -41,13 +44,19 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     @Override
     public ProblemSearchResponse searchProblems(String query, String sort, String direction) {
         simulate("searchProblems", query);
-        return new ProblemSearchResponse(List.of(
+        ProblemSearchResponse response = new ProblemSearchResponse(List.of(
                 createDummyProblem(1000L, "A+B", 1),
                 createDummyProblem(1001L, "A-B", 1),
                 createDummyProblem(2557L, "Hello World", 2),
                 createDummyProblem(10828L, "스택", 7),
                 createDummyProblem(1149L, "RGB거리", 10)
         ));
+        String problemSummary = response.items().stream()
+                .map(p -> p.problemId() + "(" + p.titleKo() + ", lv." + p.level() + ")")
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("(없음)");
+        log.debug("[FAKE] searchProblems 반환\n  query: {}\n  problems: {}", query, problemSummary);
+        return response;
     }
 
     @Retry(name = "solvedAc")
@@ -55,7 +64,9 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     @Override
     public SolvedAcUserBioResponse getUserBio(String handle) {
         simulate("getUserBio", handle);
-        return new SolvedAcUserBioResponse(handle, "fake bio for testing");
+        SolvedAcUserBioResponse response = new SolvedAcUserBioResponse(handle, "fake bio for testing");
+        log.debug("[FAKE] getUserBio 반환\n  handle: {}, bio: {}", response.handle(), response.bio());
+        return response;
     }
 
     private void simulate(String method, String param) {
@@ -63,7 +74,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
             log.debug("[FAKE] {} 즉시 에러 시뮬레이션 - param: {}", method, param);
             throw new ResourceAccessException("[FAKE] SolvedAC 즉시 에러");
         }
-        log.debug("[FAKE] {} {}ms 지연 시뮬레이션 - param: {}", method, DELAY_MS, param);
+        log.debug("[FAKE] {} 호출 - param: {}, {}ms 지연 시뮬레이션", method, param, DELAY_MS);
         try {
             Thread.sleep(DELAY_MS);
         } catch (InterruptedException e) {

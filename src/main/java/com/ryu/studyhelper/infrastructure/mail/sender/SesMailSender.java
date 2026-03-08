@@ -2,6 +2,7 @@ package com.ryu.studyhelper.infrastructure.mail.sender;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
  * AWS SES 기반 메일 발송 구현체
  */
 @Component
+@Profile("prod")
 @Slf4j
 public class SesMailSender implements MailSender {
 
@@ -19,7 +21,7 @@ public class SesMailSender implements MailSender {
 
     private final SesClient sesClient;
 
-    @Value("${aws.ses.from-email}")
+@Value("${aws.ses.from-email}")
     private String fromEmail;
 
     @Value("${aws.ses.configuration-set:#{null}}")

@@ -15,27 +15,34 @@ public class FakeDiscordNotifier implements DiscordNotifier {
 
     @Override
     public void sendScheduler(DiscordMessage message) {
-        log.debug("[FAKE DISCORD] 스케줄러 알림: {}", extractTitle(message));
+        log.debug("[FAKE DISCORD] 스케줄러 알림{}", formatMessage(message));
     }
 
     @Override
     public void sendEvent(DiscordMessage message) {
-        log.debug("[FAKE DISCORD] 이벤트 알림: {}", extractTitle(message));
+        log.debug("[FAKE DISCORD] 이벤트 알림{}", formatMessage(message));
     }
 
     @Override
     public void sendInfra(DiscordMessage message) {
-        log.debug("[FAKE DISCORD] 인프라 알림: {}", extractTitle(message));
+        log.debug("[FAKE DISCORD] 인프라 알림{}", formatMessage(message));
     }
 
-    private String extractTitle(DiscordMessage message) {
+    private String formatMessage(DiscordMessage message) {
         if (message.embeds() == null || message.embeds().isEmpty()) {
-            return "(제목 없음)";
+            return " (내용 없음)";
         }
         DiscordMessage.Embed embed = message.embeds().get(0);
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n  title      : ").append(embed.title());
         if (embed.description() != null) {
-            return embed.title() + " | " + embed.description();
+            sb.append("\n  description: ").append(embed.description());
         }
-        return embed.title();
+        if (embed.fields() != null) {
+            for (DiscordMessage.Field field : embed.fields()) {
+                sb.append("\n  ").append(field.name()).append(": ").append(field.value());
+            }
+        }
+        return sb.toString();
     }
 }
