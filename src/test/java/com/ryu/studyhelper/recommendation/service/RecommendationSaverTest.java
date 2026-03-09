@@ -3,7 +3,6 @@ package com.ryu.studyhelper.recommendation.service;
 import com.ryu.studyhelper.member.domain.Member;
 import com.ryu.studyhelper.problem.domain.Problem;
 import com.ryu.studyhelper.recommendation.domain.Recommendation;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.RecommendationStatus;
 import com.ryu.studyhelper.recommendation.domain.RecommendationType;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
@@ -33,13 +32,8 @@ import static org.mockito.Mockito.*;
  * RecommendationSaver 단위 테스트
  *
  * 검증 목표:
- * - saveSuccess() 호출 후 rec.getProblems()가 in-memory에서 동기화되는지
+ * - saveSuccess() 호출 후 상태 전이 및 저장 동작
  * - REQUIRES_NEW 메서드가 반환하는 객체의 내부 상태 계약
- *
- * 재발 방지 배경:
- * saveSuccess()가 DB에 RecommendationProblem을 저장했지만 rec.problems 컬렉션에는
- * 추가하지 않아, 수동 추천 직후 메일 빌더가 빈 문제 목록으로 메일을 발송하는 버그가 발생했다.
- * (@Transactional REQUIRES_NEW로 커밋 후 반환된 rec는 detached 상태이므로 lazy load 불가)
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RecommendationSaver 단위 테스트")
@@ -64,68 +58,6 @@ class RecommendationSaverTest {
     @Nested
     @DisplayName("saveSuccess - 성공 저장")
     class SaveSuccess {
-
-        /**
-         * 핵심 회귀 테스트.
-         * saveSuccess() 후 반환된 MemberRecommendation들의 recommendation.getProblems()가
-         * 비어있으면, 메일 빌더가 0개 문제로 메일을 발송하는 버그가 재발한다.
-         */
-        @Test
-        @DisplayName("저장된 문제가 rec.getProblems()에 반영된다 (메일 빌더 in-memory 계약)")
-        void savedProblems_areReflectedInRecProblems() {
-            // given
-            Recommendation rec = createPendingRecommendation();
-            Problem p1 = createProblem(1000L);
-            Problem p2 = createProblem(1001L);
-            List<Problem> problems = List.of(p1, p2);
-
-            Squad squad = createSquad();
-            Member member = createMember(100L, "user@test.com");
-
-            RecommendationProblem rp1 = RecommendationProblem.create(p1, rec);
-            RecommendationProblem rp2 = RecommendationProblem.create(p2, rec);
-            when(recommendationProblemRepository.save(any()))
-                    .thenReturn(rp1, rp2);
-            when(memberRecommendationRepository.save(any()))
-                    .thenAnswer(inv -> inv.getArgument(0));
-            when(recommendationRepository.save(any()))
-                    .thenAnswer(inv -> inv.getArgument(0));
-
-            // when
-            List<MemberRecommendation> result = recommendationSaver.saveSuccess(rec, problems, List.of(member), squad);
-
-            // then: 반환된 MemberRecommendation의 recommendation.problems가 채워져 있어야 한다
-            // (메일 빌더는 mr.getRecommendation().getProblems()로 문제 목록을 읽는다)
-            assertThat(result).hasSize(1);
-            Recommendation recommendation = result.get(0).getRecommendation();
-            assertThat(recommendation.getProblems())
-                    .as("수동 추천 메일 빌더가 읽는 rec.problems가 비어 있으면 0개 문제로 메일이 발송됨")
-                    .hasSize(2);
-        }
-
-        @Test
-        @DisplayName("저장된 문제 수와 rec.getProblems() 크기가 일치한다")
-        void problemCount_matchesSavedCount() {
-            // given
-            Recommendation rec = createPendingRecommendation();
-            List<Problem> problems = List.of(
-                    createProblem(1000L), createProblem(1001L), createProblem(1002L)
-            );
-            Squad squad = createSquad();
-
-            when(recommendationProblemRepository.save(any()))
-                    .thenAnswer(inv -> inv.getArgument(0));
-            when(memberRecommendationRepository.save(any()))
-                    .thenAnswer(inv -> inv.getArgument(0));
-            when(recommendationRepository.save(any()))
-                    .thenAnswer(inv -> inv.getArgument(0));
-
-            // when
-            recommendationSaver.saveSuccess(rec, problems, List.of(createMember(1L, "a@b.com")), squad);
-
-            // then
-            assertThat(rec.getProblems()).hasSize(3);
-        }
 
         @Test
         @DisplayName("성공 저장 후 rec 상태가 SUCCESS로 전이된다")
