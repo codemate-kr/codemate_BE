@@ -3,7 +3,6 @@ package com.ryu.studyhelper.recommendation.mailbuilder;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailMessage;
 import com.ryu.studyhelper.infrastructure.mail.support.CssInliner;
 import com.ryu.studyhelper.problem.domain.Problem;
-import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +36,10 @@ public class RecommendationMailBuilder {
     private String frontendUrl;
 
     /**
-     * MemberRecommendation으로부터 메일 메시지 생성
+     * 메일 메시지 생성
+     * problems는 호출자가 직접 전달 — lazy 로딩에 의존하지 않음
      */
-    public MailMessage build(MemberRecommendation mr) {
+    public MailMessage build(MemberRecommendation mr, List<Problem> problems) {
         String to = mr.getMember().getEmail();
         String date = mr.getRecommendation().getDate().format(DATE_FORMATTER);
         Long teamId = mr.getTeamId();
@@ -47,7 +47,7 @@ public class RecommendationMailBuilder {
         return new MailMessage(
                 to,
                 buildSubject(date),
-                buildHtml(mr, date, teamId)
+                buildHtml(date, teamId, problems)
         );
     }
 
@@ -57,18 +57,17 @@ public class RecommendationMailBuilder {
         return String.format("[CodeMate] 오늘의 미션 문제 (%s)", date);
     }
 
-    private String buildHtml(MemberRecommendation mr, String date, Long teamId) {
+    private String buildHtml(String date, Long teamId, List<Problem> problems) {
         Context context = new Context();
         context.setVariable("subject", buildSubject(date));
         context.setVariable("recommendationDate", date);
         context.setVariable("teamPageUrl", frontendUrl + "/teams/" + teamId);
 
-        List<RecommendationProblem> rps = mr.getRecommendation().getProblems();
-        List<ProblemView> problems = new ArrayList<>();
-        for (int i = 0; i < rps.size(); i++) {
-            problems.add(ProblemView.from(i + 1, rps.get(i).getProblem()));
+        List<ProblemView> problemViews = new ArrayList<>();
+        for (int i = 0; i < problems.size(); i++) {
+            problemViews.add(ProblemView.from(i + 1, problems.get(i)));
         }
-        context.setVariable("problems", problems);
+        context.setVariable("problems", problemViews);
 
         try {
             context.setVariable("logoImage", getBase64EncodedImage("static/images/logo.png"));

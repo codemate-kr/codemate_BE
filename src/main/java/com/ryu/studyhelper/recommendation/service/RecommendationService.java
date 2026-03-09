@@ -65,7 +65,7 @@ public class RecommendationService {
                 recommendationCreator.createForSquad(squad, RecommendationType.MANUAL, missionDate)
                         .orElseThrow(() -> new CustomException(CustomResponseStatus.NO_VERIFIED_HANDLE));
 
-        recommendationEmailService.send(result.memberRecommendations());
+        recommendationEmailService.send(result.memberRecommendations(), result.problems());
 
         return RecommendationDetailResponse.from(result.recommendation(), squad.getTeam(), result.problems());
     }

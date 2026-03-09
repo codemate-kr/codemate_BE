@@ -71,7 +71,7 @@ class RecommendationEmailServiceTest {
             when(memberRecommendationRepository.findByRecommendationDateAndEmailSendStatus(
                     any(LocalDate.class), eq(EmailSendStatus.PENDING)))
                     .thenReturn(List.of(mr));
-            when(recommendationMailBuilder.build(mr))
+            when(recommendationMailBuilder.build(eq(mr), any()))
                     .thenReturn(new MailMessage("user@test.com", "제목", "<html>"));
 
             // when
@@ -115,8 +115,8 @@ class RecommendationEmailServiceTest {
 
             MailMessage msg1 = new MailMessage("fail@test.com", "제목", "<html>");
             MailMessage msg2 = new MailMessage("success@test.com", "제목", "<html>");
-            when(recommendationMailBuilder.build(mr1)).thenReturn(msg1);
-            when(recommendationMailBuilder.build(mr2)).thenReturn(msg2);
+            when(recommendationMailBuilder.build(eq(mr1), any())).thenReturn(msg1);
+            when(recommendationMailBuilder.build(eq(mr2), any())).thenReturn(msg2);
 
             doThrow(new RuntimeException("SMTP 오류")).when(mailSender).send(msg1);
             doNothing().when(mailSender).send(msg2);
@@ -142,11 +142,11 @@ class RecommendationEmailServiceTest {
             MemberRecommendation mr1 = createMemberRecommendation(1L, "a@test.com");
             MemberRecommendation mr2 = createMemberRecommendation(2L, "b@test.com");
 
-            when(recommendationMailBuilder.build(any()))
+            when(recommendationMailBuilder.build(any(), any()))
                     .thenReturn(new MailMessage("to", "제목", "<html>"));
 
             // when
-            recommendationEmailService.send(List.of(mr1, mr2));
+            recommendationEmailService.send(List.of(mr1, mr2), List.of());
 
             // then
             verify(mailSender, times(2)).send(any(MailMessage.class));
@@ -164,7 +164,7 @@ class RecommendationEmailServiceTest {
             MemberRecommendation mr = createMemberRecommendation(1L, null);
 
             // when
-            recommendationEmailService.send(List.of(mr));
+            recommendationEmailService.send(List.of(mr), List.of());
 
             // then
             assertThat(mr.getEmailSendStatus()).isEqualTo(EmailSendStatus.FAILED);
@@ -178,7 +178,7 @@ class RecommendationEmailServiceTest {
             MemberRecommendation mr = createMemberRecommendation(1L, "  ");
 
             // when
-            recommendationEmailService.send(List.of(mr));
+            recommendationEmailService.send(List.of(mr), List.of());
 
             // then
             assertThat(mr.getEmailSendStatus()).isEqualTo(EmailSendStatus.FAILED);

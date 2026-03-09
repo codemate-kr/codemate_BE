@@ -1,10 +1,12 @@
 package com.ryu.studyhelper.recommendation.service;
 
 import com.ryu.studyhelper.common.MissionCyclePolicy;
-import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.infrastructure.mail.sender.MailSender;
+import com.ryu.studyhelper.problem.domain.Problem;
+import com.ryu.studyhelper.recommendation.domain.RecommendationProblem;
 import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
+import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.mailbuilder.RecommendationMailBuilder;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
 import lombok.RequiredArgsConstructor;
@@ -93,15 +95,26 @@ public class RecommendationEmailService {
     }
 
     /**
-     * 수동 추천: 해당 추천의 팀원들에게 이메일 즉시 발송.
+     * 배치 이메일 발송용 — mr에서 problems를 직접 추출 (JOIN FETCH로 로드된 경우에만 호출)
      */
-    public void send(List<MemberRecommendation> memberRecommendations) {
+    private boolean sendEmail(MemberRecommendation mr) {
+        List<Problem> problems = mr.getRecommendation().getProblems().stream()
+                .map(RecommendationProblem::getProblem)
+                .toList();
+        return sendEmail(mr, problems);
+    }
+
+    /**
+     * 수동 추천: 해당 추천의 팀원들에게 이메일 즉시 발송.
+     * problems는 CreationResult에서 직접 전달 — lazy 로딩 없이 사용.
+     */
+    public void send(List<MemberRecommendation> memberRecommendations, List<Problem> problems) {
         for (MemberRecommendation mr : memberRecommendations) {
-            sendEmail(mr);
+            sendEmail(mr, problems);
         }
     }
 
-    private boolean sendEmail(MemberRecommendation mr) {
+    private boolean sendEmail(MemberRecommendation mr, List<Problem> problems) {
         try {
             String email = mr.getMember().getEmail();
             if (email == null || email.isBlank()) {
@@ -111,7 +124,7 @@ public class RecommendationEmailService {
                 return false;
             }
 
-            mailSender.send(recommendationMailBuilder.build(mr));
+            mailSender.send(recommendationMailBuilder.build(mr, problems));
 
             mr.markEmailAsSent();
             memberRecommendationRepository.save(mr);
