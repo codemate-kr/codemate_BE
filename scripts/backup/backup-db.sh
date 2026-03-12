@@ -55,8 +55,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="codemate_${TIMESTAMP}.sql.gz"
 
 # 보존 설정
-LOCAL_RETENTION_DAYS=1   # 로컬에 보관할 일수
-S3_RETENTION_DAYS=30     # S3에 보관할 일수
+LOCAL_RETENTION_DAYS=1   # 로컬에 보관할 일수 (S3는 수명 주기 규칙으로 30일 관리)
 
 # Discord Webhook
 DISCORD_WEBHOOK="${DISCORD_WEBHOOK_SCHEDULER:-}"
@@ -185,27 +184,6 @@ if [[ ${DELETED_COUNT} -gt 0 ]]; then
     log "삭제된 로컬 백업: ${DELETED_COUNT}개"
 fi
 
-# ============================================
-# 오래된 S3 백업 정리 (--local-only 아닐 때만)
-# ============================================
-if [[ "${1:-}" != "--local-only" ]] && command -v aws &> /dev/null; then
-    log "오래된 S3 백업 정리 중 (${S3_RETENTION_DAYS}일 이상)..."
-    CUTOFF_DATE=$(date -d "${S3_RETENTION_DAYS} days ago" +%Y-%m-%d 2>/dev/null \
-        || date -v-${S3_RETENTION_DAYS}d +%Y-%m-%d)  # macOS 호환
-
-    S3_DELETED=0
-    while IFS= read -r line; do
-        FILE_DATE=$(echo "${line}" | awk '{print $1}')
-        FILE_NAME=$(echo "${line}" | awk '{print $4}')
-        if [[ -n "${FILE_NAME}" ]] && [[ "${FILE_DATE}" < "${CUTOFF_DATE}" ]]; then
-            aws s3 rm "s3://${S3_BUCKET}/${FILE_NAME}" --quiet && S3_DELETED=$((S3_DELETED + 1))
-        fi
-    done < <(aws s3 ls "s3://${S3_BUCKET}/" 2>/dev/null || true)
-
-    if [[ ${S3_DELETED} -gt 0 ]]; then
-        log "삭제된 S3 백업: ${S3_DELETED}개"
-    fi
-fi
 
 # ============================================
 # 완료 및 Discord 알림
