@@ -47,7 +47,7 @@ DB_USER="${DB_USERNAME:-root}"
 DB_PASSWORD="${DB_PASSWORD:?".env에 DB_PASSWORD가 설정되지 않았습니다."}"
 
 # S3 설정 (환경변수로 오버라이드 가능)
-S3_BUCKET="${AWS_S3_BUCKET:-your-bucket-name}"
+S3_BUCKET="${AWS_S3_BUCKET:?".env에 AWS_S3_BUCKET이 설정되지 않았습니다."}"
 
 # 로컬 백업 디렉토리
 BACKUP_DIR="${BACKUP_DIR:-$(dirname "$0")/backups}"

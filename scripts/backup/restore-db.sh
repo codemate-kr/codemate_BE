@@ -31,7 +31,7 @@ DB_NAME="${DB_NAME:-codemate}"
 DB_USER="${DB_USERNAME:-root}"
 DB_PASSWORD="${DB_PASSWORD:?".env에 DB_PASSWORD가 설정되지 않았습니다."}"
 
-S3_BUCKET="${AWS_S3_BUCKET:-your-bucket-name}"
+S3_BUCKET="${AWS_S3_BUCKET:?".env에 AWS_S3_BUCKET이 설정되지 않았습니다."}"
 
 BACKUP_DIR="${BACKUP_DIR:-$(dirname "$0")/backups}"
 
@@ -73,6 +73,7 @@ list_s3_backups() {
         error_exit "AWS CLI가 설치되지 않았습니다."
     fi
 
+    unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
     log "S3 백업 목록 (s3://${S3_BUCKET}/):"
     echo ""
     aws s3 ls "s3://${S3_BUCKET}/" | awk '{print "  " $4 " (" $3 " bytes, " $1 " " $2 ")"}'
@@ -100,6 +101,11 @@ case "${1:-}" in
         BACKUP_FILE="${2:-}"
         if [[ -z "${BACKUP_FILE}" ]]; then
             error_exit "--from-s3 옵션에는 파일명이 필요합니다."
+        fi
+        # path traversal 방지: basename 추출 + 파일명 패턴 검증
+        BACKUP_FILE="$(basename "${BACKUP_FILE}")"
+        if [[ ! "${BACKUP_FILE}" =~ ^codemate_[0-9]{8}_[0-9]{6}\.sql\.gz$ ]]; then
+            error_exit "유효하지 않은 백업 파일명: ${BACKUP_FILE} (형식: codemate_YYYYMMDD_HHMMSS.sql.gz)"
         fi
         ;;
     "")
@@ -129,8 +135,12 @@ if [[ "${FROM_S3}" == true ]]; then
         error_exit "AWS CLI가 설치되지 않았습니다."
     fi
 
+    unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+    TEMP_FILE="$(mktemp /tmp/codemate_backup_XXXXXX.sql.gz)"
+    chmod 600 "${TEMP_FILE}"
+    trap 'rm -f "${TEMP_FILE}"' EXIT INT ERR
+
     log "S3에서 다운로드 중: ${BACKUP_FILE}"
-    TEMP_FILE="/tmp/${BACKUP_FILE}"
     aws s3 cp "s3://${S3_BUCKET}/${BACKUP_FILE}" "${TEMP_FILE}"
     BACKUP_FILE="${TEMP_FILE}"
 fi
@@ -160,16 +170,11 @@ fi
 # ============================================
 log "데이터베이스 복원 중..."
 
-gunzip -c "${BACKUP_FILE}" | docker exec -i "${CONTAINER_NAME}" mysql \
+gunzip -c "${BACKUP_FILE}" | docker exec -i -e MYSQL_PWD="${DB_PASSWORD}" "${CONTAINER_NAME}" mysql \
     -u"${DB_USER}" \
-    -p"${DB_PASSWORD}" \
     "${DB_NAME}"
 
 log "복원 완료!"
-
-# S3에서 다운받은 임시 파일 정리
-if [[ "${FROM_S3}" == true ]] && [[ -f "/tmp/${BACKUP_FILE##*/}" ]]; then
-    rm -f "/tmp/${BACKUP_FILE##*/}"
-fi
+# 임시 파일은 trap이 EXIT 시 자동 정리
 
 exit 0

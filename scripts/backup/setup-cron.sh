@@ -15,7 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_SCRIPT="${SCRIPT_DIR}/backup-db.sh"
 LOG_FILE="${SCRIPT_DIR}/logs/db-backup.log"
-CRON_MARKER="backup-db.sh"  # 중복 감지용 키워드
+CRON_MARKER="# codemate-db-backup"  # 중복 감지용 고유 토큰
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -37,18 +37,18 @@ chmod +x "${BACKUP_SCRIPT}"
 mkdir -p "${SCRIPT_DIR}/logs"
 
 # 이미 등록된 경우 스킵 (멱등성)
-if crontab -l 2>/dev/null | grep -q "${CRON_MARKER}"; then
+if crontab -l 2>/dev/null | grep -qF "${CRON_MARKER}"; then
     log "이미 crontab에 등록되어 있습니다."
-    crontab -l | grep "${CRON_MARKER}"
+    crontab -l | grep -F "${CRON_MARKER}"
     exit 0
 fi
 
-CRON_JOB="0 3 * * * ${BACKUP_SCRIPT} >> ${LOG_FILE} 2>&1"
+CRON_JOB="0 3 * * * ${BACKUP_SCRIPT} >> ${LOG_FILE} 2>&1 ${CRON_MARKER}"
 
 (crontab -l 2>/dev/null; echo "${CRON_JOB}") | crontab -
 
 log "crontab 등록 완료 (매일 새벽 3시):"
-crontab -l | grep "${CRON_MARKER}"
+crontab -l | grep -F "${CRON_MARKER}"
 log ""
 log "로그 확인: tail -f ${LOG_FILE}"
 log "수동 실행: ${BACKUP_SCRIPT}"
