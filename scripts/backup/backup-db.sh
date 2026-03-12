@@ -133,9 +133,9 @@ mkdir -p "${BACKUP_DIR}"
 # ============================================
 log "MySQL 덤프 생성 중..."
 
-docker exec "${CONTAINER_NAME}" mysqldump \
+# MYSQL_PWD 환경변수로 전달: 커맨드라인에 비밀번호 노출 방지 (ps aux 등)
+docker exec -e MYSQL_PWD="${DB_PASSWORD}" "${CONTAINER_NAME}" mysqldump \
     -u"${DB_USER}" \
-    -p"${DB_PASSWORD}" \
     --single-transaction \
     --routines \
     --triggers \
@@ -146,11 +146,14 @@ if [[ ! -s "/tmp/${BACKUP_FILE}" ]]; then
     error_exit "백업 파일 생성 실패 (파일이 비어있음)"
 fi
 
+chmod 600 "/tmp/${BACKUP_FILE}"
+
 BACKUP_SIZE=$(du -h "/tmp/${BACKUP_FILE}" | cut -f1)
 log "덤프 완료: ${BACKUP_FILE} (${BACKUP_SIZE})"
 
 # 로컬에 복사
 cp "/tmp/${BACKUP_FILE}" "${BACKUP_DIR}/${BACKUP_FILE}"
+chmod 600 "${BACKUP_DIR}/${BACKUP_FILE}"
 log "로컬 저장 완료: ${BACKUP_DIR}/${BACKUP_FILE}"
 
 # ============================================
