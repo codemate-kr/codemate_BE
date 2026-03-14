@@ -62,7 +62,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 5. 사용자 상태에 따라 리다이렉트 결정 (Access Token만 URL로 전달)
         String redirectUrl = determineRedirectUrl(member, accessToken);
 
-        log.info("OAuth2 login success for user: {}", member.getEmail());
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
