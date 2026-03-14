@@ -81,6 +81,7 @@ resilience4j:
         exponential-backoff-multiplier: 2         # max-attempts:3 기준 대기 1s → 2s
         retry-exceptions:
           - org.springframework.web.client.ResourceAccessException   # 타임아웃, 네트워크
+          - org.springframework.web.client.HttpServerErrorException  # 5xx (502, 503, 504 등 일시적 서버 장애)
         ignore-exceptions:
           - org.springframework.web.client.HttpClientErrorException  # 4xx (429 포함)
   circuitbreaker:
