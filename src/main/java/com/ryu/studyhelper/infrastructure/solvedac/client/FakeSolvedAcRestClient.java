@@ -9,6 +9,8 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -25,8 +27,14 @@ import java.util.List;
 @Slf4j
 public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
 
+    private enum FailMode {
+        NONE,         // 정상 동작 (지연 시뮬레이션)
+        NETWORK_ERROR, // ResourceAccessException — 타임아웃/네트워크 장애
+        SERVER_ERROR   // HttpServerErrorException(502) — solved.ac 서버 장애
+    }
+
     private static final long DELAY_MS = 5_000;
-    private static final boolean FAIL_IMMEDIATELY = false; // true → 즉시 RuntimeException (failure-rate-threshold 트리거)
+    private static final FailMode FAIL_MODE = FailMode.SERVER_ERROR;
 
     @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
@@ -70,9 +78,13 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     }
 
     private void simulate(String method, String param) {
-        if (FAIL_IMMEDIATELY) {
-            log.debug("[FAKE] {} 즉시 에러 시뮬레이션 - param: {}", method, param);
-            throw new ResourceAccessException("[FAKE] SolvedAC 즉시 에러");
+        if (FAIL_MODE == FailMode.NETWORK_ERROR) {
+            log.debug("[FAKE] {} 네트워크 에러 시뮬레이션 - param: {}", method, param);
+            throw new ResourceAccessException("[FAKE] SolvedAC 네트워크 에러");
+        }
+        if (FAIL_MODE == FailMode.SERVER_ERROR) {
+            log.debug("[FAKE] {} 서버 에러 시뮬레이션 (502) - param: {}", method, param);
+            throw new HttpServerErrorException(HttpStatus.BAD_GATEWAY, "[FAKE] SolvedAC 502 Bad Gateway");
         }
         log.debug("[FAKE] {} 호출 - param: {}, {}ms 지연 시뮬레이션", method, param, DELAY_MS);
         try {
