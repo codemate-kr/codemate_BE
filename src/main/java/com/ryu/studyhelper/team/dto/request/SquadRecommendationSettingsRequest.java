@@ -27,6 +27,6 @@ public record SquadRecommendationSettingsRequest(
         @Max(value = 10, message = "추천 문제 개수는 10 이하여야 합니다.")
         Integer problemCount,
 
-        @Size(max = 10, message = "포함 태그는 최대 10개까지 설정 가능합니다.")
+        @Size(max = 20, message = "포함 태그는 최대 20개까지 설정 가능합니다.")
         List<String> includeTags
 ) {}
