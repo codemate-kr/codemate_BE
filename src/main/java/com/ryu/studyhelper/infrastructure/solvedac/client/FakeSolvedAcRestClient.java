@@ -34,7 +34,7 @@ public class FakeSolvedAcRestClient implements SolvedAcHttpClient {
     }
 
     private static final long DELAY_MS = 5_000;
-    private static final FailMode FAIL_MODE = FailMode.SERVER_ERROR;
+    private static final FailMode FAIL_MODE = FailMode.NONE;
 
     @Retry(name = "solvedAc")
     @CircuitBreaker(name = "solvedAc")
