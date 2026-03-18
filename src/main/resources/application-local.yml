@@ -53,7 +53,7 @@ springdoc:
 
 # Sentry 비활성화 (로컬에서는 알림 불필요)
 sentry:
-  enabled: false
+  dsn: ""
 
 # 로깅 설정
 logging:
