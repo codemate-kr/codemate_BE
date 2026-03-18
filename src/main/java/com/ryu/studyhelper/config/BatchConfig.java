@@ -18,6 +18,8 @@ public class BatchConfig {
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("recommendation-batch-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }
