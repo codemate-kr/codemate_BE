@@ -51,6 +51,10 @@ springdoc:
     enabled: true
     # doc-expansion: list  # API 목록 확장 표시
 
+# Sentry 비활성화 (로컬에서는 알림 불필요)
+sentry:
+  dsn: ""
+
 # 로깅 설정
 logging:
   level:

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import java.util.concurrent.Executor;
 
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -29,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +54,9 @@ class RecommendationBatchServiceTest {
     @Mock
     private RecommendationCreator recommendationCreator;
 
+    @Mock
+    private Executor recommendationBatchExecutor;
+
     private RecommendationBatchService scheduledRecommendationService;
 
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Seoul");
@@ -65,13 +70,20 @@ class RecommendationBatchServiceTest {
     }
 
     private void setupServiceWithClock(Clock clock) {
+        // 테스트에서 executor mock이 태스크를 동기적으로 실행하도록 설정 (미사용 stub 경고 방지를 위해 lenient)
+        org.mockito.Mockito.lenient().doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(recommendationBatchExecutor).execute(any(Runnable.class));
+
         scheduledRecommendationService = new RecommendationBatchService(
                 clock,
                 squadRepository,
                 teamMemberRepository,
                 recommendationRepository,
                 recommendationSaver,
-                recommendationCreator
+                recommendationCreator,
+                recommendationBatchExecutor
         );
     }
 
