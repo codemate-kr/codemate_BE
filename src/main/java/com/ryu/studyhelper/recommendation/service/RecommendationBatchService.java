@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -110,12 +111,19 @@ public class RecommendationBatchService {
 
     // Phase 2: 스쿼드당 SolvedAC HTTP 호출이 병목 → recommendationBatchExecutor로 동시 처리
     private void processAll(List<PendingRecommendation> pendingList, AtomicInteger successCount, AtomicInteger failCount) {
-        pendingList.stream()
-                .map(entry -> CompletableFuture.runAsync(
+        List<CompletableFuture<Void>> futures = new ArrayList<>(pendingList.size());
+        for (PendingRecommendation entry : pendingList) {
+            try {
+                futures.add(CompletableFuture.runAsync(
                         () -> processSquad(entry, successCount, failCount),
-                        recommendationBatchExecutor))
-                .toList()
-                .forEach(CompletableFuture::join);
+                        recommendationBatchExecutor));
+            } catch (RejectedExecutionException e) {
+                failCount.incrementAndGet();
+                log.error("[{}] 스쿼드 '{}' 작업 제출 실패 — Executor 포화",
+                        entry.squad().getTeam().getName(), entry.squad().getName(), e);
+            }
+        }
+        futures.forEach(CompletableFuture::join);
     }
 
     private void processSquad(PendingRecommendation entry, AtomicInteger successCount, AtomicInteger failCount) {
