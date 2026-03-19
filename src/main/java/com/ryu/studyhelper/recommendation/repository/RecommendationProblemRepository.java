@@ -21,13 +21,13 @@ import java.util.List;
 public interface RecommendationProblemRepository extends JpaRepository<RecommendationProblem, Long> {
 
     /**
-     * 특정 추천의 문제들을 순서대로 조회
-     * 문제 순서는 id 순서로 보장됩니다.
+     * 특정 추천의 문제들을 삽입 순서대로 조회
      *
      * @param recommendationId 추천 ID
-     * @return 문제 목록 (id 순서로 정렬)
+     * @return 문제 목록 (삽입 순서)
      */
     @Query("SELECT rp FROM RecommendationProblem rp " +
+            "JOIN FETCH rp.problem " +
             "WHERE rp.recommendation.id = :recommendationId " +
             "ORDER BY rp.id ASC")
     List<RecommendationProblem> findByRecommendationIdOrderById(@Param("recommendationId") Long recommendationId);
