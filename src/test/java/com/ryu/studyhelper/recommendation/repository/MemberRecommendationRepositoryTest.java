@@ -97,19 +97,18 @@ class MemberRecommendationRepositoryTest {
     }
 
     @Test
-    @DisplayName("1명에 대해 같은 쿼리를 10번 반복하면 problems가 10배 누적된다")
-    void problemsAreInflated_whenSameQueryRepeated() {
+    @DisplayName("1명에 대해 같은 쿼리를 10번 반복해도 problems는 누적되지 않는다")
+    void problemsAreNotInflated_whenSameQueryRepeatedForSingleMember() {
         // given
         LocalDate missionDate = MissionCyclePolicy.getMissionDate(clock);
         Recommendation recommendation = createRecommendation(missionDate);
         createRecommendationProblems(recommendation, PROBLEM_COUNT);
-        createMember("user1", "user1@test.com");
         createMemberRecommendation(createMember("solo", "solo@test.com"), recommendation);
 
         entityManager.flush();
         entityManager.clear();
 
-        // when: 같은 쿼리 10번 반복 (캐시 초기화 없이)
+        // when: 같은 쿼리 10번 반복 — 컬렉션이 한 번 초기화되면 이후 쿼리는 캐시를 재사용하므로 누적 없음
         for (int i = 0; i < 10; i++) {
             memberRecommendationRepository
                     .findByRecommendationDateAndEmailSendStatus(missionDate, EmailSendStatus.PENDING);
