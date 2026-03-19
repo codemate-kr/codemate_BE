@@ -9,14 +9,16 @@ import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.dto.internal.BatchResult;
 import com.ryu.studyhelper.recommendation.mailbuilder.RecommendationMailBuilder;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 추천 이메일 발송
@@ -31,6 +33,7 @@ public class RecommendationEmailService {
     private final MailSender mailSender;
     private final RecommendationMailBuilder recommendationMailBuilder;
     private final MemberRecommendationRepository memberRecommendationRepository;
+    private final RecommendationProblemRepository recommendationProblemRepository;
 
     /**
      * 배치: PENDING 상태의 추천들에 대해 이메일 발송
@@ -43,11 +46,14 @@ public class RecommendationEmailService {
         List<MemberRecommendation> pendingRecommendations = memberRecommendationRepository
                 .findByRecommendationDateAndEmailSendStatus(missionDate, EmailSendStatus.PENDING);
 
+        Map<Long, List<Problem>> problemsByRecommendationId = loadProblemsByRecommendation(pendingRecommendations);
+
         int successCount = 0;
         int failCount = 0;
 
         for (MemberRecommendation mr : pendingRecommendations) {
-            if (sendEmail(mr)) {
+            List<Problem> problems = problemsByRecommendationId.get(mr.getRecommendation().getId());
+            if (sendEmail(mr, problems)) {
                 successCount++;
             } else {
                 failCount++;
@@ -71,6 +77,8 @@ public class RecommendationEmailService {
         List<MemberRecommendation> failedRecommendations = memberRecommendationRepository
                 .findByRecommendationDateAndEmailSendStatus(missionDate, EmailSendStatus.FAILED);
 
+        Map<Long, List<Problem>> problemsByRecommendationId = loadProblemsByRecommendation(failedRecommendations);
+
         int successCount = 0;
         int failCount = 0;
 
@@ -82,7 +90,8 @@ public class RecommendationEmailService {
                 continue;
             }
             mr.retryAsPending();
-            if (sendEmail(mr)) {
+            List<Problem> problems = problemsByRecommendationId.get(mr.getRecommendation().getId());
+            if (sendEmail(mr, problems)) {
                 successCount++;
             } else {
                 failCount++;
@@ -94,14 +103,15 @@ public class RecommendationEmailService {
         return new BatchResult(failedRecommendations.size(), successCount, 0, failCount);
     }
 
-    /**
-     * 배치 이메일 발송용 — mr에서 problems를 직접 추출 (JOIN FETCH로 로드된 경우에만 호출)
-     */
-    private boolean sendEmail(MemberRecommendation mr) {
-        List<Problem> problems = mr.getRecommendation().getProblems().stream()
-                .map(RecommendationProblem::getProblem)
-                .toList();
-        return sendEmail(mr, problems);
+    private Map<Long, List<Problem>> loadProblemsByRecommendation(List<MemberRecommendation> memberRecommendations) {
+        return memberRecommendations.stream()
+                .map(mr -> mr.getRecommendation().getId())
+                .distinct()
+                .collect(Collectors.toMap(
+                        id -> id,
+                        id -> recommendationProblemRepository.findByRecommendationIdOrderById(id)
+                                .stream().map(RecommendationProblem::getProblem).toList()
+                ));
     }
 
     /**

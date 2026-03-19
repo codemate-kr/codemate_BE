@@ -9,6 +9,7 @@ import com.ryu.studyhelper.recommendation.domain.member.EmailSendStatus;
 import com.ryu.studyhelper.recommendation.domain.member.MemberRecommendation;
 import com.ryu.studyhelper.recommendation.mailbuilder.RecommendationMailBuilder;
 import com.ryu.studyhelper.recommendation.repository.MemberRecommendationRepository;
+import com.ryu.studyhelper.recommendation.repository.RecommendationProblemRepository;
 import com.ryu.studyhelper.team.domain.Team;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +46,9 @@ class RecommendationEmailServiceTest {
     @Mock
     private MemberRecommendationRepository memberRecommendationRepository;
 
+    @Mock
+    private RecommendationProblemRepository recommendationProblemRepository;
+
     @InjectMocks
     private RecommendationEmailService recommendationEmailService;
 
@@ -55,6 +59,7 @@ class RecommendationEmailServiceTest {
         Instant instant = ldt.atZone(ZONE_ID).toInstant();
         lenient().when(clock.instant()).thenReturn(instant);
         lenient().when(clock.getZone()).thenReturn(ZONE_ID);
+        lenient().when(recommendationProblemRepository.findByRecommendationIdOrderById(any())).thenReturn(List.of());
     }
 
     @Nested
@@ -201,6 +206,7 @@ class RecommendationEmailServiceTest {
         setFieldValue(team, "id", 1L);
 
         Recommendation recommendation = Recommendation.createPending(1L, 1L, RecommendationType.SCHEDULED, LocalDate.now());
+        setFieldValue(recommendation, "id", id);
 
         MemberRecommendation mr = MemberRecommendation.createForSquad(member, recommendation, team, 1L);
         setFieldValue(mr, "id", id);
