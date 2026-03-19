@@ -27,6 +27,7 @@ public interface RecommendationProblemRepository extends JpaRepository<Recommend
      * @return 문제 목록 (삽입 순서)
      */
     @Query("SELECT rp FROM RecommendationProblem rp " +
+            "JOIN FETCH rp.problem " +
             "WHERE rp.recommendation.id = :recommendationId " +
             "ORDER BY rp.id ASC")
     List<RecommendationProblem> findByRecommendationIdOrderById(@Param("recommendationId") Long recommendationId);
