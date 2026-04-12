@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings("deprecation") // OkHttp3ClientHttpRequestFactory: Spring 6.1 deprecated, Spring 7 제거 예정. JDK HttpClient는 Cloudflare TLS 지문(JA3) 차단으로 사용 불가.
 @Component
 public class SolvedAcRestClient implements SolvedAcHttpClient {
     private static final String DEFAULT_BASE_URL = "https://solved.ac/api/v3";
@@ -33,6 +32,7 @@ public class SolvedAcRestClient implements SolvedAcHttpClient {
                 .build();
     }
 
+    @SuppressWarnings("deprecation") // OkHttp3ClientHttpRequestFactory: Spring 6.1 deprecated, Spring 7 제거 예정. JDK HttpClient는 Cloudflare TLS 지문(JA3) 차단으로 사용 불가.
     private OkHttp3ClientHttpRequestFactory buildRequestFactory() {
         // OkHttp: HTTP/2 우선 협상(ALPN), HTTP/1.1 폴백, 커넥션 풀 자동 관리
         // Android/Chrome 유사 TLS 지문(JA3)으로 Cloudflare managed challenge 통과
