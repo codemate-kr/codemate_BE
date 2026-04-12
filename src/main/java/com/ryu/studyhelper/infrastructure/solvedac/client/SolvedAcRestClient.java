@@ -5,26 +5,22 @@ import com.ryu.studyhelper.infrastructure.solvedac.dto.ProblemSearchResponse;
 import com.ryu.studyhelper.infrastructure.solvedac.dto.SolvedAcUserResponse;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import org.apache.hc.client5.http.config.ConnectionConfig;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.util.Timeout;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class SolvedAcRestClient implements SolvedAcHttpClient {
     private static final String DEFAULT_BASE_URL = "https://solved.ac/api/v3";
-    private static final int CONNECT_TIMEOUT_SECONDS = 3;            // TCP 연결 타임아웃
-    private static final int CONN_REQUEST_TIMEOUT_SECONDS = 30;     // 풀에서 커넥션 대기 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
-    private static final int RESPONSE_TIMEOUT_SECONDS = 30;         // 서버 응답 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
-    private static final int MAX_CONN_PER_ROUTE = 5;                // Apache HttpClient5 기본값
-    private static final int MAX_CONN_TOTAL = 25;                   // Apache HttpClient5 기본값
+    private static final int CONNECT_TIMEOUT_SECONDS = 3;       // TCP 연결 타임아웃
+    private static final int RESPONSE_TIMEOUT_SECONDS = 30;     // 서버 응답 타임아웃 (최후 안전망, 지연 감지는 서킷브레이커 담당)
 
     private final RestClient rest;
 
@@ -36,24 +32,17 @@ public class SolvedAcRestClient implements SolvedAcHttpClient {
                 .build();
     }
 
-    private HttpComponentsClientHttpRequestFactory buildRequestFactory() {
-        var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
-                .setMaxConnTotal(MAX_CONN_TOTAL)
-                .setDefaultConnectionConfig(ConnectionConfig.custom()
-                        .setConnectTimeout(Timeout.ofSeconds(CONNECT_TIMEOUT_SECONDS))
-                        .build())
+    @SuppressWarnings("deprecation") // OkHttp3ClientHttpRequestFactory: Spring 6.1 deprecated, Spring 7 제거 예정. JDK HttpClient는 Cloudflare TLS 지문(JA3) 차단으로 사용 불가.
+    private OkHttp3ClientHttpRequestFactory buildRequestFactory() {
+        // OkHttp: HTTP/2 우선 협상(ALPN), HTTP/1.1 폴백, 커넥션 풀 자동 관리
+        // Android/Chrome 유사 TLS 지문(JA3)으로 Cloudflare managed challenge 통과
+        var okHttpClient = new OkHttpClient.Builder()
+                .protocols(List.of(Protocol.HTTP_2, Protocol.HTTP_1_1))
+                .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(RESPONSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .build();
 
-        var httpClient = HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .setDefaultRequestConfig(RequestConfig.custom()
-                        .setConnectionRequestTimeout(Timeout.ofSeconds(CONN_REQUEST_TIMEOUT_SECONDS))
-                        .setResponseTimeout(Timeout.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
-                        .build())
-                .build();
-
-        return new HttpComponentsClientHttpRequestFactory(httpClient);
+        return new OkHttp3ClientHttpRequestFactory(okHttpClient);
     }
 
 
